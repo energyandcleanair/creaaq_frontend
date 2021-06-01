@@ -1,42 +1,64 @@
 {
-  "name": "creaaq",
+  "name": "creaaq_frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "vue-cli-service serve",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "test": "npm run test:unit",
+    "test:unit": "vue-cli-service test:unit",
+    "lint": "vue-cli-service lint",
+    "check:master": "if git branch --show-current | grep ^master$ > /dev/null; then echo 'Git branch: master'; else echo 'Not in the master branch' 1>&2 && exit 1; fi",
+    "bump": "npm run check:master && npx bump prompt --tag 'v%s' --commit 'v%s' package.json package-lock.json",
+    "patch": "npm run check:master && npx bump patch --tag 'v%s' --commit 'v%s' package.json package-lock.json",
+    "preversion": "echo 'Lint & test before bump...' && npm run lint && npm run test",
+    "deploy": "git push origin master --tags"
   },
   "dependencies": {
-    "core-js": "^3.6.5",
-    "vue": "^2.6.11"
+    "@mdi/js": "^5.9.55",
+    "@types/dot-object": "^2.1.2",
+    "@types/lodash.get": "^4.4.6",
+    "@types/lodash.set": "^4.3.6",
+    "axios": "^0.21.1",
+    "lodash.get": "^4.4.2",
+    "lodash.set": "^4.3.2",
+    "register-service-worker": "^1.7.1",
+    "vue": "^2.6.11",
+    "vue-axios": "^3.2.4",
+    "vue-class-component": "^7.2.3",
+    "vue-i18n": "^8.24.4",
+    "vue-property-decorator": "^9.1.2",
+    "vue-router": "^3.2.0",
+    "vuetify": "^2.4.2",
+    "vuex": "^3.4.0",
+    "vuex-persistedstate": "^4.0.0-beta.3"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^4.5.0",
-    "@vue/cli-plugin-eslint": "^4.5.0",
-    "@vue/cli-service": "^4.5.0",
-    "babel-eslint": "^10.1.0",
+    "@types/jest": "^24.0.19",
+    "@typescript-eslint/eslint-plugin": "^4.18.0",
+    "@typescript-eslint/parser": "^4.18.0",
+    "@vue/cli-plugin-eslint": "~4.5.0",
+    "@vue/cli-plugin-pwa": "~4.5.0",
+    "@vue/cli-plugin-router": "~4.5.0",
+    "@vue/cli-plugin-typescript": "~4.5.0",
+    "@vue/cli-plugin-unit-jest": "~4.5.0",
+    "@vue/cli-plugin-vuex": "~4.5.0",
+    "@vue/cli-service": "~4.5.0",
+    "@vue/eslint-config-typescript": "^7.0.0",
+    "@vue/test-utils": "^1.0.3",
+    "dot-object": "^2.1.4",
+    "dotenv-expand": "^5.1.0",
+    "dotenv-flow": "^3.2.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
-    "vue-template-compiler": "^2.6.11"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
-    ],
-    "parserOptions": {
-      "parser": "babel-eslint"
-    },
-    "rules": {}
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ]
+    "sass": "^1.32.13",
+    "sass-loader": "^10.2.0",
+    "typescript": "~4.1.5",
+    "version-bump-prompt": "^6.1.0",
+    "vue-cli-plugin-vuetify": "~2.4.0",
+    "vue-template-compiler": "^2.6.11",
+    "vuetify-dialog": "^2.0.14",
+    "vuetify-loader": "^1.7.0"
+  }
 }
