@@ -6,5 +6,11 @@ steps:
   entrypoint: yarn
   args: ["run", "build"]
 - name: "gcr.io/cloud-builders/gcloud"
-  args: ["app", "deploy"]
+  args: 
+    - 'app'
+    - 'deploy'
+    - 'app.yaml'
+    - '--quiet'
+    - '--stop-previous-version'
+    - '--version=production'
 timeout: "1600s"
