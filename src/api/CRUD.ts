@@ -8,18 +8,24 @@ export default class CRUD<T> {
     public resourceURLPrefix: string
   ) {}
 
-  findAll (query: any = {}, data?: any): Promise<T[]> {
-    const searchParams = new URLSearchParams()
-    Object
-      .keys(query)
-      .forEach(key => {
-        let val = query[key]
-        if (!val) return
-        if (typeof val === 'object') val = JSON.stringify(val)
-        searchParams.append(key, val)
-      })
+  findAll (query: {[key: string]: any}|string = {}, data?: any): Promise<T[]> {
+    let searchParamsStr: string = ''
 
-    const searchParamsStr = searchParams.toString()
+    if (typeof query === 'string') {
+      searchParamsStr = query
+    } else {
+      const searchParams = new URLSearchParams()
+      Object
+        .keys(query)
+        .forEach(key => {
+          let val = query[key]
+          if (!val) return
+          if (typeof val === 'object') val = JSON.stringify(val)
+          searchParams.append(key, val)
+        })
+      searchParamsStr = searchParams.toString()
+    }
+
     return API(Object.assign({
       method: 'GET',
       url: this.resourceURLPrefix + (searchParamsStr ? `?${searchParamsStr}` : ''),

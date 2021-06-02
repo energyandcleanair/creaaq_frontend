@@ -111,6 +111,13 @@
       </v-col>
     </v-row>
   </v-container>
+
+  <v-container>
+    <MeasurementsChart
+      v-if="!isLoading"
+      :query="queryForm"
+    />
+  </v-container>
 </div>
 </template>
 
@@ -125,28 +132,23 @@ import City from '@/types/City'
 import Source from '@/types/Source'
 import CityAPI from '@/api/CityAPI'
 import SelectBox from './components/SelectBox.vue'
-
-interface QueryForm {
-  cities: City[]
-  countries: Country[]
-  sources: Source[]
-  dateStart: number
-  dateEnd: number
-}
+import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
+import MeasurementsQuery from './components/MeasurementsChart/MeasurementsQuery'
 
 interface URLQuery {
   cities: City['id'][]
   countries: Country['id'][]
   sources: Source['value'][]
   date_start: number
-  date_end: number
+  date_end?: number
 }
 
 const today = moment(moment().format('YYYY-MM-DD')).valueOf()
 
 @Component({
   components: {
-    SelectBox
+    SelectBox,
+    MeasurementsChart,
   }
 })
 export default class ViewMeasurements extends Vue {
@@ -158,7 +160,7 @@ export default class ViewMeasurements extends Vue {
   private isMenuDateStartOpen: boolean = false
   private isMenuDateEndOpen: boolean = false
 
-  private queryForm: QueryForm = {
+  private queryForm: MeasurementsQuery = {
     cities: [],
     countries: [],
     sources: [],
@@ -286,13 +288,13 @@ export default class ViewMeasurements extends Vue {
       this.queryForm.sources = [this.sources[0]]
     }
 
-    if (this.urlQuery.date_start > 0) {
+    if ((this.urlQuery.date_start || 0) > 0) {
       this.queryForm.dateStart = this.urlQuery.date_start
     } else if (!this.queryForm.dateStart) {
       this.queryForm.dateStart = today
     }
 
-    if (this.urlQuery.date_end > 0) {
+    if ((this.urlQuery.date_end || 0) > 0) {
       this.queryForm.dateEnd = this.urlQuery.date_end
     } else if (!this.queryForm.dateEnd) {
       this.queryForm.dateEnd = today
@@ -314,9 +316,9 @@ export default class ViewMeasurements extends Vue {
   }
 
   private onChangeCountries () {
-    this.onChangeForm()
     this.queryForm.cities = this.queryForm.cities
       .filter(city => this.selectedCountriesMap[city.country_id])
+    this.onChangeForm()
   }
 
   private onChangeForm () {
