@@ -20,6 +20,15 @@
     </div>
 
     <v-spacer/>
+
+    <v-btn
+      class="mr-0"
+      :to="{name: 'Settings'}"
+      color="primary"
+      icon
+    >
+      <v-icon>{{ mdiCogOutline }}</v-icon>
+    </v-btn>
   </v-app-bar>
 
   <AppDrawer/>
@@ -34,6 +43,7 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
+import { mdiCogOutline } from '@mdi/js'
 import AppDrawer from '@/components/AppDrawer.vue'
 import axios from 'axios'
 import config from '@/config'
@@ -44,6 +54,8 @@ import config from '@/config'
   }
 })
 export default class App extends Vue {
+  private mdiCogOutline = mdiCogOutline
+
   private beforeMount () {
     document.getElementsByTagName('html')[0]
       .setAttribute('app-version', require('@/../package.json').version)

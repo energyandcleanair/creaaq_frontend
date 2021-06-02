@@ -124,7 +124,6 @@ import Country from '@/types/Country'
 import City from '@/types/City'
 import Source from '@/types/Source'
 import CityAPI from '@/api/CityAPI'
-import SOURCES from '@/constants/sources.json'
 import SelectBox from './components/SelectBox.vue'
 
 interface QueryForm {
@@ -245,7 +244,7 @@ export default class ViewMeasurements extends Vue {
 
     this.cities = cities
     this.countries = countries
-    this.sources = SOURCES
+    this.sources = []
 
     this.$loader.off()
   }

@@ -12,8 +12,13 @@ const routes: Array<RouteConfig> = [
   {
     path: '/measurements',
     name: 'Measurements',
-    component: () => import(/* webpackChunkName: "about" */ '@/views/measurements/Measurements.vue')
-  }
+    component: () => import(/* webpackChunkName: "measurements" */ '@/views/measurements/Measurements.vue')
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import(/* webpackChunkName: "settings" */ '@/views/settings/Settings.vue')
+  },
 ]
 
 const router = new VueRouter({
