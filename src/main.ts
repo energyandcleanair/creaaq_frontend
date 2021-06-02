@@ -3,8 +3,8 @@ import axios from 'axios'
 import VueAxios from 'vue-axios'
 
 import vuetify from '@/plugins/vuetify'
-import '@/plugins/vuetify-dialog'
 import i18n from '@/plugins/i18n'
+import '@/plugins/vuetify-dialog'
 
 import config from '@/config'
 import router from '@/router'

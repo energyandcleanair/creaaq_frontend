@@ -45,7 +45,6 @@ export default class App extends Vue {
   }
 
   private checkConnectionToAPI () {
-    console.log('config.value(): ', config.value('API_ORIGIN'))
     const service = axios.create({
       baseURL: config.value('API_ORIGIN'),
       withCredentials: true
@@ -58,7 +57,7 @@ export default class App extends Vue {
       })
       .catch((err: unknown) => {
         console.error('err: ', config.value('API_ORIGIN'), err)
-        // this.$dialog.error('Could not connect to the API: ' + config.value('API_ORIGIN'))
+        this.$dialog.message.error('Could not connect to the API: ' + config.value('API_ORIGIN'))
       })
   }
 }
