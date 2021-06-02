@@ -24,8 +24,18 @@ export default {
   edit: 'Edit',
   show: 'Show',
   hide: 'Hide',
+  from: 'From',
+  to: 'To',
+  others: 'Others',
   language: 'Language',
   measurements: 'Measurements',
+  trajectories: 'Trajectories',
+  stations: 'Stations',
+  countries: 'Countries',
+  cities: 'Cities',
+  sources: 'Sources',
+  select_all: 'Select all',
+  deselect_all: 'Deselect all',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

@@ -2,9 +2,11 @@ import Vue from 'vue'
 import axios from 'axios'
 import VueAxios from 'vue-axios'
 
+import PluginLoader from '@/plugins/Loader'
 import vuetify from '@/plugins/vuetify'
 import i18n from '@/plugins/i18n'
 import '@/plugins/vuetify-dialog'
+import '@/styles/index.scss'
 
 import config from '@/config'
 import router from '@/router'
@@ -13,6 +15,7 @@ import App from '@/App.vue'
 import '@/registerServiceWorker'
 
 Vue.use(VueAxios, axios)
+Vue.use(PluginLoader, {componentName: 'CustomLoader'})
 
 new Vue({
   router,

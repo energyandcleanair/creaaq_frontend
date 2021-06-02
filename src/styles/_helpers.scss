@@ -1,0 +1,49 @@
+.v-application .letter-spacing-0 { letter-spacing: 0 !important; };
+.v-application .letter-spacing-1 { letter-spacing: 0.25px !important; };
+.v-application .letter-spacing-2 { letter-spacing: 0.5px !important; };
+.v-application .letter-spacing-3 { letter-spacing: 0.75px !important; };
+.v-application .letter-spacing-4 { letter-spacing: 1px !important; };
+
+.fill-width {
+  width: 100%;
+}
+
+.height-fit-content {
+  height: fit-content;
+}
+
+.text-decoration-none {
+  text-decoration: none;
+}
+
+.list-item-height-auto {
+  min-height: auto;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.pointer-events-none {
+  pointer-events: none;
+}
+
+.white-space-nowrap {
+  white-space: nowrap;
+}
+
+.unselectable {
+  user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
+}

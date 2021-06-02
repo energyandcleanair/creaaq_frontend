@@ -4,11 +4,8 @@ import API from './API'
 type ID = string
 
 export default class CRUD<T> {
-
-  // TODO: requires the second argument to set the property name in the response
   constructor (
-    public resourceURLPrefix: string,
-    // public resProp: string,
+    public resourceURLPrefix: string
   ) {}
 
   findAll (query: any = {}, data?: any): Promise<T[]> {
@@ -22,12 +19,13 @@ export default class CRUD<T> {
         searchParams.append(key, val)
       })
 
+    const searchParamsStr = searchParams.toString()
     return API(Object.assign({
       method: 'GET',
-      url: this.resourceURLPrefix + '?' + searchParams.toString(),
+      url: this.resourceURLPrefix + (searchParamsStr ? `?${searchParamsStr}` : ''),
       headers: {}
     }, data))
-      .then((res: AxiosResponse) => res?.data || [])
+      .then((res: AxiosResponse) => res?.data?.data || [])
   }
 
   findOne (data?: any): Promise<T|null> {

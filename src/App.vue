@@ -1,12 +1,12 @@
 <template>
 <v-app>
   <v-app-bar
-    app
     color="white"
+    clipped-left
     dark
+    app
   >
     <div class="d-flex align-center">
-
       <RouterLink to="/">
         <v-img
           alt="Vuetify Logo"
@@ -22,18 +22,27 @@
     <v-spacer/>
   </v-app-bar>
 
+  <AppDrawer/>
+
   <v-main>
     <RouterView/>
   </v-main>
+
+  <CustomLoader/>
 </v-app>
 </template>
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
+import AppDrawer from '@/components/AppDrawer.vue'
 import axios from 'axios'
 import config from '@/config'
 
-@Component
+@Component({
+  components: {
+    AppDrawer
+  }
+})
 export default class App extends Vue {
   private beforeMount () {
     document.getElementsByTagName('html')[0]
@@ -51,11 +60,11 @@ export default class App extends Vue {
     })
 
     service
-      .get('/cities')
+      .get('/status')
       .then(() => {
-        this.$dialog.message.info('Successfully connect to the API!')
+        this.$dialog.message.info('Successfully connect to the API!', {timeout: 500})
       })
-      .catch((err: unknown) => {
+      .catch((err: any) => {
         console.error('err: ', config.value('API_ORIGIN'), err)
         this.$dialog.message.error('Could not connect to the API: ' + config.value('API_ORIGIN'))
       })
