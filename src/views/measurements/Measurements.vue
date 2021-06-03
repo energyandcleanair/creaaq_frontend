@@ -138,7 +138,7 @@ import MeasurementsQuery from './components/MeasurementsChart/MeasurementsQuery'
 interface URLQuery {
   cities: City['id'][]
   countries: Country['id'][]
-  sources: Source['value'][]
+  sources: Source['id'][]
   date_start: number
   date_end?: number
 }
@@ -178,7 +178,7 @@ export default class ViewMeasurements extends Vue {
     return {
       cities: cities.filter(i => i) as City['id'][],
       countries: countries.filter(i => i) as Country['id'][],
-      sources: sources.filter(i => i) as Source['value'][],
+      sources: sources.filter(i => i) as Source['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
     }
@@ -278,12 +278,12 @@ export default class ViewMeasurements extends Vue {
 
     if (this.urlQuery.sources.length) {
       const idsMap = this.urlQuery.sources
-        .reduce((memo: {[value: string]: number}, value: Source['value']) => {
+        .reduce((memo: {[value: string]: number}, value: Source['id']) => {
           memo[value] = 1
           return memo
         }, {})
       this.queryForm.sources = this.sources
-        .filter(source => idsMap[source.value])
+        .filter(source => idsMap[source.id])
     } else if (this.sources[0]) {
       this.queryForm.sources = [this.sources[0]]
     }
@@ -325,7 +325,7 @@ export default class ViewMeasurements extends Vue {
     this.urlQuery = {
       cities: this.queryForm.cities.map(i => i.id),
       countries: this.queryForm.countries.map(i => i.id),
-      sources: this.queryForm.sources.map(i => i.value),
+      sources: this.queryForm.sources.map(i => i.id),
       date_start: this.queryForm.dateStart,
       date_end: this.queryForm.dateEnd,
     }

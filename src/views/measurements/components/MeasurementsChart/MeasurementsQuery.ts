@@ -18,7 +18,7 @@ export default class MeasurementsQuery {
     if (query.cities?.length) {
       searchParams.append(
         'city',
-        query.cities.map(i => i.name).join(',')
+        query.cities.map(i => i.id).join(',')
       )
     }
     if (query.pollutants?.length) {

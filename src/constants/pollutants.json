@@ -1,7 +1,7 @@
 [
-  {"label":"PM2.5", "value":"pm25"},
-  {"label":"PM10", "value":"pm10"},
-  {"label":"NO2", "value":"no2"},
-  {"label":"O3", "value":"o3"},
-  {"label":"SO2", "value":"so2"}
+  {"id":"pm25", "label":"PM2.5"},
+  {"id":"pm10", "label":"PM10"},
+  {"id":"no2", "label":"NO2"},
+  {"id":"o3", "label":"O3"},
+  {"id":"so2", "label":"SO2"}
 ]
