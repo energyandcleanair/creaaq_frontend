@@ -6,11 +6,9 @@ steps:
   entrypoint: npm
   args: ["run", "build"]
 - name: "gcr.io/cloud-builders/gcloud"
+  entrypoint: bash
   args: 
-    - 'app'
-    - 'deploy'
-    - 'app.yaml'
-    - '--quiet'
-    - '--stop-previous-version'
-    - "--version=$(echo ${TAG_NAME} | sed 's/\\./_/g')"
+    - '-c'
+    - |
+      gcloud app deploy app.yaml --quiet -v $(echo $TAG_NAME | sed 's/\./-/g')
 timeout: "1600s"
