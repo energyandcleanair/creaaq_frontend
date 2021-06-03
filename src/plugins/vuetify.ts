@@ -29,6 +29,10 @@ export default new Vuetify({
         grey: {
           ...colors.grey,
         },
+        blue: {
+          ...colors.blue,
+          base: '#8cc9D0'
+        },
       }
     }
   }

@@ -36,6 +36,7 @@ export default {
   sources: 'Sources',
   select_all: 'Select all',
   deselect_all: 'Deselect all',
+  display_mode: 'Display mode',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

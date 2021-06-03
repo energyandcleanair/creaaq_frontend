@@ -1,6 +1,6 @@
 <template>
-<div class="view-measurements fill-height">
-  <v-container fluid>
+<div class="view-measurements fill-height" style="overflow: auto;">
+  <v-container class="px-8" fluid>
     <v-row>
       <v-col cols="12" md="3" lg="2" xl="2">
         <SelectBox
@@ -109,13 +109,34 @@
           />
         </v-menu>
       </v-col>
+
+      <v-col cols="12" md="3" lg="2" xl="2">
+        <v-select
+          v-model="queryForm.displayMode"
+          :label="$t('display_mode')"
+          :items="DISPLAY_MODES"
+          :disabled="isLoading"
+          item-text="label"
+          item-value="value"
+          hide-details
+          @input="onChangeForm"
+        >
+          <template v-slot:append-outer>
+            <v-btn @click="onClickRefresh" icon>
+              <v-icon>{{ mdiRefreshCircle }}</v-icon>
+            </v-btn>
+          </template>
+        </v-select>
+      </v-col>
     </v-row>
   </v-container>
 
-  <v-container>
+  <v-container class="mt-4 px-8" fluid>
     <MeasurementsChart
+      ref="measurementsChart"
       v-if="!isLoading"
       :query="queryForm"
+      :displayMode="queryForm.displayMode"
     />
   </v-container>
 </div>
@@ -125,8 +146,8 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _sortBy from 'lodash.sortby'
-import { mdiCalendar } from '@mdi/js'
-import { Component, Vue } from 'vue-property-decorator'
+import { Component, Vue, Ref } from 'vue-property-decorator'
+import { mdiCalendar, mdiRefreshCircle } from '@mdi/js'
 import Country from '@/entities/Country'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
@@ -134,6 +155,7 @@ import CityAPI from '@/api/CityAPI'
 import SelectBox from './components/SelectBox.vue'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
 import MeasurementsQuery from './components/MeasurementsChart/MeasurementsQuery'
+import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 
 interface URLQuery {
   cities: City['id'][]
@@ -141,6 +163,7 @@ interface URLQuery {
   sources: Source['id'][]
   date_start: number
   date_end?: number
+  display_mode?: string
 }
 
 const today = moment(moment().format('YYYY-MM-DD')).valueOf()
@@ -152,10 +175,12 @@ const today = moment(moment().format('YYYY-MM-DD')).valueOf()
   }
 })
 export default class ViewMeasurements extends Vue {
+  @Ref('measurementsChart') $measurementsChart?: MeasurementsChart
   private countries: Country[] = []
   private cities: City[] = []
   private sources: Source[] = []
   private mdiCalendar = mdiCalendar
+  private mdiRefreshCircle = mdiRefreshCircle
   private isLoading: boolean = false
   private isMenuDateStartOpen: boolean = false
   private isMenuDateEndOpen: boolean = false
@@ -166,6 +191,18 @@ export default class ViewMeasurements extends Vue {
     sources: [],
     dateStart: today,
     dateEnd: today,
+    displayMode: ChartDisplayModes.NORMAL,
+  }
+
+  private get DISPLAY_MODES (): any {
+    return Object.values(ChartDisplayModes)
+      .reduce((memo: any[], val) => {
+        memo.push({
+          label: val.toLowerCase(),
+          value: val,
+        })
+        return memo
+      }, [])
   }
 
   private get urlQuery (): URLQuery {
@@ -181,6 +218,9 @@ export default class ViewMeasurements extends Vue {
       sources: sources.filter(i => i) as Source['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
+      display_mode: q.display_mode
+        ? (String(q.display_mode) || '').toUpperCase()
+        : undefined,
     }
   }
 
@@ -215,8 +255,10 @@ export default class ViewMeasurements extends Vue {
   }
 
   private get availableCities (): City[] {
+    const cities = this.cities
+      .filter(city => this.selectedCountriesMap[city.country_id])
     return _sortBy(
-      this.cities.filter(city => this.selectedCountriesMap[city.country_id]),
+      _sortBy(cities, 'name'),
       'country_id'
     )
   }
@@ -242,7 +284,7 @@ export default class ViewMeasurements extends Vue {
         }
         return memo
       }, {})
-    const countries = _sortBy(Object.values(countriesMap), 'id')
+    const countries = _sortBy(Object.values(countriesMap), 'name')
 
     this.cities = cities
     this.countries = countries
@@ -300,6 +342,12 @@ export default class ViewMeasurements extends Vue {
       this.queryForm.dateEnd = today
     }
 
+    if (this.urlQuery.display_mode) {
+      this.queryForm.displayMode = this.urlQuery.display_mode as ChartDisplayModes
+    } else if (!this.queryForm.displayMode) {
+      this.queryForm.displayMode = ChartDisplayModes.NORMAL
+    }
+
     this.onChangeForm()
   }
 
@@ -328,7 +376,12 @@ export default class ViewMeasurements extends Vue {
       sources: this.queryForm.sources.map(i => i.id),
       date_start: this.queryForm.dateStart,
       date_end: this.queryForm.dateEnd,
+      display_mode: this.queryForm.displayMode
     }
+  }
+
+  private onClickRefresh () {
+    this.$measurementsChart?.refresh()
   }
 }
 </script>
