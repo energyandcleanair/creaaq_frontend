@@ -1,9 +1,9 @@
 steps:
 - name: node:10.15.1
-  entrypoint: yarn
+  entrypoint: npm
   args: ["install"]
 - name: node:10.15.1
-  entrypoint: yarn
+  entrypoint: npm
   args: ["run", "build"]
 - name: "gcr.io/cloud-builders/gcloud"
   args: 
@@ -12,5 +12,5 @@ steps:
     - 'app.yaml'
     - '--quiet'
     - '--stop-previous-version'
-    - '--version=production'
+    - "--version=$(echo ${TAG_NAME} | sed 's/\\./_/g')"
 timeout: "1600s"
