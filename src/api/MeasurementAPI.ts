@@ -1,4 +1,4 @@
-import Measurement from '@/types/Measurement'
+import Measurement from '@/entities/Measurement'
 import CRUD from './CRUD'
 
 export class MeasurementAPI extends CRUD<Measurement> {

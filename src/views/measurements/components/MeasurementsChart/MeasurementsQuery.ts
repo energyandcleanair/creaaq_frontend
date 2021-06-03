@@ -1,8 +1,8 @@
 import moment from 'moment'
-import Country from '@/types/Country'
-import City from '@/types/City'
-import Source from '@/types/Source'
-import Pollutant from '@/types/Pollutant'
+import Country from '@/entities/Country'
+import City from '@/entities/City'
+import Source from '@/entities/Source'
+import Pollutant from '@/entities/Pollutant'
 
 export default class MeasurementsQuery {
   public cities!: City[]

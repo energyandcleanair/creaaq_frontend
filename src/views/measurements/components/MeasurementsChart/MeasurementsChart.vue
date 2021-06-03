@@ -8,7 +8,7 @@
 import to from 'await-to-js'
 import { Component, Vue, Prop } from 'vue-property-decorator'
 import MeasurementAPI from '@/api/MeasurementAPI'
-import Measurement from '@/types/Measurement'
+import Measurement from '@/entities/Measurement'
 import MeasurementsQuery from './MeasurementsQuery'
 
 @Component
