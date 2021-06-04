@@ -2,32 +2,29 @@
 <div class="view-measurements fill-height" style="overflow: auto;">
   <v-container class="px-8" fluid>
     <v-row>
-      <v-col cols="12" md="3" lg="2" xl="2">
+      <v-col cols="12" md="3" lg="3" xl="2">
         <SelectBox
-          v-model="queryForm.countries"
-          :label="$t('countries')"
-          :items="countries"
+          v-model="queryForm.cities"
+          :label="$t('cities')"
+          :items="cities"
           :disabled="isLoading"
           item-text="name"
           item-value="id"
           return-object
           hide-details
-          @input="onChangeCountries"
-        />
-      </v-col>
-
-      <v-col cols="12" md="3" lg="3" xl="2">
-        <SelectBox
-          v-model="queryForm.cities"
-          :label="$t('cities')"
-          :items="availableCities"
-          :disabled="isLoading || !queryForm.countries.length"
-          :item-text="(item) => `${item.name} (${item.country_id})`"
-          item-value="id"
-          return-object
-          hide-details
+          has-deselect-all
           @input="onChangeForm"
-        />
+        >
+          <template v-slot:item-subtext="{item}">
+            <CountryFlag
+              :country="(item.country_id || '').toLowerCase()"
+              size="small"
+            />
+            <span class="grey--text text--base">
+              &nbsp;&nbsp;{{ item.country_id }}
+            </span>
+          </template>
+        </SelectBox>
       </v-col>
 
       <v-col cols="12" md="3" lg="2" xl="2">
@@ -35,7 +32,7 @@
           v-model="queryForm.sources"
           :label="$t('sources')"
           :items="sources"
-          :disabled="isLoading"
+          :disabled="true"
           item-text="label"
           item-value="value"
           return-object
@@ -122,7 +119,13 @@
           @input="onChangeForm"
         >
           <template v-slot:append-outer>
-            <v-btn @click="onClickRefresh" icon>
+            <v-btn
+              :disabled="isLoading"
+              :loading="isLoading"
+              @click="onClickRefresh"
+              color="primary"
+              icon
+            >
               <v-icon>{{ mdiRefreshCircle }}</v-icon>
             </v-btn>
           </template>
@@ -146,9 +149,9 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _sortBy from 'lodash.sortby'
+import CountryFlag from 'vue-country-flag'
 import { Component, Vue, Ref } from 'vue-property-decorator'
 import { mdiCalendar, mdiRefreshCircle } from '@mdi/js'
-import Country from '@/entities/Country'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
 import CityAPI from '@/api/CityAPI'
@@ -159,7 +162,6 @@ import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 
 interface URLQuery {
   cities: City['id'][]
-  countries: Country['id'][]
   sources: Source['id'][]
   date_start: number
   date_end?: number
@@ -172,11 +174,11 @@ const today = moment(moment().format('YYYY-MM-DD')).valueOf()
   components: {
     SelectBox,
     MeasurementsChart,
+    CountryFlag,
   }
 })
 export default class ViewMeasurements extends Vue {
   @Ref('measurementsChart') $measurementsChart?: MeasurementsChart
-  private countries: Country[] = []
   private cities: City[] = []
   private sources: Source[] = []
   private mdiCalendar = mdiCalendar
@@ -187,7 +189,6 @@ export default class ViewMeasurements extends Vue {
 
   private queryForm: MeasurementsQuery = {
     cities: [],
-    countries: [],
     sources: [],
     dateStart: today,
     dateEnd: today,
@@ -198,7 +199,7 @@ export default class ViewMeasurements extends Vue {
     return Object.values(ChartDisplayModes)
       .reduce((memo: any[], val) => {
         memo.push({
-          label: val.toLowerCase(),
+          label: this.$t(val.toLowerCase() || '').toString(),
           value: val,
         })
         return memo
@@ -209,12 +210,10 @@ export default class ViewMeasurements extends Vue {
     const q = this.$route.query
 
     const cities = Array.isArray(q.cities) ? q.cities : [q.cities]
-    const countries = Array.isArray(q.countries) ? q.countries : [q.countries]
     const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
 
     return {
       cities: cities.filter(i => i) as City['id'][],
-      countries: countries.filter(i => i) as Country['id'][],
       sources: sources.filter(i => i) as Source['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
@@ -246,23 +245,6 @@ export default class ViewMeasurements extends Vue {
     return moment(this.queryForm.dateEnd).format('YYYY-MM-DD')
   }
 
-  private get selectedCountriesMap (): {[countryId: string]: number} {
-    return this.queryForm.countries
-      .reduce((memo: {[countryId: string]: number}, country: Country) => {
-        memo[country.id] = 1
-        return memo
-      }, {})
-  }
-
-  private get availableCities (): City[] {
-    const cities = this.cities
-      .filter(city => this.selectedCountriesMap[city.country_id])
-    return _sortBy(
-      _sortBy(cities, 'name'),
-      'country_id'
-    )
-  }
-
   private async beforeMount () {
     this.isLoading = true
     await this.fetch()
@@ -274,48 +256,23 @@ export default class ViewMeasurements extends Vue {
     this.$loader.on()
     const cities = await this.fetchCities()
 
-    const countriesMap = cities
-      .reduce((memo: {[countryId: string]: Country}, city: City) => {
-        if (!memo[city.country_id]) {
-          memo[city.country_id] = {
-            id: city.country_id,
-            name: city.country_id,
-          }
-        }
-        return memo
-      }, {})
-    const countries = _sortBy(Object.values(countriesMap), 'name')
-
     this.cities = cities
-    this.countries = countries
     this.sources = []
 
     this.$loader.off()
   }
 
   private setDefaults (): void {
-    if (this.urlQuery.countries.length) {
-      const idsMap = this.urlQuery.countries
-        .reduce((memo: {[id: string]: number}, id: Country['id']) => {
-          memo[id] = 1
-          return memo
-        }, {})
-      this.queryForm.countries = this.countries
-        .filter(country => idsMap[country.id])
-    } else if (this.countries[0]) {
-      this.queryForm.countries = [this.countries[0]]
-    }
-
     if (this.urlQuery.cities.length) {
       const idsMap = this.urlQuery.cities
         .reduce((memo: {[id: string]: number}, id: City['id']) => {
           memo[id] = 1
           return memo
         }, {})
-      this.queryForm.cities = this.availableCities
+      this.queryForm.cities = this.cities
         .filter(city => idsMap[city.id])
-    } else if (this.availableCities[0]) {
-      this.queryForm.cities = [this.availableCities[0]]
+    } else if (this.cities[0]) {
+      this.queryForm.cities = [this.cities[0]]
     }
 
     if (this.urlQuery.sources.length) {
@@ -360,19 +317,12 @@ export default class ViewMeasurements extends Vue {
       console.error(err)
       return []
     }
-    return cities || []
-  }
-
-  private onChangeCountries () {
-    this.queryForm.cities = this.queryForm.cities
-      .filter(city => this.selectedCountriesMap[city.country_id])
-    this.onChangeForm()
+    return _sortBy(cities || [], 'name')
   }
 
   private onChangeForm () {
     this.urlQuery = {
       cities: this.queryForm.cities.map(i => i.id),
-      countries: this.queryForm.countries.map(i => i.id),
       sources: this.queryForm.sources.map(i => i.id),
       date_start: this.queryForm.dateStart,
       date_end: this.queryForm.dateEnd,

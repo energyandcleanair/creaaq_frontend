@@ -74,7 +74,7 @@ export default class App extends Vue {
     service
       .get('/status')
       .then(() => {
-        this.$dialog.message.info('Successfully connect to the API!', {timeout: 500})
+        console.info('Successfully connect to the API')
       })
       .catch((err: any) => {
         console.error('err: ', config.value('API_ORIGIN'), err)

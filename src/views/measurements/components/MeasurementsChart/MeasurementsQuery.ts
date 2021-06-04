@@ -1,5 +1,4 @@
 import moment from 'moment'
-import Country from '@/entities/Country'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
 import Pollutant from '@/entities/Pollutant'
@@ -7,7 +6,6 @@ import ChartDisplayModes from './ChartDisplayModes'
 
 export default class MeasurementsQuery {
   public cities!: City[]
-  public countries!: Country[]
   public sources!: Source[]
   public pollutants?: Pollutant[]
   public dateStart!: number

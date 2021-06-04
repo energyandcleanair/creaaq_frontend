@@ -1,5 +1,6 @@
 <template>
-<v-autocomplete
+<component
+  :is="$vuetify.breakpoint.mdAndUp ? 'v-autocomplete' : 'v-select'"
   chips
   multiple
   clearable
@@ -9,12 +10,13 @@
 >
   <template v-slot:selection="{ item, index }">
     <v-chip v-if="index <= 0">
-      <span>
-        {{
-          typeof $props.itemText === 'function'
-            ? $props.itemText(item)
-            : item[$props.itemText || 'name']
-        }}
+      <span
+        v-html="typeof $props.itemText === 'function'
+          ? $props.itemText(item)
+          : item[$props.itemText || 'name']"
+      />
+      <span class="pl-1" v-if="$scopedSlots['item-subtext']">
+        <slot name="item-subtext" v-bind:item="item"/>
       </span>
     </v-chip>
     <span
@@ -25,42 +27,92 @@
     </span>
   </template>
 
-  <template v-if="items.length" v-slot:prepend-item>
-    <v-list-item ripple @click="toggleSelected">
+  <template
+    v-if="items.length && (isShowSelectAll || isShowDeselectAll)"
+    v-slot:prepend-item
+  >
+    <v-list-item @click="toggleSelected">
       <v-list-item-action>
         <v-icon :color="isSelectedSome ? 'indigo darken-4' : ''">
-          {{
-            isSelectedAll
-              ? mdiCloseBox
-              : isSelectedSome
-                ? mdiMinusBox
-                : mdiCheckboxBlankOutline
-          }}
+          {{ generalSelectorButtonIcon }}
         </v-icon>
       </v-list-item-action>
+
       <v-list-item-content>
-        <v-list-item-title>
-          {{ isSelectedAll ? $t('deselect_all') : $t('select_all') }} ({{ items.length }})
-        </v-list-item-title>
+        <v-list-item-title v-text="generalSelectorButtonText"/>
       </v-list-item-content>
     </v-list-item>
     <v-divider class="mt-2"></v-divider>
   </template>
-</v-autocomplete>
+
+  <template v-slot:item="{ on, attrs, item }">
+    <v-list-item v-bind="attrs" v-on="on">
+      <v-list-item-action>
+        <v-simple-checkbox class="pointer-events-none" :value="attrs.inputValue"/>
+      </v-list-item-action>
+
+      <v-list-item-content>
+        <v-list-item-title
+          v-html="typeof $props.itemText === 'function'
+            ? $props.itemText(item)
+            : item[$props.itemText || 'name']"
+        />
+        <v-list-item-subtitle v-if="$scopedSlots['item-subtext']">
+          <slot name="item-subtext" v-bind:item="item"/>
+        </v-list-item-subtitle>
+      </v-list-item-content>
+    </v-list-item>
+  </template>
+</component>
 </template>
 
 <script lang="ts">
 import { mdiCloseBox, mdiMinusBox, mdiCheckboxBlankOutline } from '@mdi/js'
 import { Component, Model, Prop } from 'vue-property-decorator'
-import { VSelect } from 'vuetify/lib'
+import { VAutocomplete, VSelect } from 'vuetify/lib'
 
-@Component
+@Component({
+  components: {
+    VSelect,
+    VAutocomplete,
+  }
+})
 export default class SelectBox extends VSelect {
   @Model('input', {type: Array}) readonly value!: any[]
   @Prop() readonly items!: any[]
-  private mdiCloseBox = mdiCloseBox
-  private mdiMinusBox = mdiMinusBox
-  private mdiCheckboxBlankOutline = mdiCheckboxBlankOutline
+  @Prop({type: Boolean, default: false}) readonly hasSelectAll!: boolean
+  @Prop({type: Boolean, default: false}) readonly hasDeselectAll!: boolean
+
+  private get generalSelectorButtonIcon (): string {
+    if (this.isShowDeselectAll) return mdiCloseBox
+    if (this.isShowSelectAll) {
+      return this.isSelectedSome
+        ? mdiMinusBox
+        : mdiCheckboxBlankOutline
+    }
+    return ''
+  }
+
+  private get generalSelectorButtonText (): string {
+    const length = this.items.length
+    if (this.isShowDeselectAll) {
+      return this.$t('deselect_all').toString() + ` (${this.value.length})`
+    }
+    if (this.isShowSelectAll) {
+      return this.$t('select_all').toString() + ` (${this.items.length})`
+    }
+    return ''
+  }
+
+  private get isShowSelectAll (): boolean {
+    return !this.isSelectedAll && this.hasSelectAll
+  }
+
+  private get isShowDeselectAll (): boolean {
+    if (!this.hasDeselectAll) return false
+    if (this.hasSelectAll) return this.isSelectedAll
+    else return this.isSelectedSome || this.isSelectedAll
+  }
 
   private get isSelectedAll (): boolean {
     const selectedItems = this.value
@@ -73,10 +125,14 @@ export default class SelectBox extends VSelect {
   }
 
   private toggleSelected () {
+    let newVal: any[] = []
+    if (this.isShowDeselectAll) newVal = []
+    if (this.isShowSelectAll) newVal = this.items.slice()
+
     this.$nextTick(() => {
       this.$emit(
         'input',
-        this.isSelectedAll ? [] : this.items.slice()
+        newVal
       )
     })
   }

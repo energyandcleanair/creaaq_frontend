@@ -19,6 +19,10 @@ const routes: Array<RouteConfig> = [
     name: 'Settings',
     component: () => import(/* webpackChunkName: "settings" */ '@/views/settings/Settings.vue')
   },
+  {
+    path: '*',
+    redirect: '/',
+  },
 ]
 
 const router = new VueRouter({
