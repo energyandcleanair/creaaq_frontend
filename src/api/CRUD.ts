@@ -4,11 +4,13 @@ import API from './API'
 type ID = string
 
 export default class CRUD<T> {
+  public axios: typeof API = API
+
   constructor (
     public resourceURLPrefix: string
   ) {}
 
-  findAll (query: {[key: string]: any}|string = {}, data?: any): Promise<T[]> {
+  public findAll (query: {[key: string]: any}|string = {}, data?: any): Promise<T[]> {
     let searchParamsStr: string = ''
 
     if (typeof query === 'string') {
@@ -26,25 +28,25 @@ export default class CRUD<T> {
       searchParamsStr = searchParams.toString()
     }
 
-    return API(Object.assign({
+    return this.axios(Object.assign({
       method: 'GET',
       url: this.resourceURLPrefix + (searchParamsStr ? `?${searchParamsStr}` : ''),
-      headers: {}
+      headers: {},
     }, data))
       .then((res: AxiosResponse) => res?.data?.data || [])
   }
 
-  findOne (data?: any): Promise<T|null> {
-    return API(Object.assign({
+  public findOne (data?: any): Promise<T|null> {
+    return this.axios(Object.assign({
       method: 'GET',
       url: this.resourceURLPrefix + '/find',
       data: {},
-      headers: {}
+      headers: {},
     }, data))
       .then((res: AxiosResponse) => res?.data || null)
   }
 
-  findById (id: ID, data?: any): Promise<T|null> {
+  public findById (id: ID, data?: any): Promise<T|null> {
     const query = data?.query
     const searchParams = new URLSearchParams()
     Object
@@ -58,11 +60,11 @@ export default class CRUD<T> {
 
     if (data?.query) delete data.query
 
-    return API(Object.assign({
+    return this.axios(Object.assign({
       method: 'GET',
       url: this.resourceURLPrefix + `/${id}` + '?' + searchParams.toString(),
       data: {},
-      headers: {}
+      headers: {},
     }, data))
       .then((res: AxiosResponse) => res?.data || null)
   }

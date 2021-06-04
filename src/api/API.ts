@@ -1,12 +1,31 @@
-// import Vue from 'vue'
 import _get from 'lodash.get'
-import axios from 'axios'
+import localForage from 'localforage'
+import { setup } from 'axios-cache-adapter'
 import config from '@/config'
-// import router from '@/router'
 
-const instance = axios.create({
-  baseURL: config.value('API_ORIGIN'),
-  withCredentials: true
+export const forageStore = localForage.createInstance({
+  driver: [
+    localForage.INDEXEDDB,
+    localForage.LOCALSTORAGE,
+  ],
+  name: 'crea-cache'
+})
+
+const instance = setup({
+  baseURL: new URL(config.value('API_ORIGIN') || '')
+    .toString()
+    .replace(/\/$/, ''),
+  withCredentials: true,
+
+  // `axios-cache-adapter` options
+  cache: {
+    maxAge: 15 * 60 * 1000, // 15 mins
+    store: forageStore,
+    exclude: {
+      methods: ['post', 'patch', 'put', 'delete'],
+      query: false, // Exclude requests with query parameters.
+    }
+  }
 })
 
 instance.interceptors.response.use(

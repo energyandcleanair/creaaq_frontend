@@ -39,6 +39,7 @@ export default {
   display_mode: 'Display mode',
   normal: 'Normal',
   superimposed_years: 'Superimposed years',
+  clear_cache: 'Clear cache',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',
