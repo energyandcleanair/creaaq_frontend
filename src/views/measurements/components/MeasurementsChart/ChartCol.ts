@@ -6,4 +6,5 @@ export default interface ChartCol {
   data: any
   layout: any
   rangeBox: RangeBox
+  isEmpty?: boolean
 }

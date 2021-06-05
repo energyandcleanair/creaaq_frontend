@@ -19,7 +19,7 @@ const instance = setup({
 
   // `axios-cache-adapter` options
   cache: {
-    maxAge: 15 * 60 * 1000, // 15 mins
+    maxAge: 24 * 60 * 60 * 1000, // 24 hrs
     store: forageStore,
     exclude: {
       methods: ['post', 'patch', 'put', 'delete'],

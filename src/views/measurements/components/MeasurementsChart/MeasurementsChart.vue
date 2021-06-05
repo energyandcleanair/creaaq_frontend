@@ -38,9 +38,12 @@
         </div>
 
         <Plotly
+          :ref="`chart:${col.id}`"
           :data="col.data"
           :layout="col.layout"
           :displaylogo="false"
+          :display-mode-bar="col.isEmpty ? false : 'hover'"
+          @relayout="onRelayout(`chart:${col.id}`, $event)"
         />
       </v-col>
 
@@ -100,10 +103,12 @@ export default class MeasurementsChart extends Vue {
     const rows: ChartRow[] = []
 
     for (const pollutant of this.pollutants) {
+      const rowId: string = pollutant.id
       const cols: ChartCol[] = []
 
       for (const i in this.cities) {
         const city = this.cities[+i]
+        const colId = city.id
         const chartData = this.genChartData(city.id, pollutant.id)
         const first = +i === 0
         const last = +i === this.cities.length - 1
@@ -112,14 +117,16 @@ export default class MeasurementsChart extends Vue {
           trace.x = trace.x.map(val => new Date(val))
           return trace
         })
+        const isEmpty: boolean = !data.length
 
         const col: ChartCol = {
-          id: `${city.id}--${pollutant.id}`,
+          id: `${rowId}--${colId}`,
           title: city.name,
           data,
+          isEmpty,
           rangeBox: chartData.rangeBox,
           layout: {
-            showlegend: last,
+            showlegend: this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS && last,
             legendfont: {
               size: 12,
               color: '#212121',
@@ -127,15 +134,17 @@ export default class MeasurementsChart extends Vue {
             plot_bgcolor: '#fcfcfc',
             paper_bgcolor: '#fff',
             hovermode: 'closest',
+            dragmode: 'pan',
             autosize: true,
             margin: {
-              l: first ? 60 : 10,
+              l: first && !isEmpty ? 60 : 10,
               r: last ? 40 : 10,
               b: 50,
               t: 10,
               pad: 0,
             },
             xaxis: {
+              visible: !isEmpty,
               linecolor: '#eee',
               linewidth: 1,
               mirror: true,
@@ -148,6 +157,7 @@ export default class MeasurementsChart extends Vue {
                 : '%Y %b %d',
             },
             yaxis: {
+              visible: !isEmpty,
               title: first ? pollutant.unit : undefined,
               titlefont: {
                 size: 12,
@@ -162,13 +172,24 @@ export default class MeasurementsChart extends Vue {
               linewidth: 1,
               mirror: true,
             },
+            ...(!isEmpty ? {} : {
+              annotations: [{
+                text: this.$t('msg.no_data'),
+                xref: 'paper',
+                yref: 'paper',
+                showarrow: false,
+                font: {
+                  size: 28
+                }
+              }]
+            })
           },
         }
         cols.push(col)
       }
 
       const row: ChartRow = {
-        id: pollutant.id,
+        id: rowId,
         title: pollutant.label,
         cols,
         rangeBox: _genRangeBox(cols),
@@ -183,8 +204,8 @@ export default class MeasurementsChart extends Vue {
     const generalRangeY = [rangeBox.y0 - MARGIN, rangeBox.y1 + MARGIN]
     for (const row of rows) {
       for (const col of row.cols) {
-        _set(col, 'layout.xaxis.range', generalRangeX)
-        _set(col, 'layout.yaxis.range', generalRangeY)
+        _set(col, 'layout.xaxis.range', generalRangeX.slice())
+        _set(col, 'layout.yaxis.range', generalRangeY.slice())
       }
     }
 
@@ -305,6 +326,34 @@ export default class MeasurementsChart extends Vue {
     return {
       data: traces,
       rangeBox,
+    }
+  }
+
+  private onRelayout (refId: string, $event: any) {
+    if (!$event || Object.entries($event).length === 0) return
+    const hasAxisX = Object.keys($event).find(key => /^xaxis/.test(key))
+    if (!hasAxisX) return
+
+    for (const _refId in this.$refs) {
+      if (_refId === refId) continue
+
+      const $refList = this.$refs[_refId] as any[]
+      const $ref: typeof Plotly = $refList?.[0]
+      if (!$ref) continue
+
+      const x = $ref?.layout?.xaxis || {}
+
+      if ($event['xaxis.autorange'] && x.autorange) continue
+      if (x.range[0] !== $event['xaxis.range[0]'] ||
+        x.range[1] !== $event['xaxis.range[1]']) {
+
+        const update = {
+          'xaxis.range[0]': $event['xaxis.range[0]'],
+          'xaxis.range[1]': $event['xaxis.range[1]'],
+          'xaxis.autorange': $event['xaxis.autorange'],
+        }
+        $ref.relayout(update)
+      }
     }
   }
 }
