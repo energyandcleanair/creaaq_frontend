@@ -62,7 +62,7 @@ import _set from 'lodash.set'
 import _sortBy from 'lodash.sortby'
 import _groupBy from 'lodash.groupby'
 import moment from 'moment'
-import { Component, Vue, Prop } from 'vue-property-decorator'
+import { Component, Vue, Prop, Watch, Emit } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
 import MeasurementAPI from '@/api/MeasurementAPI'
 import Measurement from '@/entities/Measurement'
@@ -139,7 +139,7 @@ export default class MeasurementsChart extends Vue {
             margin: {
               l: first && !isEmpty ? 60 : 10,
               r: last ? 40 : 10,
-              b: 50,
+              b: 60,
               t: 10,
               pad: 0,
             },
@@ -267,7 +267,6 @@ export default class MeasurementsChart extends Vue {
     cityId: City['id'],
     pollutantId: Pollutant['id']
   ): ChartData {
-    const data: any[] = []
     const points: {
       x: number
       y: number
@@ -305,8 +304,11 @@ export default class MeasurementsChart extends Vue {
       points.push({x, y, $date, $origDate})
     }
 
-    // draw multiple lines if there are more than one year
-    const pointsGroups = _groupBy(points, point => point.$origDate.year())
+    // draw multiple lines for SUPERIMPOSED_YEARS mode
+    const pointsGroups = this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
+      ? _groupBy(points, point => point.$origDate.year())
+      : [points]
+
     const traces: ChartTrace[] = Object.values(pointsGroups).map(pointsGroup => {
       const trace: ChartTrace = {
         x: [],
@@ -355,6 +357,12 @@ export default class MeasurementsChart extends Vue {
         $ref.relayout(update)
       }
     }
+  }
+
+  @Watch('isLoading')
+  @Emit('loading')
+  onChangeLoading () {
+    return this.isLoading
   }
 }
 

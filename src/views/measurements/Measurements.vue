@@ -117,19 +117,24 @@
           item-value="value"
           hide-details
           @input="onChangeForm"
+        />
+      </v-col>
+
+      <v-col
+        class="d-flex justify-end justify-md-center align-center"
+        cols="12"
+        md="1"
+      >
+        <v-btn
+          :disabled="isLoading"
+          :loading="isLoading || isChartLoading"
+          @click="onClickRefresh"
+          color="primary"
+          large
+          icon
         >
-          <template v-slot:append-outer>
-            <v-btn
-              :disabled="isLoading"
-              :loading="isLoading"
-              @click="onClickRefresh"
-              color="primary"
-              icon
-            >
-              <v-icon>{{ mdiRefreshCircle }}</v-icon>
-            </v-btn>
-          </template>
-        </v-select>
+          <v-icon size="32">{{ mdiRefreshCircle }}</v-icon>
+        </v-btn>
       </v-col>
     </v-row>
   </v-container>
@@ -140,6 +145,7 @@
       v-if="!isLoading"
       :query="queryForm"
       :displayMode="queryForm.displayMode"
+      @loading="onChangeChartLoading"
     />
   </v-container>
 </div>
@@ -184,6 +190,7 @@ export default class ViewMeasurements extends Vue {
   private mdiCalendar = mdiCalendar
   private mdiRefreshCircle = mdiRefreshCircle
   private isLoading: boolean = false
+  private isChartLoading: boolean = false
   private isMenuDateStartOpen: boolean = false
   private isMenuDateEndOpen: boolean = false
 
@@ -332,6 +339,10 @@ export default class ViewMeasurements extends Vue {
 
   private onClickRefresh () {
     this.$measurementsChart?.refresh()
+  }
+
+  private onChangeChartLoading (value: boolean) {
+    this.isChartLoading = value
   }
 }
 </script>
