@@ -41,7 +41,7 @@
         />
       </v-col> -->
 
-      <v-col cols="12" md="3" lg="2" xl="2">
+      <v-col cols="12" sm="6" md="3" lg="2" xl="2">
         <v-menu
           v-model="isMenuDateStartOpen"
           :close-on-content-click="false"
@@ -74,7 +74,7 @@
         </v-menu>
       </v-col>
 
-      <v-col cols="12" md="3" lg="2" xl="2">
+      <v-col cols="12" sm="6" md="3" lg="2" xl="2">
         <v-menu
           v-model="isMenuDateEndOpen"
           :close-on-content-click="false"

@@ -8,6 +8,7 @@ export default class Measurement {
   public name!: string
   public country_id!: Country['id']
   public location_id!: City['id']
+  public city_id!: City['id']
   public date!: string|Date
   public level!: 'city'
   public value!: number

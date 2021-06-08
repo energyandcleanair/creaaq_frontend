@@ -5,7 +5,9 @@
 >
 
   <template v-if="isLoading">
-    <v-row>
+    <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
+
+    <v-row class="px-2">
       <v-col v-for="city of queryCities" :key="city.id">
         <v-skeleton-loader type="text, image" />
       </v-col>
@@ -20,36 +22,40 @@
 
   <template v-else>
     <v-row
-      v-for="(row, rowIndex) of charts.rows"
+      v-for="row of charts.rows"
       :key="row.id"
       class="chart--row"
     >
+
+      <v-list-item
+        class="chart--row--title grey lighten-4 primary--text"
+        two-line
+      >
+        <v-list-item-content>
+          <v-list-item-subtitle class="grey--text" v-text="$t('pollutant')"/>
+          <v-list-item-title v-text="row.title"/>
+        </v-list-item-content>
+      </v-list-item>
 
       <v-col
         v-for="col of row.cols"
         :key="col.id"
         class="chart--col"
       >
-        <div
-          v-if="rowIndex === 0"
-          class="chart--col--title blue"
-        >
+        <div class="chart--col--title blue">
           {{ col.title }}
         </div>
 
         <Plotly
           :ref="`chart:${col.id}`"
+          :id="`chart:${col.id}`"
           :data="col.data"
           :layout="col.layout"
           :displaylogo="false"
           :display-mode-bar="col.isEmpty ? false : 'hover'"
-          @relayout="onRelayout(`chart:${col.id}`, $event)"
+          @relayout="onRelayout(row.id, col.id, $refs[`chart:${col.id}`][0], $event)"
         />
       </v-col>
-
-      <div class="chart--row--title blue">
-        {{ row.title }}
-      </div>
     </v-row>
   </template>
 </v-container>
@@ -77,6 +83,8 @@ import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
 import ChartTrace from './ChartTrace'
 import ChartData from './ChartData'
+
+const COL_ID_DIVIDER = '--'
 
 @Component({
   components: {
@@ -117,10 +125,11 @@ export default class MeasurementsChart extends Vue {
           trace.x = trace.x.map(val => new Date(val))
           return trace
         })
-        const isEmpty: boolean = !data.length
+        const isEmpty: boolean = !data?.length ||
+          (!data[0]?.x?.length && !data[0]?.y?.length)
 
         const col: ChartCol = {
-          id: `${rowId}--${colId}`,
+          id: `${rowId}${COL_ID_DIVIDER}${colId}`,
           title: city.name,
           data,
           isEmpty,
@@ -230,6 +239,7 @@ export default class MeasurementsChart extends Vue {
     this.isLoading = true
 
     const measurements = await this.fetchMeasurements(this.query)
+    console.log('measurements: ', measurements)
 
     const pollutantsMap = measurements
       .reduce((memo: {[pollutantId: string]: Pollutant}, meas: Measurement) => {
@@ -281,7 +291,7 @@ export default class MeasurementsChart extends Vue {
     }
 
     for (const measurement of this.measurements) {
-      const match = measurement.location_id === cityId &&
+      const match = measurement.city_id === cityId &&
         measurement.pollutant === pollutantId
 
       if (!match) continue
@@ -331,30 +341,65 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private onRelayout (refId: string, $event: any) {
+  private onRelayout (
+    rowId: ChartRow['id'],
+    colId: ChartCol['id'],
+    $colRef: HTMLElement,
+    $event: any
+  ) {
+
     if (!$event || Object.entries($event).length === 0) return
     const hasAxisX = Object.keys($event).find(key => /^xaxis/.test(key))
     if (!hasAxisX) return
 
-    for (const _refId in this.$refs) {
-      if (_refId === refId) continue
+    for (const refId in this.$refs) {
+      if (refId === $colRef.id) continue
 
-      const $refList = this.$refs[_refId] as any[]
+      const $refList = this.$refs[refId] as any[]
       const $ref: typeof Plotly = $refList?.[0]
       if (!$ref) continue
 
+      const chartParams: string[] = refId
+        .replace('chart:', '')
+        .split(COL_ID_DIVIDER)
+      const chartRowId: ChartRow['id'] = chartParams[0]
+      // const chartColId: ChartCol['id'] = chartParams[1]
+      // console.log('chartRowId: ', chartRowId, chartColId)
+
+      const paramsToUpdate: {[key: string]: any} = {}
+
+      // x-axis is shared across all plots
       const x = $ref?.layout?.xaxis || {}
-
-      if ($event['xaxis.autorange'] && x.autorange) continue
-      if (x.range[0] !== $event['xaxis.range[0]'] ||
-        x.range[1] !== $event['xaxis.range[1]']) {
-
-        const update = {
+      const evt_x_range0 = $event['xaxis.range[0]']
+      const evt_x_range1 = $event['xaxis.range[1]']
+      if (!(x.autorange && $event['xaxis.autorange']) &&
+        (x.range[0] !== evt_x_range0 || x.range[1] !== evt_x_range1)
+      ) {
+        Object.assign(paramsToUpdate, {
           'xaxis.range[0]': $event['xaxis.range[0]'],
           'xaxis.range[1]': $event['xaxis.range[1]'],
           'xaxis.autorange': $event['xaxis.autorange'],
+        })
+      }
+
+      // y-axes shared only within one row (pollutant)
+      if (chartRowId === rowId) {
+        const y = $ref?.layout?.yaxis || {}
+        const evt_y_range0 = $event['yaxis.range[0]']
+        const evt_y_range1 = $event['yaxis.range[1]']
+        if (!(y.autorange && $event['yaxis.autorange']) &&
+          (y.range[0] !== evt_y_range0 || y.range[1] !== evt_y_range1)
+        ) {
+          Object.assign(paramsToUpdate, {
+            'yaxis.range[0]': $event['yaxis.range[0]'],
+            'yaxis.range[1]': $event['yaxis.range[1]'],
+            'yaxis.autorange': $event['yaxis.autorange'],
+          })
         }
-        $ref.relayout(update)
+      }
+
+      if (Object.keys(paramsToUpdate).length) {
+        $ref.relayout(paramsToUpdate)
       }
     }
   }
@@ -391,11 +436,7 @@ function _genRangeBox (items: any): RangeBox {
 </script>
 
 <style lang="scss">
-$measurements-chart--title__height: 1.5rem;
-
 .measurements-chart {
-  padding-top: $measurements-chart--title__height;
-  padding-right: $measurements-chart--title__height;
   padding-left: 0;
 
   .chart--row {
@@ -403,24 +444,29 @@ $measurements-chart--title__height: 1.5rem;
     margin: 0 0 1rem 0;
 
     &--title {
-      position: absolute;
-      height: 100%;
-      width: $measurements-chart--title__height;
-      right: -$measurements-chart--title__height;
+      width: 100%;
+      padding: 0 1rem;
+      position: sticky;
       top: 0;
-      padding: 0;
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      text-align: center;
+      z-index: 2;
+      border-radius: 3px;
+      min-height: auto;
+
+      .v-list-item__subtitle {
+        font-size: 0.7em;
+      }
+
+      .v-list-item__content {
+        padding: 0.7rem 0;
+      }
     }
 
     .chart--col {
-      padding: 0 0.3rem;
+      padding: 0.5rem 0.3rem;
 
       &--title {
         text-align: center;
-        height: $measurements-chart--title__height;
-        margin-top: -$measurements-chart--title__height;
+        border-radius: 3px;
       }
     }
   }
