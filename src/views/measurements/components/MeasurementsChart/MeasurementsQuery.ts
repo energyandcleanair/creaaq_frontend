@@ -6,10 +6,10 @@ import ChartDisplayModes from './ChartDisplayModes'
 
 export default class MeasurementsQuery {
   public cities!: City[]
-  public sources!: Source[]
-  public pollutants?: Pollutant[]
   public dateStart!: number
   public dateEnd?: number
+  public sources?: Source[]
+  public pollutants?: Pollutant[]
   public displayMode?: ChartDisplayModes
 
   static toQueryString (query: MeasurementsQuery): string {

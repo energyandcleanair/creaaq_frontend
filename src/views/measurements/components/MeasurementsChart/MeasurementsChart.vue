@@ -153,8 +153,8 @@ export default class MeasurementsChart extends Vue {
                 color: '#212121',
               },
               tickformat: this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
-                ? '%b %d'
-                : '%Y %b %d',
+                ? '%d %b'
+                : '%d %b %Y',
             },
             yaxis: {
               visible: !isEmpty,

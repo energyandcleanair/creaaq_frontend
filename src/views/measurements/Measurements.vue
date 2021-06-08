@@ -1,6 +1,6 @@
 <template>
 <div class="view-measurements fill-height" style="overflow: auto;">
-  <v-container class="px-8" fluid>
+  <v-container class="pt-10 pt-md-4 px-8" fluid>
     <v-row>
       <v-col cols="12" md="3" lg="3" xl="2">
         <SelectBox
@@ -27,7 +27,7 @@
         </SelectBox>
       </v-col>
 
-      <v-col cols="12" md="3" lg="2" xl="2">
+      <!-- <v-col cols="12" md="3" lg="2" xl="2">
         <SelectBox
           v-model="queryForm.sources"
           :label="$t('sources')"
@@ -39,7 +39,7 @@
           hide-details
           @input="onChangeForm"
         />
-      </v-col>
+      </v-col> -->
 
       <v-col cols="12" md="3" lg="2" xl="2">
         <v-menu
@@ -107,7 +107,7 @@
         </v-menu>
       </v-col>
 
-      <v-col cols="12" md="3" lg="2" xl="2">
+      <!-- <v-col cols="12" md="3" lg="2" xl="2">
         <v-select
           v-model="queryForm.displayMode"
           :label="$t('display_mode')"
@@ -118,28 +118,32 @@
           hide-details
           @input="onChangeForm"
         />
-      </v-col>
+      </v-col> -->
 
       <v-col
-        class="d-flex justify-end justify-md-center align-center"
+        class="d-flex justify-end justify-md-start align-center"
         cols="12"
-        md="1"
+        md="2"
       >
         <v-btn
+          class="ml-5"
           :disabled="isLoading"
           :loading="isLoading || isChartLoading"
           @click="onClickRefresh"
           color="primary"
-          large
-          icon
+          small
         >
-          <v-icon size="32">{{ mdiRefreshCircle }}</v-icon>
+          {{ $t('refresh') }}
         </v-btn>
       </v-col>
     </v-row>
   </v-container>
 
   <v-container class="mt-4 px-8" fluid>
+    <MeasurementsRightDrawer
+      :open.sync="isRightPanelOpen"
+    />
+
     <MeasurementsChart
       ref="measurementsChart"
       v-if="!isLoading"
@@ -157,18 +161,19 @@ import moment from 'moment'
 import _sortBy from 'lodash.sortby'
 import CountryFlag from 'vue-country-flag'
 import { Component, Vue, Ref } from 'vue-property-decorator'
-import { mdiCalendar, mdiRefreshCircle } from '@mdi/js'
+import { mdiCalendar } from '@mdi/js'
 import City from '@/entities/City'
-import Source from '@/entities/Source'
+// import Source from '@/entities/Source'
 import CityAPI from '@/api/CityAPI'
 import SelectBox from './components/SelectBox.vue'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
 import MeasurementsQuery from './components/MeasurementsChart/MeasurementsQuery'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
+import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 
 interface URLQuery {
   cities: City['id'][]
-  sources: Source['id'][]
+  // sources: Source['id'][]
   date_start: number
   date_end?: number
   display_mode?: string
@@ -178,6 +183,7 @@ const today = moment(moment().format('YYYY-MM-DD')).valueOf()
 
 @Component({
   components: {
+    MeasurementsRightDrawer,
     SelectBox,
     MeasurementsChart,
     CountryFlag,
@@ -186,9 +192,8 @@ const today = moment(moment().format('YYYY-MM-DD')).valueOf()
 export default class ViewMeasurements extends Vue {
   @Ref('measurementsChart') $measurementsChart?: MeasurementsChart
   private cities: City[] = []
-  private sources: Source[] = []
+  // private sources: Source[] = []
   private mdiCalendar = mdiCalendar
-  private mdiRefreshCircle = mdiRefreshCircle
   private isLoading: boolean = false
   private isChartLoading: boolean = false
   private isMenuDateStartOpen: boolean = false
@@ -196,7 +201,7 @@ export default class ViewMeasurements extends Vue {
 
   private queryForm: MeasurementsQuery = {
     cities: [],
-    sources: [],
+    // sources: [],
     dateStart: today,
     dateEnd: today,
     displayMode: ChartDisplayModes.NORMAL,
@@ -221,7 +226,7 @@ export default class ViewMeasurements extends Vue {
 
     return {
       cities: cities.filter(i => i) as City['id'][],
-      sources: sources.filter(i => i) as Source['id'][],
+      // sources: sources.filter(i => i) as Source['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
       display_mode: q.display_mode
@@ -244,6 +249,14 @@ export default class ViewMeasurements extends Vue {
     })
   }
 
+  private get isRightPanelOpen (): boolean {
+    return this.$store.getters.GET('ui.measurements.isRightPanelOpen')
+  }
+  private set isRightPanelOpen (value: boolean) {
+    console.log('isRightPanelOpen: ', value)
+    this.$store.commit('SET', {key: 'ui.measurements.isRightPanelOpen', value})
+  }
+
   private get dateStartFormat (): string {
     return moment(this.queryForm.dateStart).format('YYYY-MM-DD')
   }
@@ -264,7 +277,7 @@ export default class ViewMeasurements extends Vue {
     const cities = await this.fetchCities()
 
     this.cities = cities
-    this.sources = []
+    // this.sources = []
 
     this.$loader.off()
   }
@@ -282,17 +295,17 @@ export default class ViewMeasurements extends Vue {
       this.queryForm.cities = [this.cities[0]]
     }
 
-    if (this.urlQuery.sources.length) {
-      const idsMap = this.urlQuery.sources
-        .reduce((memo: {[value: string]: number}, value: Source['id']) => {
-          memo[value] = 1
-          return memo
-        }, {})
-      this.queryForm.sources = this.sources
-        .filter(source => idsMap[source.id])
-    } else if (this.sources[0]) {
-      this.queryForm.sources = [this.sources[0]]
-    }
+    // if (this.urlQuery.sources.length) {
+    //   const idsMap = this.urlQuery.sources
+    //     .reduce((memo: {[value: string]: number}, value: Source['id']) => {
+    //       memo[value] = 1
+    //       return memo
+    //     }, {})
+    //   this.queryForm.sources = this.sources
+    //     .filter(source => idsMap[source.id])
+    // } else if (this.sources[0]) {
+    //   this.queryForm.sources = [this.sources[0]]
+    // }
 
     if ((this.urlQuery.date_start || 0) > 0) {
       this.queryForm.dateStart = this.urlQuery.date_start
@@ -330,7 +343,7 @@ export default class ViewMeasurements extends Vue {
   private onChangeForm () {
     this.urlQuery = {
       cities: this.queryForm.cities.map(i => i.id),
-      sources: this.queryForm.sources.map(i => i.id),
+      // sources: this.queryForm.sources.map(i => i.id),
       date_start: this.queryForm.dateStart,
       date_end: this.queryForm.dateEnd,
       display_mode: this.queryForm.displayMode

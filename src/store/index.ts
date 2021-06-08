@@ -8,8 +8,19 @@ import config from '@/config'
 
 Vue.use(Vuex)
 
+interface UIParams {
+  measurements: {
+    isRightPanelOpen: boolean
+  }
+}
+
 export class ModuleState {
   public locale: Locales = defaultLocale
+  public ui: UIParams = {
+    measurements: {
+      isRightPanelOpen: true
+    }
+  }
 }
 
 export default new Vuex.Store({
