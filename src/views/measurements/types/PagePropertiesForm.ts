@@ -1,10 +1,13 @@
 import Source from '@/entities/Source'
+import ChartDisplayModes from '../components/MeasurementsChart/ChartDisplayModes'
 import ChartColumnSize from './ChartColumnSize'
 
 export default interface PagePropertiesForm {
+  displayMode: ChartDisplayModes
   runningAverage: string
   chartColumnSize: ChartColumnSize
-  sources: Source['id'][]
+  sources: Source[]
+  visibleSources: Source['id'][]
   pollutants: {
     [id: string]: boolean
   }

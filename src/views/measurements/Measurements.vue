@@ -27,20 +27,6 @@
         </SelectBox>
       </v-col>
 
-      <!-- <v-col cols="12" md="3" lg="2" xl="2">
-        <SelectBox
-          v-model="queryForm.sources"
-          :label="$t('sources')"
-          :items="sources"
-          :disabled="true"
-          item-text="label"
-          item-value="value"
-          return-object
-          hide-details
-          @input="onChangeQueryForm"
-        />
-      </v-col> -->
-
       <v-col cols="12" sm="6" md="3" lg="2" xl="2">
         <v-menu
           v-model="isMenuDateStartOpen"
@@ -107,19 +93,6 @@
         </v-menu>
       </v-col>
 
-      <!-- <v-col cols="12" md="3" lg="2" xl="2">
-        <v-select
-          v-model="queryForm.displayMode"
-          :label="$t('display_mode')"
-          :items="DISPLAY_MODES"
-          :disabled="isLoading"
-          item-text="label"
-          item-value="value"
-          hide-details
-          @input="onChangeQueryForm"
-        />
-      </v-col> -->
-
       <v-col
         class="d-flex justify-end justify-md-start align-center"
         cols="12"
@@ -148,11 +121,11 @@
 
     <MeasurementsChart
       ref="measurementsChart"
-      v-if="!isLoading"
-      :query="queryForm"
+      :chartData="chartData"
       :cols.sync="chartCols"
-      :displayMode="queryForm.displayMode"
-      @loading="onChangeChartLoading"
+      :displayMode="displayMode"
+      :filterSources="filterSources"
+      :loading="isChartLoading"
     />
   </v-container>
 </div>
@@ -166,22 +139,27 @@ import CountryFlag from 'vue-country-flag'
 import { Component, Vue, Ref } from 'vue-property-decorator'
 import { mdiCalendar } from '@mdi/js'
 import City from '@/entities/City'
-// import Source from '@/entities/Source'
+import Source from '@/entities/Source'
+import Pollutant from '@/entities/Pollutant'
+import Measurement from '@/entities/Measurement'
+import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
+import MeasurementAPI from '@/api/MeasurementAPI'
 import SelectBox from './components/SelectBox.vue'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
 import MeasurementsQuery from './components/MeasurementsChart/MeasurementsQuery'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
+import ChartComponentData from './components/MeasurementsChart/ChartComponentData'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 import PagePropertiesForm from './types/PagePropertiesForm'
 import ChartColumnSize from './types/ChartColumnSize'
 
 interface URLQuery {
   cities: City['id'][]
-  // sources: Source['id'][]
+  sources: Source['id'][]
   date_start: number
   date_end?: number
-  display_mode?: string
+  display_mode?: ChartDisplayModes
   chart_cols?: ChartColumnSize|0
 }
 
@@ -198,25 +176,31 @@ const today = moment(moment().format('YYYY-MM-DD')).valueOf()
 export default class ViewMeasurements extends Vue {
   @Ref('measurementsChart') $measurementsChart?: MeasurementsChart
   private cities: City[] = []
-  // private sources: Source[] = []
   private mdiCalendar = mdiCalendar
   private isLoading: boolean = false
   private isChartLoading: boolean = false
   private isMenuDateStartOpen: boolean = false
   private isMenuDateEndOpen: boolean = false
 
+  private chartData: ChartComponentData = {
+    cities: [],
+    measurements: [],
+    pollutants: [],
+    sources: [],
+  }
+
   private queryForm: MeasurementsQuery = {
     cities: [],
-    // sources: [],
     dateStart: today,
     dateEnd: today,
-    displayMode: ChartDisplayModes.NORMAL,
   }
 
   private pageProperties: PagePropertiesForm = {
+    displayMode: ChartDisplayModes.NORMAL,
     runningAverage: '',
     chartColumnSize: 12,
     sources: [],
+    visibleSources: [],
     pollutants: {},
     isShowStations: false,
     stationsDisplayOptions: '',
@@ -237,16 +221,16 @@ export default class ViewMeasurements extends Vue {
     const q = this.$route.query
 
     const cities = Array.isArray(q.cities) ? q.cities : [q.cities]
-    // const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
+    const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
 
     return {
       cities: cities.filter(i => i) as City['id'][],
-      // sources: sources.filter(i => i) as Source['id'][],
+      sources: sources.filter(i => i) as Source['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
       chart_cols: (Number(q.chart_cols) || 0) as ChartColumnSize,
       display_mode: q.display_mode
-        ? (String(q.display_mode) || '').toUpperCase()
+        ? (String(q.display_mode) || '').toUpperCase() as ChartDisplayModes
         : undefined,
     }
   }
@@ -258,6 +242,14 @@ export default class ViewMeasurements extends Vue {
     }).href
 
     if (this.$route.fullPath !== newPath) this.$router.replace(newPath)
+  }
+
+  private get filterSources (): Source['id'][] {
+    return this.urlQuery.sources || []
+  }
+
+  private get displayMode (): ChartDisplayModes|null {
+    return this.urlQuery.display_mode || null
   }
 
   private get chartCols (): ChartColumnSize|0 {
@@ -289,17 +281,20 @@ export default class ViewMeasurements extends Vue {
   private async beforeMount () {
     this.isLoading = true
     await this.fetch()
-    this.setDefaults()
     this.isLoading = false
   }
 
   private async fetch () {
     this.$loader.on()
+    this.isChartLoading = true
+
     const cities = await this.fetchCities()
-
     this.cities = cities
-    // this.sources = []
+    this.setDefaults()
 
+    await this.refreshChartData()
+
+    this.isChartLoading = false
     this.$loader.off()
   }
 
@@ -316,18 +311,6 @@ export default class ViewMeasurements extends Vue {
       this.queryForm.cities = [this.cities[0]]
     }
 
-    // if (this.urlQuery.sources.length) {
-    //   const idsMap = this.urlQuery.sources
-    //     .reduce((memo: {[value: string]: number}, value: Source['id']) => {
-    //       memo[value] = 1
-    //       return memo
-    //     }, {})
-    //   this.queryForm.sources = this.sources
-    //     .filter(source => idsMap[source.id])
-    // } else if (this.sources[0]) {
-    //   this.queryForm.sources = [this.sources[0]]
-    // }
-
     if ((this.urlQuery.date_start || 0) > 0) {
       this.queryForm.dateStart = this.urlQuery.date_start
     } else if (!this.queryForm.dateStart) {
@@ -341,9 +324,9 @@ export default class ViewMeasurements extends Vue {
     }
 
     if (this.urlQuery.display_mode) {
-      this.queryForm.displayMode = this.urlQuery.display_mode as ChartDisplayModes
+      this.pageProperties.displayMode = this.urlQuery.display_mode
     } else if (!this.queryForm.displayMode) {
-      this.queryForm.displayMode = ChartDisplayModes.NORMAL
+      this.pageProperties.displayMode = ChartDisplayModes.NORMAL
     }
 
     if (!this.urlQuery.chart_cols) {
@@ -367,29 +350,105 @@ export default class ViewMeasurements extends Vue {
     return _sortBy(cities || [], 'name')
   }
 
+  private async fetchChartData (): Promise<ChartComponentData> {
+    const measurements = await this.fetchMeasurements(this.queryForm)
+
+    const pollutantsMap = measurements
+      .reduce((memo: {[pollutantId: string]: Pollutant}, meas: Measurement) => {
+        if (meas.pollutant && !memo[meas.pollutant]) {
+          const pollutant = POLLUTANTS.find(i => i.id === meas.pollutant)
+          if (pollutant) {
+            memo[meas.pollutant] = {...pollutant, unit: meas.unit}
+          } else {
+            console.warn(`Unknown pollutant: ${meas.pollutant}`)
+          }
+        }
+        return memo
+      }, {})
+    const pollutants = _sortBy(Object.values(pollutantsMap), 'id')
+
+    const sourcesMap = measurements
+      .reduce((memo: {[sourceId: string]: Source}, meas: Measurement) => {
+        if (meas.source && !memo[meas.source]) {
+          const pollutant = POLLUTANTS.find(i => i.id === meas.pollutant)
+          if (pollutant) {
+            memo[meas.source] = {id: meas.source, label: meas.source}
+          }
+        }
+        return memo
+      }, {})
+    const sources = _sortBy(Object.values(sourcesMap), 'id')
+
+    const chartData = {
+      cities: this.queryForm.cities.slice(),
+      measurements: measurements,
+      pollutants: pollutants,
+      sources: sources,
+    }
+    return chartData
+  }
+
+  private async refreshChartData (): Promise<void> {
+    this.isChartLoading = true
+
+    const chartData = await this.fetchChartData()
+    this.chartData = chartData
+    this.pageProperties.sources = this.chartData.sources || []
+
+    let visibleSources = this.filterSources.filter(srcId => {
+      return this.pageProperties.sources.find((s) => s.id === srcId)
+    })
+
+    if (!visibleSources.length) {
+      visibleSources = this.pageProperties.sources.length
+        ? [this.pageProperties.sources[0]?.id]
+        : []
+    }
+
+    this.pageProperties.visibleSources = visibleSources
+    this.urlQuery = {
+      ...this.urlQuery,
+      sources: visibleSources,
+    }
+
+    this.isChartLoading = false
+  }
+
+  private async fetchMeasurements (query: MeasurementsQuery): Promise<Measurement[]> {
+    const q: string = MeasurementsQuery.toQueryString(query)
+
+    const [err, measurements] = await to(MeasurementAPI.findAll(q))
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || ''+this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return measurements || []
+  }
+
   private onChangeQueryForm () {
     this.urlQuery = {
       ...this.urlQuery,
       cities: this.queryForm.cities.map(i => i.id),
       date_start: this.queryForm.dateStart,
       date_end: this.queryForm.dateEnd,
-      display_mode: this.queryForm.displayMode
     }
   }
 
   private onChangePageProperties (data: PagePropertiesForm) {
+    this.pageProperties = {...data}
     this.urlQuery = {
       ...this.urlQuery,
-      chart_cols: data.chartColumnSize
+      chart_cols: data.chartColumnSize,
+      sources: data.visibleSources,
+      display_mode: data.displayMode
     }
   }
 
-  private onClickRefresh () {
-    this.$measurementsChart?.refresh()
-  }
-
-  private onChangeChartLoading (value: boolean) {
-    this.isChartLoading = value
+  private async onClickRefresh () {
+    await this.refreshChartData()
   }
 }
 </script>

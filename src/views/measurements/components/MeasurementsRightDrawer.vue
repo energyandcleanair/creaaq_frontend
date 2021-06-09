@@ -32,11 +32,27 @@
 
   <v-form class="drawer__form px-3">
     <v-row no-gutters>
-      <v-col class="subtitle-2" cols="12">{{ $t('running_average') }}</v-col>
+      <v-col class="subtitle-2" cols="12">{{ $t('display_mode') }}</v-col>
 
       <v-col class="d-flex justify-center" cols="12">
+        <v-select
+          class="mt-0 pt-2"
+          :value="formData.displayMode"
+          :items="DISPLAY_MODES"
+          item-text="label"
+          item-value="value"
+          hide-details
+          @change="onChangeForm('displayMode', $event)"
+        />
+      </v-col>
+    </v-row>
+
+    <v-row no-gutters>
+      <v-col class="subtitle-2" cols="12">{{ $t('running_average') }}</v-col>
+
+      <v-col class="d-flex justify-center mt-2" cols="12">
         <v-btn-toggle
-          v-model="formData.runningAverage"
+          :value="formData.runningAverage"
           color="primary"
           tile
           group
@@ -58,7 +74,7 @@
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('chart_columns') }}</v-col>
 
-      <v-col class="d-flex justify-center" cols="12">
+      <v-col class="d-flex justify-center mt-2" cols="12">
         <v-slider
           :value="CHART_SIZE_LABELS.indexOf(formData.chartColumnSize)"
           color="primary"
@@ -70,7 +86,6 @@
           hide-details
           thumb-label
           :thumb-size="18"
-          @input="($event) => $set(formData, 'chartColumnSize', CHART_SIZE_LABELS[$event])"
           @change="onChangeForm('chartColumnSize', CHART_SIZE_LABELS[$event])"
         >
           <template v-slot:thumb-label="{ value }">
@@ -83,16 +98,16 @@
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('sources') }}</v-col>
 
-      <v-col v-if="formData.sources.lenght" class="d-flex justify-center" cols="12">
+      <v-col v-if="formData.sources.length" class="d-flex pl-1" cols="12">
         <v-radio-group
-          v-model="formData.sources"
+          :value="formData.visibleSources && formData.visibleSources[0]"
           color="primary"
-          @change="onChangeForm('sources', $event)"
+          @change="onChangeForm('visibleSources', [$event])"
         >
             <v-radio
-              v-for="item of sources"
+              v-for="item of formData.sources"
               :key="item.id"
-              :label="item.name"
+              :label="item.label"
               :value="item.id"
             />
           </v-radio-group>
@@ -105,11 +120,10 @@
       <v-col v-if="formData.pollutants.lenght" class="d-flex justify-center" cols="12">
         <v-checkbox
           v-for="item of pollutants"
-          v-model="formData.pollutants[item.id]"
+          :value="formData.pollutants[item.id]"
           color="primary"
           :key="item.id"
           :label="item.name"
-          :value="item.id"
           @change="onChangeForm('pollutants', $event)"
         />
       </v-col>
@@ -124,7 +138,7 @@
         <v-switch
           id="stations-switch"
           class="d-inline-flex ml-2 mt-0 pt-0"
-          v-model="formData.isShowStations"
+          :value="formData.isShowStations"
           color="primary"
           hide-details
           dense
@@ -150,6 +164,7 @@ import Pollutant from '@/entities/Pollutant'
 import PagePropertiesForm from '../types/PagePropertiesForm'
 import RunningAverageEnum from '../types/RunningAverageEnum'
 import ChartColumnSize, { CHART_COLUMN_SIZES } from '../types/ChartColumnSize'
+import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
 
 @Component
 export default class MeasurementsRightDrawer extends Vue {
@@ -174,11 +189,26 @@ export default class MeasurementsRightDrawer extends Vue {
     return Object.values(RunningAverageEnum)
   }
 
+  private get DISPLAY_MODES (): any {
+    return Object.values(ChartDisplayModes)
+      .reduce((memo: any[], val) => {
+        memo.push({
+          label: this.$t(val.toLowerCase() || '').toString(),
+          value: val,
+        })
+        return memo
+      }, [])
+  }
+
   @Emit('update:open')
   public toggle (value: boolean) {}
 
   public onChangeForm (key: keyof PagePropertiesForm, value: any) {
-    this.$emit('update:formData', this.formData)
+    const formData = {
+      ...this.formData,
+      [key]: value
+    }
+    setTimeout(() => this.$emit('update:formData', formData), 100)
   }
 }
 </script>
@@ -228,7 +258,7 @@ export default class MeasurementsRightDrawer extends Vue {
     overflow: auto;
 
     > .row {
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
     }
   }
 }

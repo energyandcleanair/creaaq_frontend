@@ -4,12 +4,12 @@
   fluid
 >
 
-  <template v-if="isLoading">
+  <template v-if="loading">
     <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
 
     <v-row class="px-2">
-      <template v-for="(city, i) of queryCities">
-        <v-col v-if="i < 12 / chartCols" :key="city.id">
+      <template v-for="i of cols">
+        <v-col :key="i">
           <v-skeleton-loader type="text, image" />
         </v-col>
       </template>
@@ -36,7 +36,15 @@
       >
         <v-list-item-content>
           <v-list-item-subtitle class="grey--text" v-text="$t('pollutant')"/>
-          <v-list-item-title v-text="row.title"/>
+          <v-list-item-title>
+            <span class="font-weight-bold">{{ row.title }}</span>
+            <i
+              v-if="row.subtitle"
+              class="grey--text text--darken-1 pl-1"
+              style="font-size: 0.6em;"
+              v-text="row.subtitle"
+            />
+          </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
 
@@ -75,21 +83,23 @@
 </template>
 
 <script lang="ts">
-import to from 'await-to-js'
+// import to from 'await-to-js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _sortBy from 'lodash.sortby'
 import _groupBy from 'lodash.groupby'
 import moment from 'moment'
 import { Framework } from 'vuetify'
-import { Component, Vue, Prop, Watch, Emit } from 'vue-property-decorator'
+import { Component, Vue, Prop } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
-import MeasurementAPI from '@/api/MeasurementAPI'
+// import MeasurementAPI from '@/api/MeasurementAPI'
 import Measurement from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
-import POLLUTANTS from '@/constants/pollutants.json'
-import MeasurementsQuery from './MeasurementsQuery'
+import Source from '@/entities/Source'
+// import POLLUTANTS from '@/constants/pollutants.json'
+// import MeasurementsQuery from './MeasurementsQuery'
+import ChartColumnSize from '../../types/ChartColumnSize'
 import ChartDisplayModes from './ChartDisplayModes'
 import ChartsParams from './ChartsParams'
 import RangeBox from './RangeBox'
@@ -97,7 +107,7 @@ import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
 import ChartTrace from './ChartTrace'
 import ChartData from './ChartData'
-import ChartColumnSize from '../../types/ChartColumnSize'
+import ChartComponentData from './ChartComponentData'
 
 const COL_ID_DIVIDER = '--'
 
@@ -107,16 +117,32 @@ const COL_ID_DIVIDER = '--'
   }
 })
 export default class MeasurementsChart extends Vue {
-  @Prop() public readonly query!: MeasurementsQuery
-  @Prop({type: Number}) public readonly cols!: ChartColumnSize
-  public displayMode: ChartDisplayModes = ChartDisplayModes.NORMAL
-  private cities: City[] = []
-  private pollutants: Pollutant[] = []
-  private measurements: Measurement[] = []
-  private isLoading: boolean = false
 
-  private get queryCities (): City[] {
-    return this.query.cities || []
+  @Prop()
+  public readonly chartData!: ChartComponentData
+
+  @Prop({type: Number})
+  public readonly cols!: ChartColumnSize
+
+  @Prop({default: ChartDisplayModes.NORMAL})
+  public readonly displayMode!: ChartDisplayModes
+
+  @Prop({type: Boolean, default: false})
+  public readonly loading!: boolean
+
+  @Prop({type: Array, default: () => []})
+  public readonly filterSources!: Source['id'][]
+
+  private get cities (): City[] {
+    return this.chartData.cities || []
+  }
+
+  private get pollutants (): Pollutant[] {
+    return this.chartData.pollutants || []
+  }
+
+  private get measurements (): Measurement[] {
+    return this.chartData.measurements || []
   }
 
   private get chartCols (): number /* Vuetify <v-col> size: [1, 12] */ {
@@ -128,14 +154,14 @@ export default class MeasurementsChart extends Vue {
   }
 
   private get colWidth (): number {
-    let w = this.$el.clientWidth || 100
+    let w = this.$el?.clientWidth || 300
     const PADDING = 10
     w -= PADDING * 2
     return (w / this.cols) || w
   }
 
   private get charts (): ChartsParams {
-    if (this.isLoading) {
+    if (this.loading) {
       return {rows: [], displayMode: this.displayMode}
     }
 
@@ -148,9 +174,10 @@ export default class MeasurementsChart extends Vue {
       for (const i in this.cities) {
         const city = this.cities[+i]
         const colId = city.id
-        const chartData = this.genChartData(city.id, pollutant.id)
         const first = +i === 0
         const last = +i === this.cities.length - 1
+        const chartData = this
+          .genChartData(city.id, pollutant.id, this.filterSources)
 
         const data = chartData.data.map(trace => {
           trace.x = trace.x.map(val => new Date(val))
@@ -167,9 +194,13 @@ export default class MeasurementsChart extends Vue {
             ? 10
             : 12
 
+        const showlegend = this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS && last
         const margin = {
-          l: first && !isEmpty ? 60 : 10,
-          r: last ? 40 : 10,
+
+          // TODO: add this if we need the y-axis title
+          // l: first && !isEmpty ? 60 : 10,
+          l: 10,
+          r: showlegend ? 40 : 10,
           b: 60,
           t: 10,
           pad: 0,
@@ -182,7 +213,7 @@ export default class MeasurementsChart extends Vue {
           isEmpty,
           rangeBox: chartData.rangeBox,
           layout: {
-            showlegend: this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS && last,
+            showlegend: showlegend,
             legendfont: {
               size: font,
               color: '#212121',
@@ -210,7 +241,9 @@ export default class MeasurementsChart extends Vue {
             },
             yaxis: {
               visible: !isEmpty,
-              title: first ? pollutant.unit : undefined,
+
+              // TODO: do we need that?
+              // title: first ? pollutant.unit : undefined,
               titlefont: {
                 size: font,
                 color: '#bbb',
@@ -231,7 +264,8 @@ export default class MeasurementsChart extends Vue {
                 yref: 'paper',
                 showarrow: false,
                 font: {
-                  size: font * 1.5
+                  size: font * 1.5,
+                  color: '#bbb',
                 }
               }]
             })
@@ -243,6 +277,7 @@ export default class MeasurementsChart extends Vue {
       const row: ChartRow = {
         id: rowId,
         title: pollutant.label,
+        subtitle: pollutant.unit,
         cols,
         rangeBox: _genRangeBox(cols),
       }
@@ -267,21 +302,10 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private created () {
-    this.refresh()
-  }
-
   private mounted () {
     if (!this.cols) {
       this.$emit('update:cols', MeasurementsChart.getDefaultChartCols(this.$vuetify))
     }
-  }
-
-  public async refresh () {
-    this.isLoading = true
-    this.displayMode = this.query.displayMode || ChartDisplayModes.NORMAL
-    await this.fetch()
-    this.isLoading = false
   }
 
   static getDefaultChartCols ($vuetify: Framework): ChartColumnSize {
@@ -295,47 +319,12 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private async fetch () {
-    this.isLoading = true
-
-    const measurements = await this.fetchMeasurements(this.query)
-
-    const pollutantsMap = measurements
-      .reduce((memo: {[pollutantId: string]: Pollutant}, meas: Measurement) => {
-        if (meas.pollutant && !memo[meas.pollutant]) {
-          const pollutant = POLLUTANTS.find(i => i.id === meas.pollutant)
-          if (pollutant) {
-            memo[meas.pollutant] = {...pollutant, unit: meas.unit}
-          }
-        }
-        return memo
-      }, {})
-    const pollutants = _sortBy(Object.values(pollutantsMap), 'id')
-
-    this.cities = this.query.cities.slice()
-    this.measurements = measurements
-    this.pollutants = pollutants
-    this.isLoading = false
-  }
-
-  private async fetchMeasurements (query: MeasurementsQuery): Promise<Measurement[]> {
-    const q: string = MeasurementsQuery.toQueryString(query)
-
-    const [err, measurements] = await to(MeasurementAPI.findAll(q))
-    if (err) {
-      this.$dialog.notify.error(
-        err?.message || ''+this.$t('msg.something_went_wrong')
-      )
-      console.error(err)
-      return []
-    }
-    return measurements || []
-  }
-
   private genChartData (
     cityId: City['id'],
-    pollutantId: Pollutant['id']
+    pollutantId: Pollutant['id'],
+    filterSources: Source['id'][]
   ): ChartData {
+
     const points: {
       x: number
       y: number
@@ -350,10 +339,13 @@ export default class MeasurementsChart extends Vue {
     }
 
     for (const measurement of this.measurements) {
-      const match = measurement.city_id === cityId &&
-        measurement.pollutant === pollutantId
+      const matchCity: boolean = measurement.city_id === cityId
+      const matchPollutant: boolean = measurement.pollutant === pollutantId
+      const matchSource: boolean = filterSources.length
+        ? filterSources.includes(measurement.source)
+        : true
 
-      if (!match) continue
+      if (!matchCity || !matchPollutant || !matchSource) continue
 
       const $origDate = moment(measurement.date)
       const $date = moment(measurement.date)
@@ -459,12 +451,6 @@ export default class MeasurementsChart extends Vue {
         $ref.relayout(paramsToUpdate)
       }
     }
-  }
-
-  @Watch('isLoading')
-  @Emit('loading')
-  private onChangeLoading () {
-    return this.isLoading
   }
 }
 

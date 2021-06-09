@@ -1,6 +1,7 @@
 import Country from './Country'
 import City from './City'
 import Pollutant from './Pollutant'
+import Source from './Source'
 
 // TODO: approve the schema
 export default class Measurement {
@@ -9,6 +10,7 @@ export default class Measurement {
   public country_id!: Country['id']
   public location_id!: City['id']
   public city_id!: City['id']
+  public source!: Source['id']
   public date!: string|Date
   public level!: 'city'
   public value!: number
