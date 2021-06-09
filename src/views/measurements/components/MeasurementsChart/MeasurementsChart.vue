@@ -8,9 +8,11 @@
     <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
 
     <v-row class="px-2">
-      <v-col v-for="city of queryCities" :key="city.id">
-        <v-skeleton-loader type="text, image" />
-      </v-col>
+      <template v-for="(city, i) of queryCities">
+        <v-col v-if="i < 12 / chartCols" :key="city.id">
+          <v-skeleton-loader type="text, image" />
+        </v-col>
+      </template>
     </v-row>
   </template>
 
@@ -24,11 +26,12 @@
     <v-row
       v-for="row of charts.rows"
       :key="row.id"
-      class="chart--row"
+      class="chart-row"
+      :class="`chart-row--cols-${chartCols}`"
     >
 
       <v-list-item
-        class="chart--row--title grey lighten-4 primary--text"
+        class="chart-row__title grey lighten-4 primary--text"
         two-line
       >
         <v-list-item-content>
@@ -39,18 +42,28 @@
 
       <v-col
         v-for="col of row.cols"
+        class="chart-col"
         :key="col.id"
-        class="chart--col"
+        :cols="chartCols"
       >
-        <div class="chart--col--title blue">
-          {{ col.title }}
-        </div>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-list-item class="chart-col__title blue" v-bind="attrs" v-on="on">
+              <v-list-item-content>
+                <v-list-item-title v-text="col.title"/>
+              </v-list-item-content>
+            </v-list-item>
+          </template>
+          <span>{{ col.title }}</span>
+        </v-tooltip>
 
         <Plotly
+          class-name="ooops"
           :ref="`chart:${col.id}`"
           :id="`chart:${col.id}`"
           :data="col.data"
           :layout="col.layout"
+          :config="{responsive: true}"
           :displaylogo="false"
           :display-mode-bar="col.isEmpty ? false : 'hover'"
           @relayout="onRelayout(row.id, col.id, $refs[`chart:${col.id}`][0], $event)"
@@ -68,6 +81,7 @@ import _set from 'lodash.set'
 import _sortBy from 'lodash.sortby'
 import _groupBy from 'lodash.groupby'
 import moment from 'moment'
+import { Framework } from 'vuetify'
 import { Component, Vue, Prop, Watch, Emit } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
 import MeasurementAPI from '@/api/MeasurementAPI'
@@ -83,6 +97,7 @@ import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
 import ChartTrace from './ChartTrace'
 import ChartData from './ChartData'
+import ChartColumnSize from '../../types/ChartColumnSize'
 
 const COL_ID_DIVIDER = '--'
 
@@ -93,6 +108,7 @@ const COL_ID_DIVIDER = '--'
 })
 export default class MeasurementsChart extends Vue {
   @Prop() public readonly query!: MeasurementsQuery
+  @Prop({type: Number}) public readonly cols!: ChartColumnSize
   public displayMode: ChartDisplayModes = ChartDisplayModes.NORMAL
   private cities: City[] = []
   private pollutants: Pollutant[] = []
@@ -101,6 +117,21 @@ export default class MeasurementsChart extends Vue {
 
   private get queryCities (): City[] {
     return this.query.cities || []
+  }
+
+  private get chartCols (): number /* Vuetify <v-col> size: [1, 12] */ {
+    const columns = !this.cols
+      ? MeasurementsChart.getDefaultChartCols(this.$vuetify)
+      : this.cols
+
+    return 12 / columns
+  }
+
+  private get colWidth (): number {
+    let w = this.$el.clientWidth || 100
+    const PADDING = 10
+    w -= PADDING * 2
+    return (w / this.cols) || w
   }
 
   private get charts (): ChartsParams {
@@ -128,6 +159,22 @@ export default class MeasurementsChart extends Vue {
         const isEmpty: boolean = !data?.length ||
           (!data[0]?.x?.length && !data[0]?.y?.length)
 
+        const xs = this.colWidth < 80
+        const sm = this.colWidth < 140
+        const font = xs
+          ? 8
+          : sm
+            ? 10
+            : 12
+
+        const margin = {
+          l: first && !isEmpty ? 60 : 10,
+          r: last ? 40 : 10,
+          b: 60,
+          t: 10,
+          pad: 0,
+        }
+
         const col: ChartCol = {
           id: `${rowId}${COL_ID_DIVIDER}${colId}`,
           title: city.name,
@@ -137,7 +184,7 @@ export default class MeasurementsChart extends Vue {
           layout: {
             showlegend: this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS && last,
             legendfont: {
-              size: 12,
+              size: font,
               color: '#212121',
             },
             plot_bgcolor: '#fcfcfc',
@@ -145,20 +192,16 @@ export default class MeasurementsChart extends Vue {
             hovermode: 'closest',
             dragmode: 'pan',
             autosize: true,
-            margin: {
-              l: first && !isEmpty ? 60 : 10,
-              r: last ? 40 : 10,
-              b: 60,
-              t: 10,
-              pad: 0,
-            },
+            width: this.colWidth,
+            height: Math.max(this.colWidth, margin.b * 2),
+            margin: margin,
             xaxis: {
               visible: !isEmpty,
               linecolor: '#eee',
               linewidth: 1,
               mirror: true,
               tickfont: {
-                size: 12,
+                size: font,
                 color: '#212121',
               },
               tickformat: this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
@@ -169,11 +212,11 @@ export default class MeasurementsChart extends Vue {
               visible: !isEmpty,
               title: first ? pollutant.unit : undefined,
               titlefont: {
-                size: 12,
+                size: font,
                 color: '#bbb',
               },
               tickfont: {
-                size: 12,
+                size: font,
                 color: '#212121',
               },
               showticklabels: first,
@@ -188,7 +231,7 @@ export default class MeasurementsChart extends Vue {
                 yref: 'paper',
                 showarrow: false,
                 font: {
-                  size: 28
+                  size: font * 1.5
                 }
               }]
             })
@@ -228,6 +271,12 @@ export default class MeasurementsChart extends Vue {
     this.refresh()
   }
 
+  private mounted () {
+    if (!this.cols) {
+      this.$emit('update:cols', MeasurementsChart.getDefaultChartCols(this.$vuetify))
+    }
+  }
+
   public async refresh () {
     this.isLoading = true
     this.displayMode = this.query.displayMode || ChartDisplayModes.NORMAL
@@ -235,11 +284,21 @@ export default class MeasurementsChart extends Vue {
     this.isLoading = false
   }
 
+  static getDefaultChartCols ($vuetify: Framework): ChartColumnSize {
+    switch ($vuetify.breakpoint.name) {
+      case 'xs': return 1
+      case 'sm': return 1
+      case 'md': return 2
+      case 'lg': return 4
+      case 'xl': return 6
+      default: return 1
+    }
+  }
+
   private async fetch () {
     this.isLoading = true
 
     const measurements = await this.fetchMeasurements(this.query)
-    console.log('measurements: ', measurements)
 
     const pollutantsMap = measurements
       .reduce((memo: {[pollutantId: string]: Pollutant}, meas: Measurement) => {
@@ -363,8 +422,6 @@ export default class MeasurementsChart extends Vue {
         .replace('chart:', '')
         .split(COL_ID_DIVIDER)
       const chartRowId: ChartRow['id'] = chartParams[0]
-      // const chartColId: ChartCol['id'] = chartParams[1]
-      // console.log('chartRowId: ', chartRowId, chartColId)
 
       const paramsToUpdate: {[key: string]: any} = {}
 
@@ -406,7 +463,7 @@ export default class MeasurementsChart extends Vue {
 
   @Watch('isLoading')
   @Emit('loading')
-  onChangeLoading () {
+  private onChangeLoading () {
     return this.isLoading
   }
 }
@@ -437,13 +494,13 @@ function _genRangeBox (items: any): RangeBox {
 
 <style lang="scss">
 .measurements-chart {
-  padding-left: 0;
+  padding: 0 0.5rem 0 0;
 
-  .chart--row {
+  .chart-row {
     position: relative;
     margin: 0 0 1rem 0;
 
-    &--title {
+    &__title {
       width: 100%;
       padding: 0 1rem;
       position: sticky;
@@ -461,12 +518,35 @@ function _genRangeBox (items: any): RangeBox {
       }
     }
 
-    .chart--col {
+    .chart-col {
       padding: 0.5rem 0.3rem;
+      overflow: hidden;
 
-      &--title {
+      &__title {
+        min-height: auto;
         text-align: center;
         border-radius: 3px;
+        padding: 0 0.3rem;
+
+        .v-list-item__content {
+          padding: 0;
+        }
+
+        .v-list-item__title {
+          font-size: 1em;
+          line-height: 1.4em;
+        }
+      }
+    }
+
+    &--cols-1,
+    &--cols-2 {
+      .chart-col {
+        .chart-col__title {
+          .v-list-item__title {
+            font-size: 0.8em;
+          }
+        }
       }
     }
   }

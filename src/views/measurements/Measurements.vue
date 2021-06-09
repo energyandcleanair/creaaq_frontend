@@ -13,7 +13,7 @@
           return-object
           hide-details
           has-deselect-all
-          @input="onChangeForm"
+          @input="onChangeQueryForm"
         >
           <template v-slot:item-subtext="{item}">
             <CountryFlag
@@ -37,7 +37,7 @@
           item-value="value"
           return-object
           hide-details
-          @input="onChangeForm"
+          @input="onChangeQueryForm"
         />
       </v-col> -->
 
@@ -68,7 +68,7 @@
             @input="($e) => {
               queryForm.dateStart = +new Date($e);
               isMenuDateStartOpen = false;
-              onChangeForm()
+              onChangeQueryForm()
             }"
           />
         </v-menu>
@@ -101,7 +101,7 @@
             @input="($e) => {
               queryForm.dateEnd = +new Date($e);
               isMenuDateEndOpen = false;
-              onChangeForm()
+              onChangeQueryForm()
             }"
           />
         </v-menu>
@@ -116,7 +116,7 @@
           item-text="label"
           item-value="value"
           hide-details
-          @input="onChangeForm"
+          @input="onChangeQueryForm"
         />
       </v-col> -->
 
@@ -141,13 +141,16 @@
 
   <v-container class="mt-4 px-8" fluid>
     <MeasurementsRightDrawer
+      :formData="pageProperties"
       :open.sync="isRightPanelOpen"
+      @update:formData="onChangePageProperties"
     />
 
     <MeasurementsChart
       ref="measurementsChart"
       v-if="!isLoading"
       :query="queryForm"
+      :cols.sync="chartCols"
       :displayMode="queryForm.displayMode"
       @loading="onChangeChartLoading"
     />
@@ -170,6 +173,8 @@ import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.
 import MeasurementsQuery from './components/MeasurementsChart/MeasurementsQuery'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
+import PagePropertiesForm from './types/PagePropertiesForm'
+import ChartColumnSize from './types/ChartColumnSize'
 
 interface URLQuery {
   cities: City['id'][]
@@ -177,6 +182,7 @@ interface URLQuery {
   date_start: number
   date_end?: number
   display_mode?: string
+  chart_cols?: ChartColumnSize|0
 }
 
 const today = moment(moment().format('YYYY-MM-DD')).valueOf()
@@ -207,6 +213,15 @@ export default class ViewMeasurements extends Vue {
     displayMode: ChartDisplayModes.NORMAL,
   }
 
+  private pageProperties: PagePropertiesForm = {
+    runningAverage: '',
+    chartColumnSize: 12,
+    sources: [],
+    pollutants: {},
+    isShowStations: false,
+    stationsDisplayOptions: '',
+  }
+
   private get DISPLAY_MODES (): any {
     return Object.values(ChartDisplayModes)
       .reduce((memo: any[], val) => {
@@ -222,13 +237,14 @@ export default class ViewMeasurements extends Vue {
     const q = this.$route.query
 
     const cities = Array.isArray(q.cities) ? q.cities : [q.cities]
-    const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
+    // const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
 
     return {
       cities: cities.filter(i => i) as City['id'][],
       // sources: sources.filter(i => i) as Source['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
+      chart_cols: (Number(q.chart_cols) || 0) as ChartColumnSize,
       display_mode: q.display_mode
         ? (String(q.display_mode) || '').toUpperCase()
         : undefined,
@@ -236,24 +252,29 @@ export default class ViewMeasurements extends Vue {
   }
 
   private set urlQuery (queryForm: URLQuery) {
-    const newRoutePath = this.$router.resolve({
+    const newPath = this.$router.resolve({
       ...(this.$route as any),
       query: queryForm
     }).href
 
-    if (this.$route.fullPath === newRoutePath) return
+    if (this.$route.fullPath !== newPath) this.$router.replace(newPath)
+  }
 
-    this.$router.replace({
-      ...(this.$route as any),
-      query: queryForm
-    })
+  private get chartCols (): ChartColumnSize|0 {
+    return this.urlQuery.chart_cols || 0
+  }
+
+  private set chartCols (cols: ChartColumnSize|0) {
+    this.urlQuery = {
+      ...this.urlQuery,
+      chart_cols: cols
+    }
   }
 
   private get isRightPanelOpen (): boolean {
     return this.$store.getters.GET('ui.measurements.isRightPanelOpen')
   }
   private set isRightPanelOpen (value: boolean) {
-    console.log('isRightPanelOpen: ', value)
     this.$store.commit('SET', {key: 'ui.measurements.isRightPanelOpen', value})
   }
 
@@ -325,7 +346,13 @@ export default class ViewMeasurements extends Vue {
       this.queryForm.displayMode = ChartDisplayModes.NORMAL
     }
 
-    this.onChangeForm()
+    if (!this.urlQuery.chart_cols) {
+      this.urlQuery.chart_cols = MeasurementsChart.getDefaultChartCols(this.$vuetify)
+    }
+
+    this.pageProperties.chartColumnSize = this.urlQuery.chart_cols
+
+    this.onChangeQueryForm()
   }
 
   private async fetchCities (): Promise<City[]> {
@@ -340,13 +367,20 @@ export default class ViewMeasurements extends Vue {
     return _sortBy(cities || [], 'name')
   }
 
-  private onChangeForm () {
+  private onChangeQueryForm () {
     this.urlQuery = {
+      ...this.urlQuery,
       cities: this.queryForm.cities.map(i => i.id),
-      // sources: this.queryForm.sources.map(i => i.id),
       date_start: this.queryForm.dateStart,
       date_end: this.queryForm.dateEnd,
       display_mode: this.queryForm.displayMode
+    }
+  }
+
+  private onChangePageProperties (data: PagePropertiesForm) {
+    this.urlQuery = {
+      ...this.urlQuery,
+      chart_cols: data.chartColumnSize
     }
   }
 

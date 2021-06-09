@@ -40,6 +40,7 @@
           color="primary"
           tile
           group
+          @change="onChangeForm('runningAverage', $event)"
         >
           <v-btn
             class="px-1"
@@ -55,19 +56,27 @@
     </v-row>
 
     <v-row no-gutters>
-      <v-col class="subtitle-2" cols="12">{{ $t('chart_size') }}</v-col>
+      <v-col class="subtitle-2" cols="12">{{ $t('chart_columns') }}</v-col>
 
       <v-col class="d-flex justify-center" cols="12">
         <v-slider
-          v-model="formData.chartSize"
+          :value="CHART_SIZE_LABELS.indexOf(formData.chartColumnSize)"
           color="primary"
-          :min="CHART_SIZE_OPTIONS.min"
-          :max="CHART_SIZE_OPTIONS.max"
-          step="20"
+          :min="CHART_SIZE_VALUES.min"
+          :max="CHART_SIZE_VALUES.max"
+          step="1"
           ticks="always"
           tick-size="2"
           hide-details
-        />
+          thumb-label
+          :thumb-size="18"
+          @input="($event) => $set(formData, 'chartColumnSize', CHART_SIZE_LABELS[$event])"
+          @change="onChangeForm('chartColumnSize', CHART_SIZE_LABELS[$event])"
+        >
+          <template v-slot:thumb-label="{ value }">
+            {{ CHART_SIZE_LABELS[value] }}
+          </template>
+        </v-slider>
       </v-col>
     </v-row>
 
@@ -78,6 +87,7 @@
         <v-radio-group
           v-model="formData.sources"
           color="primary"
+          @change="onChangeForm('sources', $event)"
         >
             <v-radio
               v-for="item of sources"
@@ -100,6 +110,7 @@
           :key="item.id"
           :label="item.name"
           :value="item.id"
+          @change="onChangeForm('pollutants', $event)"
         />
       </v-col>
     </v-row>
@@ -117,11 +128,13 @@
           color="primary"
           hide-details
           dense
+          @change="onChangeForm('isShowStations', $event)"
         />
       </v-col>
 
       <v-col v-if="formData.isShowStations" class="d-flex justify-center" cols="12">
         <v-select
+          @change="onChangeForm('stations', $event)"
         />
       </v-col>
     </v-row>
@@ -134,49 +147,27 @@ import { Component, Prop, Vue, Emit } from 'vue-property-decorator'
 import { mdiClose, mdiTune } from '@mdi/js'
 import Source from '@/entities/Source'
 import Pollutant from '@/entities/Pollutant'
-
-interface PropertiesForm {
-  runningAverage: string
-  chartSize: number
-  sources: Source['id'][]
-  pollutants: {
-    [id: string]: boolean
-  }
-  isShowStations: boolean
-  stationsDisplayOptions: any
-}
-
-enum RunningAverageEnum {
-  '1d' = '1d',
-  '7d' = '7d',
-  '14d' = '14d',
-  '1m' = '1m',
-  '1Q' = '1Q',
-  '1Y' = '1Y',
-}
+import PagePropertiesForm from '../types/PagePropertiesForm'
+import RunningAverageEnum from '../types/RunningAverageEnum'
+import ChartColumnSize, { CHART_COLUMN_SIZES } from '../types/ChartColumnSize'
 
 @Component
 export default class MeasurementsRightDrawer extends Vue {
+  @Prop({type: Object, required: true}) formData!: PagePropertiesForm
   @Prop({type: Boolean, default: false}) open!: boolean
   @Prop({type: Array, default: () => []}) sources!: Source[]
   @Prop({type: Array, default: () => []}) pollutants!: Pollutant[]
   private mdiClose = mdiClose
   private mdiTune = mdiTune
 
-  private formData: PropertiesForm = {
-    runningAverage: '',
-    chartSize: 0,
-    sources: [],
-    pollutants: {},
-    isShowStations: false,
-    stationsDisplayOptions: '',
-  }
-
-  private get CHART_SIZE_OPTIONS (): {min: number, max: number} {
+  private get CHART_SIZE_VALUES (): {min: number, max: number} {
     return {
-      min: -100,
-      max: 100,
+      min: 0,
+      max: CHART_COLUMN_SIZES.length - 1,
     }
+  }
+  private get CHART_SIZE_LABELS (): ChartColumnSize[] {
+    return CHART_COLUMN_SIZES.slice()
   }
 
   private get RUNNING_AVERAGE_OPTIONS (): RunningAverageEnum[]{
@@ -185,6 +176,10 @@ export default class MeasurementsRightDrawer extends Vue {
 
   @Emit('update:open')
   public toggle (value: boolean) {}
+
+  public onChangeForm (key: keyof PagePropertiesForm, value: any) {
+    this.$emit('update:formData', this.formData)
+  }
 }
 </script>
 

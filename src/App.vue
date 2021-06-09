@@ -2,6 +2,7 @@
 <v-app>
   <v-app-bar
     color="white"
+    elevation="3"
     clipped-left
     clipped-right
     dark
