@@ -30,7 +30,7 @@
     </v-toolbar>
   </template>
 
-  <v-form class="drawer__form px-3">
+  <v-form class="drawer__form px-3 pb-10">
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('display_mode') }}</v-col>
 
@@ -102,6 +102,7 @@
         <v-radio-group
           :value="formData.visibleSources && formData.visibleSources[0]"
           color="primary"
+          hide-details
           @change="onChangeForm('visibleSources', [$event])"
         >
             <v-radio
@@ -117,14 +118,23 @@
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('pollutants') }}</v-col>
 
-      <v-col v-if="formData.pollutants.lenght" class="d-flex justify-center" cols="12">
+      <!-- TODO: complete -->
+      <v-col v-if="pollutantsCheckboxes.length" class="pl-1" cols="12">
+          <!-- :value="item.checked" -->
         <v-checkbox
-          v-for="item of pollutants"
-          :value="formData.pollutants[item.id]"
-          color="primary"
+          v-for="item of pollutantsCheckboxes"
+          v-model="item.id"
           :key="item.id"
-          :label="item.name"
-          @change="onChangeForm('pollutants', $event)"
+          color="primary"
+          :label="item.label"
+          hide-details
+          disabled
+          @change="onChangeForm(
+            'visiblePollutants',
+            $event
+              ? formData.visiblePollutants.filter(itm => itm !== item.id)
+              : [...formData.visiblePollutants, item.id]
+          )"
         />
       </v-col>
     </v-row>
@@ -159,8 +169,6 @@
 <script lang="ts">
 import { Component, Prop, Vue, Emit } from 'vue-property-decorator'
 import { mdiClose, mdiTune } from '@mdi/js'
-import Source from '@/entities/Source'
-import Pollutant from '@/entities/Pollutant'
 import PagePropertiesForm from '../types/PagePropertiesForm'
 import RunningAverageEnum from '../types/RunningAverageEnum'
 import ChartColumnSize, { CHART_COLUMN_SIZES } from '../types/ChartColumnSize'
@@ -170,11 +178,17 @@ import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
 export default class MeasurementsRightDrawer extends Vue {
   @Prop({type: Object, required: true}) formData!: PagePropertiesForm
   @Prop({type: Boolean, default: false}) open!: boolean
-  @Prop({type: Array, default: () => []}) sources!: Source[]
-  @Prop({type: Array, default: () => []}) pollutants!: Pollutant[]
   private mdiClose = mdiClose
   private mdiTune = mdiTune
 
+  // TODO: complete
+  private get pollutantsCheckboxes (): any {
+    return this.formData.pollutants.map((pollutant) => ({
+      id: pollutant.id,
+      label: pollutant.label,
+      checked: this.formData.visiblePollutants.includes(pollutant.id),
+    }))
+  }
   private get CHART_SIZE_VALUES (): {min: number, max: number} {
     return {
       min: 0,

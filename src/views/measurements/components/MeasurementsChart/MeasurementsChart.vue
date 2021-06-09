@@ -133,6 +133,9 @@ export default class MeasurementsChart extends Vue {
   @Prop({type: Array, default: () => []})
   public readonly filterSources!: Source['id'][]
 
+  @Prop({type: Array, default: () => []})
+  public readonly filterPollutants!: Pollutant['id'][]
+
   private get cities (): City[] {
     return this.chartData.cities || []
   }

@@ -125,6 +125,7 @@
       :cols.sync="chartCols"
       :displayMode="displayMode"
       :filterSources="filterSources"
+      :filterPollutants="filterPollutants"
       :loading="isChartLoading"
     />
   </v-container>
@@ -157,6 +158,7 @@ import ChartColumnSize from './types/ChartColumnSize'
 interface URLQuery {
   cities: City['id'][]
   sources: Source['id'][]
+  pollutants: Pollutant['id'][]
   date_start: number
   date_end?: number
   display_mode?: ChartDisplayModes
@@ -201,7 +203,8 @@ export default class ViewMeasurements extends Vue {
     chartColumnSize: 12,
     sources: [],
     visibleSources: [],
-    pollutants: {},
+    pollutants: [],
+    visiblePollutants: [],
     isShowStations: false,
     stationsDisplayOptions: '',
   }
@@ -222,10 +225,12 @@ export default class ViewMeasurements extends Vue {
 
     const cities = Array.isArray(q.cities) ? q.cities : [q.cities]
     const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
+    const pollutants = Array.isArray(q.pollutants) ? q.pollutants : [q.pollutants]
 
     return {
       cities: cities.filter(i => i) as City['id'][],
       sources: sources.filter(i => i) as Source['id'][],
+      pollutants: pollutants.filter(i => i) as Pollutant['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
       chart_cols: (Number(q.chart_cols) || 0) as ChartColumnSize,
@@ -246,6 +251,10 @@ export default class ViewMeasurements extends Vue {
 
   private get filterSources (): Source['id'][] {
     return this.urlQuery.sources || []
+  }
+
+  private get filterPollutants (): Pollutant['id'][] {
+    return this.urlQuery.pollutants || []
   }
 
   private get displayMode (): ChartDisplayModes|null {
@@ -394,21 +403,30 @@ export default class ViewMeasurements extends Vue {
     const chartData = await this.fetchChartData()
     this.chartData = chartData
     this.pageProperties.sources = this.chartData.sources || []
+    this.pageProperties.pollutants = this.chartData.pollutants || []
 
-    let visibleSources = this.filterSources.filter(srcId => {
-      return this.pageProperties.sources.find((s) => s.id === srcId)
-    })
-
+    let visibleSources = this.filterSources
+      .filter(srcId => this.pageProperties.sources.find((s) => s.id === srcId))
     if (!visibleSources.length) {
       visibleSources = this.pageProperties.sources.length
         ? [this.pageProperties.sources[0]?.id]
         : []
     }
-
     this.pageProperties.visibleSources = visibleSources
+
+    let visiblePollutants = this.filterPollutants
+      .filter(pollId => this.pageProperties.pollutants.find((p) => p.id === pollId))
+    if (!visiblePollutants.length) {
+      visiblePollutants = this.pageProperties.pollutants.length
+        ? [this.pageProperties.pollutants[0]?.id]
+        : []
+    }
+    this.pageProperties.visiblePollutants = visiblePollutants
+
     this.urlQuery = {
       ...this.urlQuery,
       sources: visibleSources,
+      pollutants: visiblePollutants,
     }
 
     this.isChartLoading = false
