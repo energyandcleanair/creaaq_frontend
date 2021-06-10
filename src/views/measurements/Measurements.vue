@@ -323,8 +323,6 @@ export default class ViewMeasurements extends Vue {
 
     const cities = await this.fetchCities()
     this.cities = cities
-    console.log('this.cities: ', this.cities)
-    console.log('this.urlQuery.cities: ', this.urlQuery.cities)
 
     if (this.urlQuery.cities.length) {
       const idsMap = this.urlQuery.cities
