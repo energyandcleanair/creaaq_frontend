@@ -8,7 +8,7 @@
     <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
 
     <v-row class="px-2">
-      <template v-for="i of cols">
+      <template v-for="i of (cols || 2)">
         <v-col :key="i">
           <v-skeleton-loader type="text, image" />
         </v-col>
@@ -98,7 +98,9 @@ import Measurement, { MeasurementProcesses } from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
+import Station from '@/entities/Station'
 import ChartColumnSize from '../../types/ChartColumnSize'
+import RunningAverageEnum, { RUNNING_AVERAGE_DAYS_MAP } from '../../types/RunningAverageEnum'
 import ChartDisplayModes from './ChartDisplayModes'
 import ChartsParams from './ChartsParams'
 import RangeBox from './RangeBox'
@@ -108,7 +110,6 @@ import ChartTrace from './ChartTrace'
 import ChartTracePoint from './ChartTracePoint'
 import ChartData from './ChartData'
 import ChartComponentData from './ChartComponentData'
-import Station from '@/entities/Station'
 
 const COL_ID_DIVIDER = '--'
 
@@ -123,10 +124,13 @@ export default class MeasurementsChart extends Vue {
   public readonly chartData!: ChartComponentData
 
   @Prop({type: Number})
-  public readonly cols!: ChartColumnSize
+  public readonly cols?: ChartColumnSize
 
   @Prop({default: ChartDisplayModes.NORMAL})
   public readonly displayMode!: ChartDisplayModes
+
+  @Prop({type: String})
+  public readonly runningAverage?: RunningAverageEnum
 
   @Prop({type: Boolean, default: false})
   public readonly loading!: boolean
@@ -172,7 +176,7 @@ export default class MeasurementsChart extends Vue {
     let w = this.$el?.clientWidth || 300
     const PADDING = 10
     w -= PADDING * 2
-    return (w / this.cols) || w
+    return (w / (this.cols || 1)) || w
   }
 
   // TODO: to improve the performance we can separate the data and display opts
@@ -424,7 +428,7 @@ export default class MeasurementsChart extends Vue {
       for (const key in pointsGroupMap) {
         const pointsGroup = pointsGroupMap[key]
 
-        const trace: ChartTrace = {
+        let trace: ChartTrace = {
           x: [],
           y: [],
           zIndex: isMainLine ? 1000 : 1,
@@ -443,30 +447,34 @@ export default class MeasurementsChart extends Vue {
           trace.y.push(point.y)
         }
 
+        if (this.runningAverage
+          && RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1
+        ) {
+          const traceAvg = {
+            ...trace,
+            mode: 'lines',
+            zIndex: (trace.zIndex || 0) + 1,
+            name: 'avg',
+            line: {
+              color: '#fc0000',
+            }
+          }
+          const days = RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] || 1
+          const shiftX = Math.floor(days / 2)
+          traceAvg.y = _computeMovingAverage(traceAvg.y, days)
+
+          if (shiftX * 2 < traceAvg.x.length) {
+            traceAvg.x = traceAvg.x.slice(shiftX, traceAvg.x.length - shiftX)
+          } else {
+            const midIndex = Math.floor(traceAvg.x.length / 2)
+            traceAvg.x = [traceAvg.x[midIndex]]
+          }
+          traces.push(traceAvg)
+        }
+
         traces.push(trace)
       }
     }
-
-    // draw multiple lines for SUPERIMPOSED_YEARS mode
-    // const pointsGroups = this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
-    //   ? _groupBy(points, point => point.$origDate.year())
-    //   : [points]
-
-    // const traces: ChartTrace[] = Object.values(pointsGroups).map(pointsGroup => {
-    //   const trace: ChartTrace = {
-    //     x: [],
-    //     y: [],
-    //     type: 'scatter',
-    //     name: pointsGroup[0]?.$origDate.format('YYYY')
-    //   }
-
-    //   for (const point of pointsGroup) {
-    //     trace.x.push(point.x)
-    //     trace.y.push(point.y)
-    //   }
-
-    //   return trace
-    // })
 
     return {
       data: _sortBy(traces, 'zIndex'),
@@ -539,6 +547,24 @@ export default class MeasurementsChart extends Vue {
     const visible = this.filterPollutants.includes(pollutantId)
     return visible
   }
+}
+
+function _getAverage (arr: any[]): number {
+  return arr.reduce((acc, val) => acc + val, 0) / arr.length
+}
+
+function _computeMovingAverage (arr: any[], period: number): number[] {
+  const movingAverages = []
+
+  // if the period is greater than the length of the dataset
+  // then return the average of the whole dataset
+  if (period > arr.length) {
+    return [_getAverage(arr)]
+  }
+  for (let x = 0; x + period - 1 < arr.length; x += 1) {
+    movingAverages.push(_getAverage(arr.slice(x, x + period)))
+  }
+  return movingAverages
 }
 
 function _genRangeBox (items: any): RangeBox {

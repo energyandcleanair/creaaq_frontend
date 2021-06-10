@@ -124,6 +124,7 @@
       :chartData="chartData"
       :cols.sync="chartCols"
       :displayMode="displayMode"
+      :runningAverage="runningAverage"
       :displayStations="true"
       :filterSources="filterSources"
       :filterPollutants="filterPollutants"
@@ -157,6 +158,7 @@ import ChartComponentData from './components/MeasurementsChart/ChartComponentDat
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 import PagePropertiesForm from './types/PagePropertiesForm'
 import ChartColumnSize from './types/ChartColumnSize'
+import RunningAverageEnum from './types/RunningAverageEnum'
 
 interface URLQuery {
   cities: City['id'][]
@@ -166,10 +168,13 @@ interface URLQuery {
   date_start: number
   date_end?: number
   display_mode?: ChartDisplayModes
+  running_average?: RunningAverageEnum
   chart_cols?: ChartColumnSize|0
 }
 
 const today = moment(moment().format('YYYY-MM-DD')).valueOf()
+const DEFAUL_DISPLAY_MODE = ChartDisplayModes.NORMAL
+const DEFAUL_RUNNING_AVERAGE = RunningAverageEnum['1d']
 
 @Component({
   components: {
@@ -203,8 +208,8 @@ export default class ViewMeasurements extends Vue {
   }
 
   private pageProperties: PagePropertiesForm = {
-    displayMode: ChartDisplayModes.NORMAL,
-    runningAverage: '',
+    displayMode: DEFAUL_DISPLAY_MODE,
+    runningAverage: DEFAUL_RUNNING_AVERAGE,
     chartColumnSize: 12,
     cities: [],
     sources: [],
@@ -235,10 +240,10 @@ export default class ViewMeasurements extends Vue {
     const stations = Array.isArray(q.stations) ? q.stations : [q.stations]
 
     return {
-      cities: cities as City['id'][],
-      sources: sources as Source['id'][],
-      pollutants: pollutants as Pollutant['id'][],
-      stations: stations as Station['id'][],
+      cities: cities.filter(i => i) as City['id'][],
+      sources: sources.filter(i => i) as Source['id'][],
+      pollutants: pollutants.filter(i => i) as Pollutant['id'][],
+      stations: stations.filter(i => i) as Station['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
       chart_cols: (Number(q.chart_cols) || 0) as ChartColumnSize,
@@ -271,6 +276,10 @@ export default class ViewMeasurements extends Vue {
 
   private get displayMode (): ChartDisplayModes|null {
     return this.pageProperties.displayMode || null
+  }
+
+  private get runningAverage (): RunningAverageEnum|null {
+    return this.pageProperties.runningAverage || null
   }
 
   private get chartCols (): ChartColumnSize|0 {
@@ -314,6 +323,8 @@ export default class ViewMeasurements extends Vue {
 
     const cities = await this.fetchCities()
     this.cities = cities
+    console.log('this.cities: ', this.cities)
+    console.log('this.urlQuery.cities: ', this.urlQuery.cities)
 
     if (this.urlQuery.cities.length) {
       const idsMap = this.urlQuery.cities
@@ -321,15 +332,20 @@ export default class ViewMeasurements extends Vue {
           memo[id] = 1
           return memo
         }, {})
+
       this.queryForm.cities = this.cities
         .filter(city => idsMap[city.id])
+
+      this.urlQuery = {
+        ...this.urlQuery,
+        cities: this.queryForm.cities.map(i => i.id)
+      }
     } else if (this.cities[0]) {
       this.queryForm.cities = [this.cities[0]]
-    }
-
-    this.urlQuery = {
-      ...this.urlQuery,
-      cities: this.queryForm.cities.map(i => i.id)
+      this.urlQuery = {
+        ...this.urlQuery,
+        cities: [this.cities[0].id]
+      }
     }
 
     await this.refreshChartData()
@@ -365,7 +381,13 @@ export default class ViewMeasurements extends Vue {
     if (this.urlQuery.display_mode) {
       this.pageProperties.displayMode = this.urlQuery.display_mode
     } else if (!this.pageProperties.displayMode) {
-      this.pageProperties.displayMode = ChartDisplayModes.NORMAL
+      this.pageProperties.displayMode = DEFAUL_DISPLAY_MODE
+    }
+
+    if (this.urlQuery.running_average) {
+      this.pageProperties.runningAverage = this.urlQuery.running_average
+    } else if (!this.pageProperties.runningAverage) {
+      this.pageProperties.runningAverage = DEFAUL_RUNNING_AVERAGE
     }
 
     if (this.urlQuery.sources?.length) {
@@ -394,12 +416,14 @@ export default class ViewMeasurements extends Vue {
   private async fetchChartData (): Promise<ChartComponentData> {
     const promise_measurementsByCities = this.fetchMeasurements({
       ...this.queryForm,
-      process: MeasurementProcesses.city_day_mad
+      process: MeasurementProcesses.city_day_mad,
+      sortBy: 'asc(pollutant),asc(date)'
     })
 
     const promise_measurementsByStations = this.fetchMeasurements({
       ...this.queryForm,
-      process: MeasurementProcesses.station_day_mad
+      process: MeasurementProcesses.station_day_mad,
+      sortBy: 'asc(pollutant),asc(date)'
     })
 
     const [err, arrays] = await to<Measurement[][]>(Promise.all([
@@ -535,7 +559,12 @@ export default class ViewMeasurements extends Vue {
       sources: data.visibleSources,
       pollutants: data.visiblePollutants,
       stations: data.visibleStations,
-      display_mode: data.displayMode,
+      display_mode: data.displayMode ===  DEFAUL_DISPLAY_MODE
+        ? undefined
+        : data.displayMode,
+      running_average: data.runningAverage === DEFAUL_RUNNING_AVERAGE
+        ? undefined
+        : data.runningAverage,
     }
   }
 

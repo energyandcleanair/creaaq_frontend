@@ -11,6 +11,7 @@ export default class MeasurementsQuery {
   public sources?: Source[]
   public pollutants?: Pollutant[]
   public process?: MeasurementProcesses
+  public sortBy?: string
 
   static toQueryString (query: MeasurementsQuery): string {
     const searchParams = new URLSearchParams()
@@ -35,6 +36,9 @@ export default class MeasurementsQuery {
     }
     if (query.process) {
       searchParams.append('process', query.process)
+    }
+    if (query.sortBy) {
+      searchParams.append('sort_by', query.sortBy)
     }
 
     return searchParams.toString()
