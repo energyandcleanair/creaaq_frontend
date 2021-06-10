@@ -27,7 +27,10 @@
       v-for="row of charts.rows"
       :key="row.id"
       class="chart-row"
-      :class="`chart-row--cols-${chartCols}`"
+      :class="{
+        [`chart-row--cols-${chartCols}`]: true,
+        'chart-row--hidden': !checkPollutantVisibility(row.pollutantId)
+      }"
     >
 
       <v-list-item
@@ -83,7 +86,6 @@
 </template>
 
 <script lang="ts">
-// import to from 'await-to-js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _sortBy from 'lodash.sortby'
@@ -92,13 +94,10 @@ import moment from 'moment'
 import { Framework } from 'vuetify'
 import { Component, Vue, Prop } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
-// import MeasurementAPI from '@/api/MeasurementAPI'
 import Measurement from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
-// import POLLUTANTS from '@/constants/pollutants.json'
-// import MeasurementsQuery from './MeasurementsQuery'
 import ChartColumnSize from '../../types/ChartColumnSize'
 import ChartDisplayModes from './ChartDisplayModes'
 import ChartsParams from './ChartsParams'
@@ -163,6 +162,7 @@ export default class MeasurementsChart extends Vue {
     return (w / this.cols) || w
   }
 
+  // TODO: to improve the performance we can separate the data and display opts
   private get charts (): ChartsParams {
     if (this.loading) {
       return {rows: [], displayMode: this.displayMode}
@@ -279,6 +279,7 @@ export default class MeasurementsChart extends Vue {
 
       const row: ChartRow = {
         id: rowId,
+        pollutantId: pollutant.id,
         title: pollutant.label,
         subtitle: pollutant.unit,
         cols,
@@ -455,6 +456,11 @@ export default class MeasurementsChart extends Vue {
       }
     }
   }
+
+  private checkPollutantVisibility (pollutantId: Pollutant['id']): boolean {
+    const visible = this.filterPollutants.includes(pollutantId)
+    return visible
+  }
 }
 
 function _genRangeBox (items: any): RangeBox {
@@ -537,6 +543,10 @@ function _genRangeBox (items: any): RangeBox {
           }
         }
       }
+    }
+
+    &--hidden {
+      display: none;
     }
   }
 }

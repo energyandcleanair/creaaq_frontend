@@ -250,22 +250,23 @@ export default class ViewMeasurements extends Vue {
   }
 
   private get filterSources (): Source['id'][] {
-    return this.urlQuery.sources || []
+    return this.pageProperties.visibleSources || []
   }
 
   private get filterPollutants (): Pollutant['id'][] {
-    return this.urlQuery.pollutants || []
+    return this.pageProperties.visiblePollutants || []
   }
 
   private get displayMode (): ChartDisplayModes|null {
-    return this.urlQuery.display_mode || null
+    return this.pageProperties.displayMode || null
   }
 
   private get chartCols (): ChartColumnSize|0 {
-    return this.urlQuery.chart_cols || 0
+    return this.pageProperties.chartColumnSize || 0
   }
 
   private set chartCols (cols: ChartColumnSize|0) {
+    this.pageProperties.chartColumnSize = cols
     this.urlQuery = {
       ...this.urlQuery,
       chart_cols: cols
@@ -297,17 +298,11 @@ export default class ViewMeasurements extends Vue {
     this.$loader.on()
     this.isChartLoading = true
 
+    this.setQueryFormDefaults()
+
     const cities = await this.fetchCities()
     this.cities = cities
-    this.setDefaults()
 
-    await this.refreshChartData()
-
-    this.isChartLoading = false
-    this.$loader.off()
-  }
-
-  private setDefaults (): void {
     if (this.urlQuery.cities.length) {
       const idsMap = this.urlQuery.cities
         .reduce((memo: {[id: string]: number}, id: City['id']) => {
@@ -320,17 +315,40 @@ export default class ViewMeasurements extends Vue {
       this.queryForm.cities = [this.cities[0]]
     }
 
+    this.urlQuery = {
+      ...this.urlQuery,
+      cities: this.queryForm.cities.map(i => i.id)
+    }
+
+    await this.refreshChartData()
+
+    this.isChartLoading = false
+    this.$loader.off()
+  }
+
+  private setQueryFormDefaults (): void {
+    if (!this.urlQuery.chart_cols) {
+      this.urlQuery = {
+        ...this.urlQuery,
+        chart_cols: MeasurementsChart.getDefaultChartCols(this.$vuetify),
+      }
+    }
+
     if ((this.urlQuery.date_start || 0) > 0) {
       this.queryForm.dateStart = this.urlQuery.date_start
-    } else if (!this.queryForm.dateStart) {
-      this.queryForm.dateStart = today
+    } else {
+      if (!this.queryForm.dateStart) this.queryForm.dateStart = today
+      this.urlQuery = {...this.urlQuery, date_start: this.queryForm.dateStart}
     }
 
     if ((this.urlQuery.date_end || 0) > 0) {
       this.queryForm.dateEnd = this.urlQuery.date_end
-    } else if (!this.queryForm.dateEnd) {
-      this.queryForm.dateEnd = today
+    } else {
+      if (!this.queryForm.dateEnd) this.queryForm.dateEnd = today
+      this.urlQuery = {...this.urlQuery, date_end: this.queryForm.dateEnd}
     }
+
+    this.pageProperties.chartColumnSize = this.urlQuery.chart_cols as ChartColumnSize
 
     if (this.urlQuery.display_mode) {
       this.pageProperties.displayMode = this.urlQuery.display_mode
@@ -338,13 +356,12 @@ export default class ViewMeasurements extends Vue {
       this.pageProperties.displayMode = ChartDisplayModes.NORMAL
     }
 
-    if (!this.urlQuery.chart_cols) {
-      this.urlQuery.chart_cols = MeasurementsChart.getDefaultChartCols(this.$vuetify)
+    if (this.urlQuery.sources?.length) {
+      this.pageProperties.visibleSources = this.urlQuery.sources
     }
-
-    this.pageProperties.chartColumnSize = this.urlQuery.chart_cols
-
-    this.onChangeQueryForm()
+    if (this.urlQuery.sources?.length) {
+      this.pageProperties.visiblePollutants = this.urlQuery.pollutants
+    }
   }
 
   private async fetchCities (): Promise<City[]> {
@@ -418,7 +435,7 @@ export default class ViewMeasurements extends Vue {
       .filter(pollId => this.pageProperties.pollutants.find((p) => p.id === pollId))
     if (!visiblePollutants.length) {
       visiblePollutants = this.pageProperties.pollutants.length
-        ? [this.pageProperties.pollutants[0]?.id]
+        ? this.pageProperties.pollutants.map(i => i.id)
         : []
     }
     this.pageProperties.visiblePollutants = visiblePollutants
@@ -461,7 +478,8 @@ export default class ViewMeasurements extends Vue {
       ...this.urlQuery,
       chart_cols: data.chartColumnSize,
       sources: data.visibleSources,
-      display_mode: data.displayMode
+      pollutants: data.visiblePollutants,
+      display_mode: data.displayMode,
     }
   }
 

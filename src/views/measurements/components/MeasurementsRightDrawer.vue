@@ -7,6 +7,7 @@
   right
   width="230"
   mobile-breakpoint="960"
+  @input="toggle($event)"
 >
 
   <template v-slot:prepend>
@@ -118,22 +119,21 @@
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('pollutants') }}</v-col>
 
-      <!-- TODO: complete -->
       <v-col v-if="pollutantsCheckboxes.length" class="pl-1" cols="12">
-          <!-- :value="item.checked" -->
         <v-checkbox
           v-for="item of pollutantsCheckboxes"
-          v-model="item.id"
+          :input-value="formData.visiblePollutants"
           :key="item.id"
-          color="primary"
+          :value="item.id"
           :label="item.label"
+          color="primary"
           hide-details
-          disabled
+          :disabled="formData.visiblePollutants.length <= 1
+            && formData.visiblePollutants.includes(item.id)
+          "
           @change="onChangeForm(
             'visiblePollutants',
             $event
-              ? formData.visiblePollutants.filter(itm => itm !== item.id)
-              : [...formData.visiblePollutants, item.id]
           )"
         />
       </v-col>

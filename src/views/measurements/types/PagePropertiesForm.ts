@@ -6,7 +6,7 @@ import ChartColumnSize from './ChartColumnSize'
 export default interface PagePropertiesForm {
   displayMode: ChartDisplayModes
   runningAverage: string
-  chartColumnSize: ChartColumnSize
+  chartColumnSize: ChartColumnSize|0
   sources: Source[]
   visibleSources: Source['id'][]
   pollutants: Pollutant[]
