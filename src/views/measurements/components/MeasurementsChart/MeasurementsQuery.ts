@@ -2,7 +2,7 @@ import moment from 'moment'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
 import Pollutant from '@/entities/Pollutant'
-import ChartDisplayModes from './ChartDisplayModes'
+import { MeasurementProcesses } from '@/entities/Measurement'
 
 export default class MeasurementsQuery {
   public cities!: City[]
@@ -10,7 +10,7 @@ export default class MeasurementsQuery {
   public dateEnd?: number
   public sources?: Source[]
   public pollutants?: Pollutant[]
-  public displayMode?: ChartDisplayModes
+  public process?: MeasurementProcesses
 
   static toQueryString (query: MeasurementsQuery): string {
     const searchParams = new URLSearchParams()
@@ -32,6 +32,9 @@ export default class MeasurementsQuery {
     }
     if ((query.dateEnd || 0) > 0 && query.dateStart !== query.dateEnd) {
       searchParams.append('date_to', moment(query.dateEnd).format('YYYY-MM-DD'))
+    }
+    if (query.process) {
+      searchParams.append('process', query.process)
     }
 
     return searchParams.toString()

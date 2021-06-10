@@ -124,8 +124,10 @@
       :chartData="chartData"
       :cols.sync="chartCols"
       :displayMode="displayMode"
+      :displayStations="true"
       :filterSources="filterSources"
       :filterPollutants="filterPollutants"
+      :filterStations="filterStations"
       :loading="isChartLoading"
     />
   </v-container>
@@ -142,7 +144,8 @@ import { mdiCalendar } from '@mdi/js'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
 import Pollutant from '@/entities/Pollutant'
-import Measurement from '@/entities/Measurement'
+import Station from '@/entities/Station'
+import Measurement, { MeasurementProcesses } from '@/entities/Measurement'
 import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
@@ -159,6 +162,7 @@ interface URLQuery {
   cities: City['id'][]
   sources: Source['id'][]
   pollutants: Pollutant['id'][]
+  stations?: Station['id'][]
   date_start: number
   date_end?: number
   display_mode?: ChartDisplayModes
@@ -189,6 +193,7 @@ export default class ViewMeasurements extends Vue {
     measurements: [],
     pollutants: [],
     sources: [],
+    stations: [],
   }
 
   private queryForm: MeasurementsQuery = {
@@ -201,12 +206,13 @@ export default class ViewMeasurements extends Vue {
     displayMode: ChartDisplayModes.NORMAL,
     runningAverage: '',
     chartColumnSize: 12,
+    cities: [],
     sources: [],
     visibleSources: [],
     pollutants: [],
     visiblePollutants: [],
-    isShowStations: false,
-    stationsDisplayOptions: '',
+    stations: [],
+    visibleStations: [],
   }
 
   private get DISPLAY_MODES (): any {
@@ -226,11 +232,13 @@ export default class ViewMeasurements extends Vue {
     const cities = Array.isArray(q.cities) ? q.cities : [q.cities]
     const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
     const pollutants = Array.isArray(q.pollutants) ? q.pollutants : [q.pollutants]
+    const stations = Array.isArray(q.stations) ? q.stations : [q.stations]
 
     return {
-      cities: cities.filter(i => i) as City['id'][],
-      sources: sources.filter(i => i) as Source['id'][],
-      pollutants: pollutants.filter(i => i) as Pollutant['id'][],
+      cities: cities as City['id'][],
+      sources: sources as Source['id'][],
+      pollutants: pollutants as Pollutant['id'][],
+      stations: stations as Station['id'][],
       date_start: q.date_start ? Number(q.date_start) : 0,
       date_end: q.date_end ? Number(q.date_end) : 0,
       chart_cols: (Number(q.chart_cols) || 0) as ChartColumnSize,
@@ -255,6 +263,10 @@ export default class ViewMeasurements extends Vue {
 
   private get filterPollutants (): Pollutant['id'][] {
     return this.pageProperties.visiblePollutants || []
+  }
+
+  private get filterStations (): Station['id'][] {
+    return this.pageProperties.visibleStations || []
   }
 
   private get displayMode (): ChartDisplayModes|null {
@@ -352,15 +364,18 @@ export default class ViewMeasurements extends Vue {
 
     if (this.urlQuery.display_mode) {
       this.pageProperties.displayMode = this.urlQuery.display_mode
-    } else if (!this.queryForm.displayMode) {
+    } else if (!this.pageProperties.displayMode) {
       this.pageProperties.displayMode = ChartDisplayModes.NORMAL
     }
 
     if (this.urlQuery.sources?.length) {
       this.pageProperties.visibleSources = this.urlQuery.sources
     }
-    if (this.urlQuery.sources?.length) {
+    if (this.urlQuery.pollutants?.length) {
       this.pageProperties.visiblePollutants = this.urlQuery.pollutants
+    }
+    if (this.urlQuery.stations?.length) {
+      this.pageProperties.visibleStations = this.urlQuery.stations
     }
   }
 
@@ -377,9 +392,33 @@ export default class ViewMeasurements extends Vue {
   }
 
   private async fetchChartData (): Promise<ChartComponentData> {
-    const measurements = await this.fetchMeasurements(this.queryForm)
+    const promise_measurementsByCities = this.fetchMeasurements({
+      ...this.queryForm,
+      process: MeasurementProcesses.city_day_mad
+    })
 
-    const pollutantsMap = measurements
+    const promise_measurementsByStations = this.fetchMeasurements({
+      ...this.queryForm,
+      process: MeasurementProcesses.station_day_mad
+    })
+
+    const [err, arrays] = await to<Measurement[][]>(Promise.all([
+      promise_measurementsByCities,
+      promise_measurementsByStations,
+    ]))
+
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || ''+this.$t('msg.something_went_wrong')
+      )
+      throw err
+    }
+
+    const measurementsByCities = arrays?.[0] || []
+    const measurementsByStations = arrays?.[1] || []
+    const measurements = measurementsByCities.concat(measurementsByStations)
+
+    const pollutantsMap = measurementsByCities
       .reduce((memo: {[pollutantId: string]: Pollutant}, meas: Measurement) => {
         if (meas.pollutant && !memo[meas.pollutant]) {
           const pollutant = POLLUTANTS.find(i => i.id === meas.pollutant)
@@ -393,23 +432,34 @@ export default class ViewMeasurements extends Vue {
       }, {})
     const pollutants = _sortBy(Object.values(pollutantsMap), 'id')
 
-    const sourcesMap = measurements
+    const sourcesMap = measurementsByCities
       .reduce((memo: {[sourceId: string]: Source}, meas: Measurement) => {
         if (meas.source && !memo[meas.source]) {
-          const pollutant = POLLUTANTS.find(i => i.id === meas.pollutant)
-          if (pollutant) {
-            memo[meas.source] = {id: meas.source, label: meas.source}
-          }
+          memo[meas.source] = {id: meas.source, label: meas.source}
         }
         return memo
       }, {})
     const sources = _sortBy(Object.values(sourcesMap), 'id')
+
+    const stationsMap = measurementsByStations
+      .reduce((memo: {[stationId: string]: Station}, meas: Measurement) => {
+        if (meas.location_id && !memo[meas.location_id]) {
+          memo[meas.location_id] = {
+            id: meas.location_id,
+            label: meas.location_id,
+            cityId: meas.city_id,
+          }
+        }
+        return memo
+      }, {})
+    const stations = _sortBy(Object.values(stationsMap), 'id')
 
     const chartData = {
       cities: this.queryForm.cities.slice(),
       measurements: measurements,
       pollutants: pollutants,
       sources: sources,
+      stations: stations,
     }
     return chartData
   }
@@ -419,10 +469,12 @@ export default class ViewMeasurements extends Vue {
 
     const chartData = await this.fetchChartData()
     this.chartData = chartData
+    this.pageProperties.cities = this.chartData.cities || []
     this.pageProperties.sources = this.chartData.sources || []
     this.pageProperties.pollutants = this.chartData.pollutants || []
+    this.pageProperties.stations = this.chartData.stations || []
 
-    let visibleSources = this.filterSources
+    let visibleSources = this.pageProperties.visibleSources
       .filter(srcId => this.pageProperties.sources.find((s) => s.id === srcId))
     if (!visibleSources.length) {
       visibleSources = this.pageProperties.sources.length
@@ -431,19 +483,22 @@ export default class ViewMeasurements extends Vue {
     }
     this.pageProperties.visibleSources = visibleSources
 
-    let visiblePollutants = this.filterPollutants
+    let visiblePollutants = this.pageProperties.visiblePollutants
       .filter(pollId => this.pageProperties.pollutants.find((p) => p.id === pollId))
     if (!visiblePollutants.length) {
-      visiblePollutants = this.pageProperties.pollutants.length
-        ? this.pageProperties.pollutants.map(i => i.id)
-        : []
+      visiblePollutants = this.pageProperties.pollutants.map(i => i.id)
     }
     this.pageProperties.visiblePollutants = visiblePollutants
+
+    const visibleStations = this.pageProperties.visibleStations
+      .filter(statId => this.pageProperties.stations.find((s) => s.id === statId))
+    this.pageProperties.visibleStations = visibleStations
 
     this.urlQuery = {
       ...this.urlQuery,
       sources: visibleSources,
       pollutants: visiblePollutants,
+      stations: visibleStations,
     }
 
     this.isChartLoading = false
@@ -479,12 +534,15 @@ export default class ViewMeasurements extends Vue {
       chart_cols: data.chartColumnSize,
       sources: data.visibleSources,
       pollutants: data.visiblePollutants,
+      stations: data.visibleStations,
       display_mode: data.displayMode,
     }
   }
 
   private async onClickRefresh () {
+    this.$loader.on()
     await this.refreshChartData()
+    this.$loader.off()
   }
 }
 </script>

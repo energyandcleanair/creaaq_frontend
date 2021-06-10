@@ -3,6 +3,11 @@ import City from './City'
 import Pollutant from './Pollutant'
 import Source from './Source'
 
+export enum MeasurementProcesses {
+  city_day_mad = 'city_day_mad',
+  station_day_mad = 'station_day_mad',
+}
+
 // TODO: approve the schema
 export default class Measurement {
   public id!: string
@@ -20,6 +25,7 @@ export default class Measurement {
   public names?: string[]|null
   public gpw?: any
   public timezone?: string
+  public process_id?: MeasurementProcesses
   public gadm1_id?: string
   public name_local?: string|null
   public geometry?: {

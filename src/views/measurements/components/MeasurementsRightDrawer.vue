@@ -31,7 +31,7 @@
     </v-toolbar>
   </template>
 
-  <v-form class="drawer__form px-3 pb-10">
+  <v-form class="drawer__form px-3">
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('display_mode') }}</v-col>
 
@@ -119,9 +119,9 @@
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('pollutants') }}</v-col>
 
-      <v-col v-if="pollutantsCheckboxes.length" class="pl-1" cols="12">
+      <v-col v-if="formData.pollutants.length" class="pl-1" cols="12">
         <v-checkbox
-          v-for="item of pollutantsCheckboxes"
+          v-for="item of formData.pollutants"
           :input-value="formData.visiblePollutants"
           :key="item.id"
           :value="item.id"
@@ -148,17 +148,30 @@
         <v-switch
           id="stations-switch"
           class="d-inline-flex ml-2 mt-0 pt-0"
-          :value="formData.isShowStations"
+          v-model="_isShowStations"
           color="primary"
           hide-details
           dense
-          @change="onChangeForm('isShowStations', $event)"
         />
       </v-col>
 
-      <v-col v-if="formData.isShowStations" class="d-flex justify-center" cols="12">
-        <v-select
-          @change="onChangeForm('stations', $event)"
+      <v-col v-if="_isShowStations" class="pl-2" cols="12">
+        <SelectBox
+          class="mt-4"
+          v-for="(group, cityId) of stationsGroupedByCity"
+          tag-name="v-select"
+          :key="cityId"
+          :value="group.selected"
+          :items="group.stations"
+          :label="group.city.name"
+          item-text="label"
+          item-value="id"
+          has-select-all
+          has-deselect-all
+          hide-details
+          clearable
+          multiple
+          @input="onChangeStationsSelect(group, $event)"
         />
       </v-col>
     </v-row>
@@ -167,34 +180,80 @@
 </template>
 
 <script lang="ts">
+import _difference from 'lodash.difference'
 import { Component, Prop, Vue, Emit } from 'vue-property-decorator'
 import { mdiClose, mdiTune } from '@mdi/js'
+import Station from '@/entities/Station'
+import City from '@/entities/City'
 import PagePropertiesForm from '../types/PagePropertiesForm'
 import RunningAverageEnum from '../types/RunningAverageEnum'
 import ChartColumnSize, { CHART_COLUMN_SIZES } from '../types/ChartColumnSize'
 import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
+import SelectBox from './SelectBox.vue'
 
-@Component
+interface StationsNCityGroup {
+  city: City
+  stations: Station[]
+  stationsIds: Station['id'][]
+  selected: Station['id'][]
+}
+
+interface StationsNCitiesMap {
+  [cityId: string]: StationsNCityGroup
+}
+
+@Component({
+  components: {
+    SelectBox
+  }
+})
 export default class MeasurementsRightDrawer extends Vue {
   @Prop({type: Object, required: true}) formData!: PagePropertiesForm
   @Prop({type: Boolean, default: false}) open!: boolean
   private mdiClose = mdiClose
   private mdiTune = mdiTune
 
-  // TODO: complete
-  private get pollutantsCheckboxes (): any {
-    return this.formData.pollutants.map((pollutant) => ({
-      id: pollutant.id,
-      label: pollutant.label,
-      checked: this.formData.visiblePollutants.includes(pollutant.id),
-    }))
+  private get _isShowStations (): boolean {
+    return !!this.formData.visibleStations.length
   }
+  private set _isShowStations (value: boolean) {
+    const visibleStations = value
+      ? this.formData.stations.map(i => i.id)
+      : []
+    this.onChangeForm('visibleStations', visibleStations)
+  }
+
+  private get stationsGroupedByCity (): StationsNCitiesMap {
+    const map: StationsNCitiesMap = {}
+
+    for (const station of this.formData.stations) {
+      let city: City|undefined
+
+      if (map[station.cityId]) {
+        city = map[station.cityId]?.city
+      } else {
+        city = this.formData.cities.find(i => i.id === station.cityId)
+        if (!city) continue
+        map[station.cityId] = {city, stations: [], selected: [], stationsIds: []}
+      }
+      map[station.cityId].stations.push(station)
+      map[station.cityId].stationsIds.push(station.id)
+
+      const isSelected = this.formData.visibleStations.includes(station.id)
+      if (isSelected) map[station.cityId].selected.push(station.id)
+    }
+
+    return map
+  }
+
+
   private get CHART_SIZE_VALUES (): {min: number, max: number} {
     return {
       min: 0,
       max: CHART_COLUMN_SIZES.length - 1,
     }
   }
+
   private get CHART_SIZE_LABELS (): ChartColumnSize[] {
     return CHART_COLUMN_SIZES.slice()
   }
@@ -216,6 +275,21 @@ export default class MeasurementsRightDrawer extends Vue {
 
   @Emit('update:open')
   public toggle (value: boolean) {}
+
+  public onChangeStationsSelect (
+    group: StationsNCityGroup,
+    newStationsIds: Station['id'][]
+  ) {
+
+    const idsToDelete = _difference(group.selected, newStationsIds)
+    const idsToAdd = _difference(newStationsIds, group.selected)
+
+    const visibleStations = this.formData.visibleStations.slice()
+      .filter(id => !idsToDelete.includes(id))
+    Array.prototype.push.apply(visibleStations, idsToAdd)
+
+    this.onChangeForm('visibleStations', visibleStations)
+  }
 
   public onChangeForm (key: keyof PagePropertiesForm, value: any) {
     const formData = {
@@ -270,6 +344,7 @@ export default class MeasurementsRightDrawer extends Vue {
 
   .drawer__form {
     overflow: auto;
+    padding-bottom: 7rem;
 
     > .row {
       margin-bottom: 2rem;

@@ -1,6 +1,6 @@
 <template>
 <component
-  :is="$vuetify.breakpoint.mdAndUp ? 'v-autocomplete' : 'v-select'"
+  :is="_tagName"
   chips
   multiple
   clearable
@@ -82,6 +82,12 @@ export default class SelectBox extends VSelect {
   @Prop() readonly items!: any[]
   @Prop({type: Boolean, default: false}) readonly hasSelectAll!: boolean
   @Prop({type: Boolean, default: false}) readonly hasDeselectAll!: boolean
+  @Prop({type: String}) readonly tagName?: 'v-autocomplete'|'v-select'
+
+  private get _tagName (): 'v-autocomplete'|'v-select' {
+    if (this.tagName) return this.tagName
+    return this.$vuetify.breakpoint.mdAndUp ? 'v-autocomplete' : 'v-select'
+  }
 
   private get generalSelectorButtonIcon (): string {
     if (this.isShowDeselectAll) return mdiCloseBox
@@ -128,6 +134,10 @@ export default class SelectBox extends VSelect {
     let newVal: any[] = []
     if (this.isShowDeselectAll) newVal = []
     if (this.isShowSelectAll) newVal = this.items.slice()
+
+    if (!(this as any).returnObject) {
+      newVal = newVal.map(itm => itm[(this as any).itemValue || 'value'])
+    }
 
     this.$nextTick(() => {
       this.$emit(

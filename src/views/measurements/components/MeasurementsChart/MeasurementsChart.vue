@@ -94,7 +94,7 @@ import moment from 'moment'
 import { Framework } from 'vuetify'
 import { Component, Vue, Prop } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
-import Measurement from '@/entities/Measurement'
+import Measurement, { MeasurementProcesses } from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
@@ -105,8 +105,10 @@ import RangeBox from './RangeBox'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
 import ChartTrace from './ChartTrace'
+import ChartTracePoint from './ChartTracePoint'
 import ChartData from './ChartData'
 import ChartComponentData from './ChartComponentData'
+import Station from '@/entities/Station'
 
 const COL_ID_DIVIDER = '--'
 
@@ -129,11 +131,17 @@ export default class MeasurementsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly loading!: boolean
 
+  @Prop({type: Boolean, default: false})
+  public readonly displayStations!: boolean
+
   @Prop({type: Array, default: () => []})
   public readonly filterSources!: Source['id'][]
 
   @Prop({type: Array, default: () => []})
   public readonly filterPollutants!: Pollutant['id'][]
+
+  @Prop({type: Array, default: () => []})
+  public readonly filterStations!: Station['id'][]
 
   private get cities (): City[] {
     return this.chartData.cities || []
@@ -145,6 +153,11 @@ export default class MeasurementsChart extends Vue {
 
   private get measurements (): Measurement[] {
     return this.chartData.measurements || []
+  }
+
+  private get _isDisplayStations (): boolean {
+    return this.displayStations &&
+      this.displayMode !== ChartDisplayModes.SUPERIMPOSED_YEARS
   }
 
   private get chartCols (): number /* Vuetify <v-col> size: [1, 12] */ {
@@ -179,8 +192,12 @@ export default class MeasurementsChart extends Vue {
         const colId = city.id
         const first = +i === 0
         const last = +i === this.cities.length - 1
-        const chartData = this
-          .genChartData(city.id, pollutant.id, this.filterSources)
+        const chartData = this.genChartData(
+          city.id,
+          pollutant,
+          this.filterSources,
+          this.filterStations
+        )
 
         const data = chartData.data.map(trace => {
           trace.x = trace.x.map(val => new Date(val))
@@ -202,7 +219,7 @@ export default class MeasurementsChart extends Vue {
 
           // TODO: add this if we need the y-axis title
           // l: first && !isEmpty ? 60 : 10,
-          l: 10,
+          l: 50,
           r: showlegend ? 40 : 10,
           b: 60,
           t: 10,
@@ -325,16 +342,12 @@ export default class MeasurementsChart extends Vue {
 
   private genChartData (
     cityId: City['id'],
-    pollutantId: Pollutant['id'],
-    filterSources: Source['id'][]
+    pollutant: Pollutant,
+    filterSources: Source['id'][],
+    filterStations: Station['id'][],
   ): ChartData {
 
-    const points: {
-      x: number
-      y: number
-      $date: moment.Moment
-      $origDate: moment.Moment
-    }[] = []
+    const pollutantId = pollutant.id
     const rangeBox: RangeBox = {
       x0: -Infinity,
       y0: -Infinity,
@@ -342,7 +355,33 @@ export default class MeasurementsChart extends Vue {
       y1: Infinity,
     }
 
+    const tracesMap: {[location_id: string]: ChartTracePoint[]} = {
+      [cityId]: [],
+    }
+
     for (const measurement of this.measurements) {
+      let traceId: string|undefined
+
+      switch (measurement.process_id) {
+        case MeasurementProcesses.city_day_mad: {
+          traceId = cityId
+          break
+        }
+        case MeasurementProcesses.station_day_mad: {
+          if (!this._isDisplayStations) continue
+
+          const stationId = measurement.location_id
+          if (!filterStations.includes(stationId)) continue
+
+          traceId = stationId
+          break
+        }
+        default: {
+          console.warn(`Could not determine the measurement process: ${measurement.id}`)
+          continue
+        }
+      }
+
       const matchCity: boolean = measurement.city_id === cityId
       const matchPollutant: boolean = measurement.pollutant === pollutantId
       const matchSource: boolean = filterSources.length
@@ -366,32 +405,71 @@ export default class MeasurementsChart extends Vue {
       if (rangeBox.y0 === -Infinity || y < rangeBox.y0) rangeBox.y0 = y
       if (rangeBox.y1 === Infinity || y > rangeBox.y1) rangeBox.y1 = y
 
-      points.push({x, y, $date, $origDate})
+      if (!tracesMap[traceId]) tracesMap[traceId] = []
+      tracesMap[traceId].push({x, y, $date, $origDate})
+    }
+
+    const traces: ChartTrace[] = []
+    for (const traceId in tracesMap) {
+      const points = tracesMap[traceId]
+      const isMainLine = traceId === cityId
+
+      // draw multiple lines for SUPERIMPOSED_YEARS mode
+      const pointsGroupMap: {
+        [index: string]: ChartTracePoint[]
+      } = this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
+        ? _groupBy(points, point => point.$origDate.year())
+        : {'0': points}
+
+      for (const key in pointsGroupMap) {
+        const pointsGroup = pointsGroupMap[key]
+
+        const trace: ChartTrace = {
+          x: [],
+          y: [],
+          zIndex: isMainLine ? 1000 : 1,
+          type: 'scatter',
+          mode: isMainLine ? 'lines+markers' : 'lines',
+          name: pointsGroup[0]?.$origDate.format('YYYY'),
+          line: isMainLine ? undefined : {
+            color: '#ddd',
+            width: 1
+          },
+          hovertemplate: `%{y}${pollutant.unit || ''} - %{x}`,
+        }
+
+        for (const point of pointsGroup) {
+          trace.x.push(point.x)
+          trace.y.push(point.y)
+        }
+
+        traces.push(trace)
+      }
     }
 
     // draw multiple lines for SUPERIMPOSED_YEARS mode
-    const pointsGroups = this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
-      ? _groupBy(points, point => point.$origDate.year())
-      : [points]
+    // const pointsGroups = this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
+    //   ? _groupBy(points, point => point.$origDate.year())
+    //   : [points]
 
-    const traces: ChartTrace[] = Object.values(pointsGroups).map(pointsGroup => {
-      const trace: ChartTrace = {
-        x: [],
-        y: [],
-        type: 'scatter',
-        name: pointsGroup[0]?.$origDate.format('YYYY')
-      }
+    // const traces: ChartTrace[] = Object.values(pointsGroups).map(pointsGroup => {
+    //   const trace: ChartTrace = {
+    //     x: [],
+    //     y: [],
+    //     type: 'scatter',
+    //     name: pointsGroup[0]?.$origDate.format('YYYY')
+    //   }
 
-      for (const point of pointsGroup) {
-        trace.x.push(point.x)
-        trace.y.push(point.y)
-      }
+    //   for (const point of pointsGroup) {
+    //     trace.x.push(point.x)
+    //     trace.y.push(point.y)
+    //   }
 
-      return trace
-    })
+    //   return trace
+    // })
 
     return {
-      data: traces,
+      data: _sortBy(traces, 'zIndex'),
       rangeBox,
     }
   }

@@ -3,4 +3,9 @@ export default interface ChartTrace {
   y: number[]
   type: string
   name: string
+
+  zIndex?: number
+  mode?: string
+  line?: any
+  hovertemplate: string
 }
