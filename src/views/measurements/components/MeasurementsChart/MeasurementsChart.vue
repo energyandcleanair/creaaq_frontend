@@ -28,7 +28,7 @@
       :key="row.id"
       class="chart-row"
       :class="{
-        [`chart-row--cols-${chartCols}`]: true,
+        [`chart-row--cols-${vCols}`]: true,
         'chart-row--hidden': !checkPollutantVisibility(row.pollutantId)
       }"
     >
@@ -55,7 +55,7 @@
         v-for="col of row.cols"
         class="chart-col"
         :key="col.id"
-        :cols="chartCols"
+        :cols="vCols"
       >
         <v-tooltip bottom>
           <template v-slot:activator="{ on, attrs }">
@@ -164,12 +164,15 @@ export default class MeasurementsChart extends Vue {
       this.displayMode !== ChartDisplayModes.SUPERIMPOSED_YEARS
   }
 
-  private get chartCols (): number /* Vuetify <v-col> size: [1, 12] */ {
+  private get _cols (): number {
     const columns = !this.cols
       ? MeasurementsChart.getDefaultChartCols(this.$vuetify)
       : this.cols
+    return columns
+  }
 
-    return 12 / columns
+  private get vCols (): number /* Vuetify <v-col> size: [1, 12] */ {
+    return 12 / this._cols
   }
 
   private get colWidth (): number {
@@ -191,11 +194,14 @@ export default class MeasurementsChart extends Vue {
       const rowId: string = pollutant.id
       const cols: ChartCol[] = []
 
-      for (const i in this.cities) {
-        const city = this.cities[+i]
+      for (const _i in this.cities) {
+        const i = +_i
+        const city = this.cities[i]
         const colId = city.id
-        const first = +i === 0
-        const last = +i === this.cities.length - 1
+        const first = i % this._cols === 0
+        const last = i % this._cols === this._cols - 1
+          || i === this.cities.length - 1
+        // const last = i === this.cities.length - 1
         const chartData = this.genChartData(
           city.id,
           pollutant,
@@ -210,8 +216,8 @@ export default class MeasurementsChart extends Vue {
         const isEmpty: boolean = !data?.length ||
           (!data[0]?.x?.length && !data[0]?.y?.length)
 
-        const xs = this.colWidth < 80
-        const sm = this.colWidth < 140
+        const xs = this.colWidth < 100
+        const sm = this.colWidth < 160
         const font = xs
           ? 8
           : sm
@@ -219,13 +225,13 @@ export default class MeasurementsChart extends Vue {
             : 12
 
         const showlegend = this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS && last
-        const margin = {
+        const showticklabelsY = !isEmpty &&
+          (first || cols[i - 1]?.isEmpty === true)
 
-          // TODO: add this if we need the y-axis title
-          // l: first && !isEmpty ? 60 : 10,
-          l: 50,
-          r: showlegend ? 40 : 10,
-          b: 60,
+        const margin = {
+          l: showticklabelsY ? font * 4 : 10,
+          r: showlegend ? font * 3 : 10,
+          b: font * 5,
           t: 10,
           pad: 0,
         }
@@ -268,15 +274,15 @@ export default class MeasurementsChart extends Vue {
 
               // TODO: do we need that?
               // title: first ? pollutant.unit : undefined,
-              titlefont: {
-                size: font,
-                color: '#bbb',
-              },
+              // titlefont: {
+              //   size: font,
+              //   color: '#bbb',
+              // },
               tickfont: {
                 size: font,
                 color: '#212121',
               },
-              showticklabels: first,
+              showticklabels: showticklabelsY,
               linecolor: '#eee',
               linewidth: 1,
               mirror: true,
@@ -306,19 +312,17 @@ export default class MeasurementsChart extends Vue {
         cols,
         rangeBox: _genRangeBox(cols),
       }
-      rows.push(row)
-    }
 
-    // set one grid range to all charts
-    const MARGIN = 3
-    const rangeBox = _genRangeBox(rows)
-    const generalRangeX = [rangeBox.x0 - MARGIN, rangeBox.x1 + MARGIN]
-    const generalRangeY = [rangeBox.y0 - MARGIN, rangeBox.y1 + MARGIN]
-    for (const row of rows) {
+      // set one grid range to all charts in row
+      const MARGIN = 3
+      const generalRangeX = [row.rangeBox.x0 - MARGIN, row.rangeBox.x1 + MARGIN]
+      const generalRangeY = [row.rangeBox.y0 - MARGIN, row.rangeBox.y1 + MARGIN]
       for (const col of row.cols) {
         _set(col, 'layout.xaxis.range', generalRangeX.slice())
         _set(col, 'layout.yaxis.range', generalRangeY.slice())
       }
+
+      rows.push(row)
     }
 
     return {
@@ -433,7 +437,7 @@ export default class MeasurementsChart extends Vue {
           y: [],
           zIndex: isMainLine ? 1000 : 1,
           type: 'scatter',
-          mode: isMainLine ? 'lines+markers' : 'lines',
+          mode: 'lines',
           name: pointsGroup[0]?.$origDate.format('YYYY'),
           line: isMainLine ? undefined : {
             color: '#ddd',
@@ -449,27 +453,18 @@ export default class MeasurementsChart extends Vue {
 
         if (this.runningAverage
           && RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1
+          && pointsGroup.length
         ) {
-          const traceAvg = {
-            ...trace,
-            mode: 'lines',
-            zIndex: (trace.zIndex || 0) + 1,
-            name: 'avg',
-            line: {
-              color: '#fc0000',
-            }
-          }
           const days = RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] || 1
           const shiftX = Math.floor(days / 2)
-          traceAvg.y = _computeMovingAverage(traceAvg.y, days)
+          trace.y = _computeMovingAverage(trace.y, days)
 
-          if (shiftX * 2 < traceAvg.x.length) {
-            traceAvg.x = traceAvg.x.slice(shiftX, traceAvg.x.length - shiftX)
+          if (shiftX * 2 < trace.x.length) {
+            trace.x = trace.x.slice(shiftX, trace.x.length - shiftX)
           } else {
-            const midIndex = Math.floor(traceAvg.x.length / 2)
-            traceAvg.x = [traceAvg.x[midIndex]]
+            const midIndex = Math.floor(trace.x.length / 2)
+            trace.x = [trace.x[midIndex]]
           }
-          traces.push(traceAvg)
         }
 
         traces.push(trace)
