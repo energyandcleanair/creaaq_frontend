@@ -131,10 +131,7 @@
           :disabled="formData.visiblePollutants.length <= 1
             && formData.visiblePollutants.includes(item.id)
           "
-          @change="onChangeForm(
-            'visiblePollutants',
-            $event
-          )"
+          @change="onChangeForm('visiblePollutants', $event)"
         />
       </v-col>
     </v-row>
@@ -172,6 +169,7 @@
           clearable
           multiple
           @input="onChangeStationsSelect(group, $event)"
+          @blur="onBlurStationsSelect($event)"
         />
       </v-col>
     </v-row>
@@ -212,14 +210,16 @@ export default class MeasurementsRightDrawer extends Vue {
   @Prop({type: Boolean, default: false}) open!: boolean
   private mdiClose = mdiClose
   private mdiTune = mdiTune
+  private forceShowStationsSelect: boolean = false
 
   private get _isShowStations (): boolean {
-    return !!this.formData.visibleStations.length
+    return this.forceShowStationsSelect || !!this.formData.visibleStations.length
   }
   private set _isShowStations (value: boolean) {
     const visibleStations = value
       ? this.formData.stations.map(i => i.id)
       : []
+    this.forceShowStationsSelect = value
     this.onChangeForm('visibleStations', visibleStations)
   }
 
@@ -273,8 +273,19 @@ export default class MeasurementsRightDrawer extends Vue {
       }, [])
   }
 
+  private created () {
+    this.forceShowStationsSelect = !!this.formData?.visibleStations?.length
+  }
+
   @Emit('update:open')
   public toggle (value: boolean) {}
+
+  public onBlurStationsSelect ($event: FocusEvent) {
+    const isRealBlur = !$event.relatedTarget
+    if (isRealBlur && !this.formData?.visibleStations?.length) {
+      this.forceShowStationsSelect = false
+    }
+  }
 
   public onChangeStationsSelect (
     group: StationsNCityGroup,

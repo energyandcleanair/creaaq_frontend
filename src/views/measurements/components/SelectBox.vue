@@ -31,7 +31,7 @@
     v-if="items.length && (isShowSelectAll || isShowDeselectAll)"
     v-slot:prepend-item
   >
-    <v-list-item @click="toggleSelected">
+    <v-list-item aria-selected="true" role="option" @click="toggleSelected">
       <v-list-item-action>
         <v-icon :color="isSelectedSome ? 'indigo darken-4' : ''">
           {{ generalSelectorButtonIcon }}
@@ -130,7 +130,7 @@ export default class SelectBox extends VSelect {
     return selectedItems.length > 0 && !this.isSelectedAll
   }
 
-  private toggleSelected () {
+  private toggleSelected ($event: any) {
     let newVal: any[] = []
     if (this.isShowDeselectAll) newVal = []
     if (this.isShowSelectAll) newVal = this.items.slice()
