@@ -160,19 +160,27 @@ import PagePropertiesForm from './types/PagePropertiesForm'
 import ChartColumnSize from './types/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
 
+const QUERY_DATE_FORMAT = 'YYYY-MM-DD'
+type QueryDateString = typeof QUERY_DATE_FORMAT|string
+const _toQueryDate = (d: string|number): string => typeof d === 'string'
+  ? moment(d, QUERY_DATE_FORMAT).format(QUERY_DATE_FORMAT)
+  : moment(+d).format(QUERY_DATE_FORMAT)
+const _toNumberDate = (d: string): number => moment(d, QUERY_DATE_FORMAT).valueOf()
+// const today = moment(moment().format('YYYY-MM-DD')).valueOf()
+const today: string = _toQueryDate(moment().format(QUERY_DATE_FORMAT))
+
 interface URLQuery {
   cities: City['id'][]
   sources: Source['id'][]
   pollutants: Pollutant['id'][]
   stations?: Station['id'][]
-  date_start: number
-  date_end?: number
+  date_start: QueryDateString
+  date_end?: QueryDateString
   display_mode?: ChartDisplayModes
   running_average?: RunningAverageEnum
   chart_cols?: ChartColumnSize|0
 }
 
-const today = moment(moment().format('YYYY-MM-DD')).valueOf()
 const DEFAUL_DISPLAY_MODE = ChartDisplayModes.NORMAL
 const DEFAUL_RUNNING_AVERAGE = RunningAverageEnum['1d']
 
@@ -203,8 +211,8 @@ export default class ViewMeasurements extends Vue {
 
   private queryForm: MeasurementsQuery = {
     cities: [],
-    dateStart: today,
-    dateEnd: today,
+    dateStart: _toNumberDate(today),
+    dateEnd: _toNumberDate(today),
   }
 
   private pageProperties: PagePropertiesForm = {
@@ -238,14 +246,20 @@ export default class ViewMeasurements extends Vue {
     const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
     const pollutants = Array.isArray(q.pollutants) ? q.pollutants : [q.pollutants]
     const stations = Array.isArray(q.stations) ? q.stations : [q.stations]
+    const date_start = q.date_start
+      ? _toQueryDate(q.date_start as string)
+      : ''
+    const date_end = q.date_end
+      ? _toQueryDate(q.date_end as string)
+      : ''
 
     return {
       cities: cities.filter(i => i) as City['id'][],
       sources: sources.filter(i => i) as Source['id'][],
       pollutants: pollutants.filter(i => i) as Pollutant['id'][],
       stations: stations.filter(i => i) as Station['id'][],
-      date_start: q.date_start ? Number(q.date_start) : 0,
-      date_end: q.date_end ? Number(q.date_end) : 0,
+      date_start,
+      date_end,
       chart_cols: (Number(q.chart_cols) || 0) as ChartColumnSize,
       display_mode: q.display_mode
         ? (String(q.display_mode) || '').toUpperCase() as ChartDisplayModes
@@ -254,9 +268,22 @@ export default class ViewMeasurements extends Vue {
   }
 
   private set urlQuery (queryForm: URLQuery) {
+    const query = {
+      ...queryForm,
+    }
+    const date_start = queryForm.date_start
+      ? _toQueryDate(queryForm.date_start)
+      : ''
+    const date_end = queryForm.date_end
+      ? _toQueryDate(queryForm.date_end)
+      : ''
+
+    if (date_start) query.date_start = date_start
+    if (date_end) query.date_end = date_end
+
     const newPath = this.$router.resolve({
       ...(this.$route as any),
-      query: queryForm
+      query
     }).href
 
     if (this.$route.fullPath !== newPath) this.$router.replace(newPath)
@@ -360,18 +387,24 @@ export default class ViewMeasurements extends Vue {
       }
     }
 
-    if ((this.urlQuery.date_start || 0) > 0) {
-      this.queryForm.dateStart = this.urlQuery.date_start
+    if (this.urlQuery.date_start) {
+      this.queryForm.dateStart = _toNumberDate(this.urlQuery.date_start)
     } else {
-      if (!this.queryForm.dateStart) this.queryForm.dateStart = today
-      this.urlQuery = {...this.urlQuery, date_start: this.queryForm.dateStart}
+      if (!this.queryForm.dateStart) this.queryForm.dateStart = _toNumberDate(today)
+      this.urlQuery = {
+        ...this.urlQuery,
+        date_start: _toQueryDate(this.queryForm.dateStart)
+      }
     }
 
-    if ((this.urlQuery.date_end || 0) > 0) {
-      this.queryForm.dateEnd = this.urlQuery.date_end
+    if (this.urlQuery.date_end) {
+      this.queryForm.dateEnd = _toNumberDate(this.urlQuery.date_end)
     } else {
-      if (!this.queryForm.dateEnd) this.queryForm.dateEnd = today
-      this.urlQuery = {...this.urlQuery, date_end: this.queryForm.dateEnd}
+      if (!this.queryForm.dateEnd) this.queryForm.dateEnd = _toNumberDate(today)
+      this.urlQuery = {
+        ...this.urlQuery,
+        date_end: _toQueryDate(this.queryForm.dateEnd)
+      }
     }
 
     this.pageProperties.chartColumnSize = this.urlQuery.chart_cols as ChartColumnSize
@@ -544,8 +577,8 @@ export default class ViewMeasurements extends Vue {
     this.urlQuery = {
       ...this.urlQuery,
       cities: this.queryForm.cities.map(i => i.id),
-      date_start: this.queryForm.dateStart,
-      date_end: this.queryForm.dateEnd,
+      date_start: _toQueryDate(this.queryForm.dateStart),
+      date_end: this.queryForm.dateEnd ? _toQueryDate(this.queryForm.dateEnd) : undefined,
     }
   }
 
