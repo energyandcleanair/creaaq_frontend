@@ -203,7 +203,7 @@ export default class MeasurementsChart extends Vue {
           || i === this.cities.length - 1
         // const last = i === this.cities.length - 1
         const chartData = this.genChartData(
-          city.id,
+          city,
           pollutant,
           this.filterSources,
           this.filterStations
@@ -349,12 +349,13 @@ export default class MeasurementsChart extends Vue {
   }
 
   private genChartData (
-    cityId: City['id'],
+    city: City,
     pollutant: Pollutant,
     filterSources: Source['id'][],
     filterStations: Station['id'][],
   ): ChartData {
 
+    const cityId: City['id'] = city.id
     const pollutantId = pollutant.id
     const rangeBox: RangeBox = {
       x0: -Infinity,
@@ -432,6 +433,15 @@ export default class MeasurementsChart extends Vue {
       for (const key in pointsGroupMap) {
         const pointsGroup = pointsGroupMap[key]
 
+        let hovertemplate = `%{y:.0f} ${pollutant.unit || ''}<br>%{x}`
+
+        if (isMainLine) {
+          hovertemplate += `<br><b>${this.$t('city')}:</b> ${city.name}`
+        } else {
+          hovertemplate += `<br><b>${this.$t('station')}:</b> ${traceId}`
+        }
+
+
         let trace: ChartTrace = {
           x: [],
           y: [],
@@ -443,7 +453,7 @@ export default class MeasurementsChart extends Vue {
             color: '#ddd',
             width: 1
           },
-          hovertemplate: `%{y}${pollutant.unit || ''} - %{x}`,
+          hovertemplate,
         }
 
         for (const point of pointsGroup) {
