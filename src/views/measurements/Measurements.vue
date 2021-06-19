@@ -138,7 +138,7 @@
 <script lang="ts">
 import to from 'await-to-js'
 import moment from 'moment'
-import _sortBy from 'lodash.sortby'
+import _orderBy from 'lodash.orderby'
 import CountryFlag from 'vue-country-flag'
 import { Component, Vue, Ref } from 'vue-property-decorator'
 import { mdiCalendar } from '@mdi/js'
@@ -457,7 +457,7 @@ export default class ViewMeasurements extends Vue {
       console.error(err)
       return []
     }
-    return _sortBy(cities || [], 'name')
+    return _orderBy(cities || [], 'name')
   }
 
   private async fetchChartData (): Promise<ChartComponentData> {
@@ -501,7 +501,7 @@ export default class ViewMeasurements extends Vue {
         }
         return memo
       }, {})
-    const pollutants = _sortBy(Object.values(pollutantsMap), 'id')
+    const pollutants = _orderBy(Object.values(pollutantsMap), 'id')
 
     const sourcesMap = measurementsByCities
       .reduce((memo: {[sourceId: string]: Source}, meas: Measurement) => {
@@ -510,7 +510,7 @@ export default class ViewMeasurements extends Vue {
         }
         return memo
       }, {})
-    const sources = _sortBy(Object.values(sourcesMap), 'id')
+    const sources = _orderBy(Object.values(sourcesMap), 'id')
 
     const stationsMap = measurementsByStations
       .reduce((memo: {[stationId: string]: Station}, meas: Measurement) => {
@@ -523,7 +523,7 @@ export default class ViewMeasurements extends Vue {
         }
         return memo
       }, {})
-    const stations = _sortBy(Object.values(stationsMap), 'id')
+    const stations = _orderBy(Object.values(stationsMap), 'id')
 
     const chartData = {
       cities: this.queryForm.cities.slice(),
@@ -548,9 +548,8 @@ export default class ViewMeasurements extends Vue {
     let visibleSources = this.pageProperties.visibleSources
       .filter(srcId => this.pageProperties.sources.find((s) => s.id === srcId))
     if (!visibleSources.length) {
-      visibleSources = this.pageProperties.sources.length
-        ? [this.pageProperties.sources[0]?.id]
-        : []
+      const _sources = _orderBy(this.pageProperties.sources || [], 'length', 'desc')
+      visibleSources = _sources.length ? [_sources[0]?.id] : []
     }
     this.pageProperties.visibleSources = visibleSources
 
