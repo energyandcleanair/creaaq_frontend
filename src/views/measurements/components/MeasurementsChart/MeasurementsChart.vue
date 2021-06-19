@@ -426,7 +426,9 @@ export default class MeasurementsChart extends Vue {
       tracesMap[traceId].push({x, y, $date, $origDate})
     }
 
+    let primaryColorUsed = false
     const traces: ChartTrace[] = []
+
     for (const traceId in tracesMap) {
       const points = tracesMap[traceId]
       const isMainLine = traceId === cityId
@@ -449,7 +451,6 @@ export default class MeasurementsChart extends Vue {
           hovertemplate += `<br><b>${this.$t('station')}:</b> ${traceId}`
         }
 
-
         let trace: ChartTrace = {
           x: [],
           y: [],
@@ -457,12 +458,13 @@ export default class MeasurementsChart extends Vue {
           type: 'scatter',
           mode: 'lines',
           name: pointsGroup[0]?.$origDate.format('YYYY'),
-          line: isMainLine ? undefined : {
-            color: '#ddd',
-            width: 1
-          },
+          line: isMainLine
+            ? primaryColorUsed ? undefined : {color: '#35426c'}
+            : {color: '#ddd', width: 1},
           hovertemplate,
         }
+
+        if (isMainLine && !primaryColorUsed) primaryColorUsed = true
 
         for (const point of pointsGroup) {
           trace.x.push(point.x)
