@@ -1,6 +1,9 @@
 <template>
 <v-container
   class="measurements-chart"
+  :class="{
+    'measurements-chart--dense': dense
+  }"
   fluid
 >
 
@@ -29,6 +32,7 @@
       class="chart-row"
       :class="{
         [`chart-row--cols-${vCols}`]: true,
+        [`col col-${vCols}`]: dense,
         'chart-row--hidden': !checkPollutantVisibility(row.pollutantId)
       }"
     >
@@ -38,7 +42,6 @@
         two-line
       >
         <v-list-item-content>
-          <v-list-item-subtitle class="grey--text" v-text="$t('pollutant')"/>
           <v-list-item-title>
             <span class="font-weight-bold">{{ row.title }}</span>
             <i
@@ -157,6 +160,11 @@ export default class MeasurementsChart extends Vue {
 
   private get measurements (): Measurement[] {
     return this.chartData.measurements || []
+  }
+
+  // display pollutants as cells and not rows
+  private get dense (): boolean {
+    return this.chartData.cities?.length === 1
   }
 
   private get _isDisplayStations (): boolean {
@@ -656,6 +664,29 @@ function _genRangeBox (items: any): RangeBox {
 
     &--hidden {
       display: none;
+    }
+  }
+
+  &--dense {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    flex: 1 1 auto !important;
+    margin: -12px !important;
+
+    .chart-row {
+      flex-basis: 0 !important;
+      flex-grow: 1 !important;
+      padding: 0.5rem 0.3rem;
+
+      .chart-col {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        padding: 0;
+
+        .chart-col__title {
+          display: none;
+        }
+      }
     }
   }
 }
