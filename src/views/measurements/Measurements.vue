@@ -8,6 +8,7 @@
           :label="$t('cities')"
           :items="cities"
           :disabled="isLoading"
+          :filter="citiesInputFilter"
           item-text="name"
           item-value="id"
           return-object
@@ -21,7 +22,7 @@
               size="small"
             />
             <span class="grey--text text--base">
-              &nbsp;&nbsp;{{ item.country_id }}
+              &nbsp;&nbsp;{{ item.country_name }}
             </span>
           </template>
         </SelectBox>
@@ -618,6 +619,12 @@ export default class ViewMeasurements extends Vue {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()
+  }
+
+  private citiesInputFilter (item: any, queryText: string, itemText: string): boolean {
+    const _query = queryText.toLocaleLowerCase()
+    return itemText.toLocaleLowerCase().indexOf(_query) > -1 ||
+      (item.country_name || '').toLocaleLowerCase().indexOf(_query) > -1
   }
 }
 </script>

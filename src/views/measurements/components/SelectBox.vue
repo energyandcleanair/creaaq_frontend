@@ -1,6 +1,7 @@
 <template>
 <component
   :is="_tagName"
+  :filter="filter"
   chips
   multiple
   clearable
@@ -71,6 +72,10 @@ import { mdiCloseBox, mdiMinusBox, mdiCheckboxBlankOutline } from '@mdi/js'
 import { Component, Model, Prop } from 'vue-property-decorator'
 import { VAutocomplete, VSelect } from 'vuetify/lib'
 
+const defaultFilter = (item: any, queryText: string, itemText: string) => {
+  return itemText.toLocaleLowerCase().indexOf(queryText.toLocaleLowerCase()) > -1
+}
+
 @Component({
   components: {
     VSelect,
@@ -83,6 +88,7 @@ export default class SelectBox extends VSelect {
   @Prop({type: Boolean, default: false}) readonly hasSelectAll!: boolean
   @Prop({type: Boolean, default: false}) readonly hasDeselectAll!: boolean
   @Prop({type: String}) readonly tagName?: 'v-autocomplete'|'v-select'
+  @Prop({type: Function, default: defaultFilter}) filter: any
 
   private get _tagName (): 'v-autocomplete'|'v-select' {
     if (this.tagName) return this.tagName
