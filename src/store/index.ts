@@ -14,8 +14,19 @@ interface UIParams {
   }
 }
 
+interface QueryForm {
+  cities: string[]
+  dateStart: string
+  dateEnd: string
+}
+
 export class ModuleState {
   public locale: Locales = defaultLocale
+  public queryForm: QueryForm = {
+    cities: [],
+    dateStart: '',
+    dateEnd: '',
+  }
   public ui: UIParams = {
     measurements: {
       isRightPanelOpen: true

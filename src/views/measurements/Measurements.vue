@@ -142,6 +142,7 @@ import _sortBy from 'lodash.sortby'
 import CountryFlag from 'vue-country-flag'
 import { Component, Vue, Ref } from 'vue-property-decorator'
 import { mdiCalendar } from '@mdi/js'
+import { ModuleState } from '@/store'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
 import Pollutant from '@/entities/Pollutant'
@@ -166,7 +167,6 @@ const _toQueryDate = (d: string|number): string => typeof d === 'string'
   ? moment(d, QUERY_DATE_FORMAT).format(QUERY_DATE_FORMAT)
   : moment(+d).format(QUERY_DATE_FORMAT)
 const _toNumberDate = (d: string): number => moment(d, QUERY_DATE_FORMAT).valueOf()
-// const today = moment(moment().format('YYYY-MM-DD')).valueOf()
 const today: string = _toQueryDate(moment().format(QUERY_DATE_FORMAT))
 
 interface URLQuery {
@@ -268,7 +268,7 @@ export default class ViewMeasurements extends Vue {
   }
 
   private set urlQuery (queryForm: URLQuery) {
-    const query = {
+    const query: URLQuery = {
       ...queryForm,
     }
     const date_start = queryForm.date_start
@@ -285,6 +285,10 @@ export default class ViewMeasurements extends Vue {
       ...(this.$route as any),
       query
     }).href
+
+    this.$store.commit('SET', {key: 'queryForm.cities', value: query.cities})
+    this.$store.commit('SET', {key: 'queryForm.dateStart', value: date_start})
+    this.$store.commit('SET', {key: 'queryForm.dateEnd', value: date_end})
 
     if (this.$route.fullPath !== newPath) this.$router.replace(newPath)
   }
@@ -328,6 +332,10 @@ export default class ViewMeasurements extends Vue {
     this.$store.commit('SET', {key: 'ui.measurements.isRightPanelOpen', value})
   }
 
+  private get queryFormCached (): ModuleState['queryForm']|null {
+    return this.$store.getters.GET('queryForm') || null
+  }
+
   private get dateStartFormat (): string {
     return moment(this.queryForm.dateStart).format('YYYY-MM-DD')
   }
@@ -350,6 +358,15 @@ export default class ViewMeasurements extends Vue {
 
     const cities = await this.fetchCities()
     this.cities = cities
+
+    if (!this.urlQuery.cities.length &&
+      this.queryFormCached?.cities.length) {
+
+      this.urlQuery = {
+        ...this.urlQuery,
+        cities: this.queryFormCached?.cities || []
+      }
+    }
 
     if (this.urlQuery.cities.length) {
       const idsMap = this.urlQuery.cities
@@ -380,56 +397,55 @@ export default class ViewMeasurements extends Vue {
   }
 
   private setQueryFormDefaults (): void {
-    if (!this.urlQuery.chart_cols) {
-      this.urlQuery = {
-        ...this.urlQuery,
-        chart_cols: MeasurementsChart.getDefaultChartCols(this.$vuetify),
-      }
+    const pageProperties = {...this.pageProperties}
+    const urlQuery = {...this.urlQuery}
+    const queryForm = {...this.queryForm}
+
+    if (!urlQuery.chart_cols) {
+      urlQuery.chart_cols = MeasurementsChart.getDefaultChartCols(this.$vuetify)
     }
 
-    if (this.urlQuery.date_start) {
-      this.queryForm.dateStart = _toNumberDate(this.urlQuery.date_start)
+    if (urlQuery.date_start) {
+      queryForm.dateStart = _toNumberDate(urlQuery.date_start)
     } else {
-      if (!this.queryForm.dateStart) this.queryForm.dateStart = _toNumberDate(today)
-      this.urlQuery = {
-        ...this.urlQuery,
-        date_start: _toQueryDate(this.queryForm.dateStart)
-      }
+      if (!queryForm.dateStart) queryForm.dateStart = _toNumberDate(today)
+      urlQuery.date_start = _toQueryDate(queryForm.dateStart)
     }
 
-    if (this.urlQuery.date_end) {
-      this.queryForm.dateEnd = _toNumberDate(this.urlQuery.date_end)
+    if (urlQuery.date_end) {
+      queryForm.dateEnd = _toNumberDate(urlQuery.date_end)
     } else {
-      if (!this.queryForm.dateEnd) this.queryForm.dateEnd = _toNumberDate(today)
-      this.urlQuery = {
-        ...this.urlQuery,
-        date_end: _toQueryDate(this.queryForm.dateEnd)
-      }
+      if (!queryForm.dateEnd) queryForm.dateEnd = _toNumberDate(today)
+      urlQuery.date_end = _toQueryDate(queryForm.dateEnd)
     }
 
-    this.pageProperties.chartColumnSize = this.urlQuery.chart_cols as ChartColumnSize
+    pageProperties.chartColumnSize = urlQuery.chart_cols as ChartColumnSize
 
-    if (this.urlQuery.display_mode) {
-      this.pageProperties.displayMode = this.urlQuery.display_mode
-    } else if (!this.pageProperties.displayMode) {
-      this.pageProperties.displayMode = DEFAUL_DISPLAY_MODE
-    }
-
-    if (this.urlQuery.running_average) {
-      this.pageProperties.runningAverage = this.urlQuery.running_average
-    } else if (!this.pageProperties.runningAverage) {
-      this.pageProperties.runningAverage = DEFAUL_RUNNING_AVERAGE
+    if (urlQuery.display_mode) {
+      pageProperties.displayMode = urlQuery.display_mode
+    } else if (!pageProperties.displayMode) {
+      pageProperties.displayMode = DEFAUL_DISPLAY_MODE
     }
 
-    if (this.urlQuery.sources?.length) {
-      this.pageProperties.visibleSources = this.urlQuery.sources
+    if (urlQuery.running_average) {
+      pageProperties.runningAverage = urlQuery.running_average
+    } else if (!pageProperties.runningAverage) {
+      pageProperties.runningAverage = DEFAUL_RUNNING_AVERAGE
     }
-    if (this.urlQuery.pollutants?.length) {
-      this.pageProperties.visiblePollutants = this.urlQuery.pollutants
+
+    if (urlQuery.sources?.length) {
+      pageProperties.visibleSources = urlQuery.sources
     }
-    if (this.urlQuery.stations?.length) {
-      this.pageProperties.visibleStations = this.urlQuery.stations
+    if (urlQuery.pollutants?.length) {
+      pageProperties.visiblePollutants = urlQuery.pollutants
     }
+    if (urlQuery.stations?.length) {
+      pageProperties.visibleStations = urlQuery.stations
+    }
+
+    Object.assign(this.pageProperties, pageProperties)
+    Object.assign(this.urlQuery, urlQuery)
+    Object.assign(this.queryForm, queryForm)
   }
 
   private async fetchCities (): Promise<City[]> {
