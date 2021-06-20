@@ -4,10 +4,18 @@ steps:
   args: ["install"]
 - name: node:10.15.1
   entrypoint: npm
+  args: ["run", "prod:create-env"]
+  env:
+    - 'FIREBASE_API_KEY=${_FIREBASE_API_KEY}'
+    - 'FIREBASE_AUTH_DOMAIN=${_FIREBASE_AUTH_DOMAIN}'
+    - 'FIREBASE_PROJECT_ID=${_FIREBASE_PROJECT_ID}'
+    - 'FIREBASE_APP_ID=${_FIREBASE_APP_ID}'
+- name: node:10.15.1
+  entrypoint: npm
   args: ["run", "build"]
 - name: "gcr.io/cloud-builders/gcloud"
   entrypoint: bash
-  args: 
+  args:
     - '-c'
     - |
       gcloud app deploy app.yaml --quiet -v $(echo $TAG_NAME | sed 's/\./-/g')

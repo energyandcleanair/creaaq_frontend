@@ -10,6 +10,7 @@
     "test": "npm run test:unit",
     "test:unit": "vue-cli-service test:unit",
     "lint": "vue-cli-service lint",
+    "prod:create-env": "printenv > .env.production.local",
     "check:master": "if git branch --show-current | grep ^master$ > /dev/null; then echo 'Git branch: master'; else echo 'Not in the master branch' 1>&2 && exit 1; fi",
     "bump": "npm run check:master && npx bump prompt --tag 'v%s' --commit 'v%s' package.json package-lock.json",
     "patch": "npm run check:master && npx bump patch --tag 'v%s' --commit 'v%s' package.json package-lock.json",
