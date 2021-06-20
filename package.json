@@ -21,6 +21,7 @@
     "await-to-js": "^3.0.0",
     "axios": "^0.21.1",
     "axios-cache-adapter": "^2.7.3",
+    "firebase": "^8.6.8",
     "localforage": "^1.9.0",
     "lodash.difference": "^4.5.0",
     "lodash.get": "^4.4.2",

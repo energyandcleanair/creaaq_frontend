@@ -7,6 +7,7 @@
     clipped-right
     dark
     app
+    style="z-index: 100;"
   >
     <div class="d-flex align-center">
       <RouterLink to="/">
@@ -23,17 +24,50 @@
 
     <v-spacer/>
 
+    <v-list-item
+      v-if="$auth.currentUser"
+      style="max-width: fit-content;"
+    >
+      <v-list-item-content>
+        <v-list-item-title
+          class="grey--text text--darken-2"
+          v-text="$auth.currentUser.email"
+        />
+      </v-list-item-content>
+    </v-list-item>
+
     <v-btn
+      v-if="$auth.currentUser"
       class="mr-0"
-      :to="{name: 'Settings'}"
+      :to="{name: 'settings'}"
       color="primary"
       icon
     >
       <v-icon>{{ mdiCogOutline }}</v-icon>
     </v-btn>
+
+    <v-btn
+      v-if="$auth.currentUser"
+      class="mr-0"
+      color="primary"
+      icon
+      @click="signOut"
+    >
+      <v-icon>{{ mdiLogout }}</v-icon>
+    </v-btn>
+
+    <!-- <v-btn
+      v-if="$auth.currentUser"
+      class="mr-0"
+      color="primary"
+      icon
+      @click="signOut"
+    >
+      <v-icon>{{ mdiLogout }}</v-icon>
+    </v-btn> -->
   </v-app-bar>
 
-  <AppDrawer/>
+  <AppDrawer :open="!!$auth.currentUser"/>
 
   <v-main>
     <RouterView/>
@@ -45,7 +79,7 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
-import { mdiCogOutline } from '@mdi/js'
+import { mdiCogOutline, mdiLogout } from '@mdi/js'
 import AppDrawer from '@/components/AppDrawer.vue'
 import axios from 'axios'
 import config from '@/config'
@@ -57,6 +91,7 @@ import config from '@/config'
 })
 export default class App extends Vue {
   private mdiCogOutline = mdiCogOutline
+  private mdiLogout = mdiLogout
 
   private beforeMount () {
     document.getElementsByTagName('html')[0]
@@ -69,7 +104,7 @@ export default class App extends Vue {
 
   private checkConnectionToAPI () {
     const service = axios.create({
-      baseURL: config.value('API_ORIGIN'),
+      baseURL: config.get('API_ORIGIN'),
       withCredentials: true
     })
 
@@ -79,9 +114,14 @@ export default class App extends Vue {
         console.info('Successfully connect to the API')
       })
       .catch((err: any) => {
-        console.error('err: ', config.value('API_ORIGIN'), err)
-        this.$dialog.message.error('Could not connect to the API: ' + config.value('API_ORIGIN'))
+        console.error('err: ', config.get('API_ORIGIN'), err)
+        this.$dialog.message.error('Could not connect to the API: ' + config.get('API_ORIGIN'))
       })
+  }
+
+  private signOut () {
+    this.$auth.logout()
+      .then(() => this.$router.push({name: 'signIn'}))
   }
 }
 </script>

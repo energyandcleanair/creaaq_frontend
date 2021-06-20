@@ -3,24 +3,27 @@ interface ConfigParams {
   APP_NAME: string
   APP_PUBLIC_NAME: string
   API_ORIGIN: string
+  FIREBASE_API_KEY: string
+  FIREBASE_AUTH_DOMAIN: string
+  FIREBASE_PROJECT_ID: string
+  FIREBASE_APP_ID: string
 }
 
 export default class ConfigProvider {
   public static get CONFIG (): ConfigParams {
-
-    /**
-     * Don't forget to sync changes in the variables list with the:
-     * scripts/entrypoint.sh
-     **/
     return {
       NODE_ENV: '$NODE_ENV',
       APP_NAME: '$APP_NAME',
       APP_PUBLIC_NAME: '$APP_PUBLIC_NAME',
       API_ORIGIN: '$API_ORIGIN',
+      FIREBASE_API_KEY: '$FIREBASE_API_KEY',
+      FIREBASE_AUTH_DOMAIN: '$FIREBASE_AUTH_DOMAIN',
+      FIREBASE_PROJECT_ID: '$FIREBASE_PROJECT_ID',
+      FIREBASE_APP_ID: '$FIREBASE_APP_ID',
     }
   }
 
-  public static value (name: keyof ConfigParams): string|undefined {
+  public static get (name: keyof ConfigParams): string|undefined {
     if (!(name in this.CONFIG)) {
       return
     }

@@ -1,7 +1,9 @@
 import _get from 'lodash.get'
 import localForage from 'localforage'
 import { setup } from 'axios-cache-adapter'
+import { auth, refreshAccessToken, getAccessToken } from '@/plugins/firebase'
 import config from '@/config'
+import router from '@/router'
 
 export const forageStore = localForage.createInstance({
   driver: [
@@ -12,10 +14,11 @@ export const forageStore = localForage.createInstance({
 })
 
 const instance = setup({
-  baseURL: new URL(config.value('API_ORIGIN') || '')
+  baseURL: new URL(config.get('API_ORIGIN') || '')
     .toString()
     .replace(/\/$/, ''),
   withCredentials: true,
+  timeout: 15000,
 
   // `axios-cache-adapter` options
   cache: {
@@ -28,9 +31,27 @@ const instance = setup({
   }
 })
 
+instance.interceptors.request.use(
+  config => {
+    // do something before request is sent
+
+    const token = getAccessToken()
+    if (token) {
+      // config.headers['Authorization'] = 'Bearer ' + token
+      // TODO: don't we need the 'Bearer' prefix?
+      config.headers['Authorization'] = token
+    }
+    return config
+  },
+  error => {
+    console.log(error)
+    return Promise.reject(error)
+  }
+)
+
 instance.interceptors.response.use(
   (res) => res,
-  ({response: res}) => {
+  async ({response: res}) => {
     if (!res) return res
 
     let message = ''
@@ -40,17 +61,25 @@ instance.interceptors.response.use(
         : _get(res.data, 'message', '')
     }
 
-    // TODO: use it later
-    // if ([401, 403].includes(res.status)) {
-    //   if (res.status === 401 && Vue.auth.currentUser) {
-    //     const from: string = router.currentRoute.fullPath
-    //     Vue.auth.logout()
-    //       .then(() => router.push({
-    //         name: 'auth',
-    //         query: {from}
-    //       }))
-    //   }
-    // }
+    if ([401, 403].includes(res.status)) {
+      if (getAccessToken()) {
+        await refreshAccessToken().catch((err: any) => console.error(err))
+
+        if (getAccessToken()) {
+          setTimeout(() => location.reload(), 200)
+          return Promise.resolve(res)
+        }
+      }
+
+      if (res.status === 401 && auth.currentUser) {
+        const from: string = router.currentRoute.fullPath
+        auth.signOut()
+          .then(() => router.push({
+            name: 'auth',
+            query: {from}
+          }))
+      }
+    }
 
     let result = {message, _raw: res}
     if (typeof res.data === 'object' && res.data) {

@@ -4,6 +4,7 @@ import _get from 'lodash.get'
 import _set from 'lodash.set'
 import createPersistedState from 'vuex-persistedstate'
 import i18n, { Locales, defaultLocale } from '@/plugins/i18n'
+import User from '@/entities/User'
 import config from '@/config'
 
 Vue.use(Vuex)
@@ -32,6 +33,7 @@ export class ModuleState {
       isRightPanelOpen: true
     }
   }
+  public currentUser: User|null = null
 }
 
 export default new Vuex.Store({
@@ -54,13 +56,16 @@ export default new Vuex.Store({
       state.locale = payload
       i18n.locale = payload
     },
+    SET_CURRENT_USER: (state, payload: ModuleState['currentUser']) => {
+      state.currentUser = payload || null
+    }
   },
-  strict: config.value('NODE_ENV') !== 'production',
+  strict: config.get('NODE_ENV') !== 'production',
   plugins: [
 
     // use localStorage
     createPersistedState({
-      key: `${config.value('APP_NAME')}-storage`
+      key: `${config.get('APP_NAME')}-storage`
     })
   ]
 })

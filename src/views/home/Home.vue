@@ -5,7 +5,7 @@
   </h1>
 
   <v-container class="text-center">
-    <RouterLink :to="{name: 'Measurements'}" v-text="$t('measurements')" />
+    <RouterLink :to="{name: 'measurements'}" v-text="$t('measurements')" />
   </v-container>
 </div>
 </template>

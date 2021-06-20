@@ -1,5 +1,5 @@
 <template>
-<v-navigation-drawer app permanent clipped left width="200">
+<v-navigation-drawer :value="open" :permanent="open" app clipped left width="200">
   <v-list dense>
     <v-list-item
       :class="{'grey--text text--darken-1': item.disabled}"
@@ -21,7 +21,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator'
+import { Component, Vue, Prop } from 'vue-property-decorator'
 import { mdiScaleBalance, mdiMapMarkerPath, mdiHomeAssistant } from '@mdi/js'
 import { Location } from 'vue-router'
 
@@ -34,24 +34,26 @@ interface MenuItem {
 
 @Component
 export default class AppDrawer extends Vue {
+  @Prop({type: Boolean, default: false}) open!: boolean
+
   private get menuItems (): MenuItem[] {
     return [
       {
         label: this.$t('measurements').toString(),
         icon: mdiScaleBalance,
-        to: {name: 'Measurements'},
+        to: {name: 'measurements'},
         disabled: false
       },
       {
         label: this.$t('trajectories').toString(),
         icon: mdiMapMarkerPath,
-        // to: {name: 'Trajectories'},
+        // to: {name: 'trajectories'},
         disabled: true
       },
       {
         label: this.$t('stations').toString(),
         icon: mdiHomeAssistant,
-        // to: {name: 'Stations'},
+        // to: {name: 'stations'},
         disabled: true
       },
     ]

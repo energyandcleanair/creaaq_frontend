@@ -1,4 +1,4 @@
-# Loader (`$ui.loader`)
+# Loader (`$loader`)
 
 Plugin. Linear progress bar at the top of the page.
 
@@ -16,7 +16,7 @@ destroyed.
 # API
 
 ### Methods:
-- `$ui.loader.isLoading()` - getter of the Vuex state var. Returns `boolean`.
-- `$ui.loader.on()`
-- `$ui.loader.off(force: boolean)` - if `force: true`, than the loading will be
+- `$loader.isLoading()` - getter of the Vuex state var. Returns `boolean`.
+- `$loader.on()`
+- `$loader.off(force: boolean)` - if `force: true`, than the loading will be
 hidden immediately without animation of completion.
