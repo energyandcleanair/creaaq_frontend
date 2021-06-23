@@ -33,8 +33,6 @@ const instance = setup({
 
 instance.interceptors.request.use(
   config => {
-    // do something before request is sent
-
     const token = getAccessToken()
     if (token) {
       // config.headers['Authorization'] = 'Bearer ' + token
@@ -44,7 +42,7 @@ instance.interceptors.request.use(
     return config
   },
   error => {
-    console.log(error)
+    console.error(error)
     return Promise.reject(error)
   }
 )

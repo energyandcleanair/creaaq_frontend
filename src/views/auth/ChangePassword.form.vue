@@ -5,10 +5,10 @@
   v-model="isValid"
 >
 
-  <a
+  <router-link
     class="d-inline-flex black--text"
-    v-go-back-link
     v-text="$t('back')"
+    :to="{name: 'profile'}"
   />
   <div class="text-h5 font-weight-bold black--text mb-2">
     {{ $t('auth.change_password') }}
