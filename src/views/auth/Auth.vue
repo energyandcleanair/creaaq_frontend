@@ -32,14 +32,10 @@ import to from 'await-to-js'
 import _get from 'lodash.get'
 import { Component, Vue } from 'vue-property-decorator'
 import fb, { auth, refreshAccessToken } from '@/plugins/firebase'
-// import User from '@/types/User'
-// import VideoBanner from '@/components/VideoBanner/index.vue'
-// import AUTH_FORM_DEFAULTS from './AUTH_FORM_DEFAULTS'
 import FormSignIn from './SignIn.form.vue'
 import FormSignUp from './SignUp.form.vue'
 import FormResetPassword from './ResetPassword.form.vue'
 import FormResetPasswordMessage from './ResetPasswordMessage.form.vue'
-import FormUpdatePassword from './UpdatePassword.form.vue'
 import FormChangePassword from './ChangePassword.form.vue'
 
 @Component({
@@ -48,9 +44,7 @@ import FormChangePassword from './ChangePassword.form.vue'
     FormSignUp,
     FormResetPassword,
     FormResetPasswordMessage,
-    FormUpdatePassword,
     FormChangePassword,
-    // VideoBanner
   }
 })
 export default class PageAuth extends Vue {
@@ -72,7 +66,6 @@ export default class PageAuth extends Vue {
       case 'signUp': return 'FormSignUp'
       case 'resetPassword': return 'FormResetPassword'
       case 'resetPasswordMessage': return 'FormResetPasswordMessage'
-      case 'updatePassword': return 'FormUpdatePassword'
       case 'changePassword': return 'FormChangePassword'
       default: return 'FormSignUp'
     }
@@ -86,9 +79,8 @@ export default class PageAuth extends Vue {
     switch (this.$route.name) {
       case 'signIn': return this.signIn()
       case 'signUp': return this.signUp()
-      case 'resetPassword': return this.resetPassword()
-      // case 'resetPasswordMessage': return
-      case 'updatePassword': return this.updatePassword()
+      case 'resetPassword': return this.sendPasswordResetEmail()
+      case 'resetPasswordMessage': return
       case 'changePassword': return this.changePassword()
     }
   }
@@ -144,117 +136,83 @@ export default class PageAuth extends Vue {
     this.$loader.off()
   }
 
-  // TODO:
-  private async resetPassword (): Promise<void> {
-    this.$dialog.notify.info(''+this.$tc('msg.will_be_added_soon'))
-    // this.$loader.on()
+  private async sendPasswordResetEmail (): Promise<void> {
+    this.$loader.on()
 
-    // const [err] = await to(
-    //   auth.sendPasswordResetEmail(
-    //     this.formValues.email,
-    //     {
-    //       url: window.location.origin,
-    //       handleCodeInApp: true
-    //     }
-    //   )
-    // )
+    const [err] = await to(
+      auth.sendPasswordResetEmail(
+        this.formValues.email,
+        {
+          url: window.location.origin,
+          handleCodeInApp: true
+        }
+      )
+    )
 
-    // if (err) {
-    //   console.error(err)
-    //   this.$loader.off()
-    //   return this.$ui.dialog.notification(
-    //     _get(err, 'message', this.$t('msg.something_went_wrong')),
-    //     {type: 'error'}
-    //   )
-    // }
+    if (err) {
+      console.error(err)
+      this.$loader.off()
+      return this.$dialog.notify.error(
+        err?.message || ''+this.$t('msg.something_went_wrong')
+      )
+    }
 
-    // this.$router.push({name: 'resetPasswordMessage'})
-    // this.$loader.off()
+    this.$router.push({name: 'resetPasswordMessage'})
+    this.$loader.off()
   }
 
-  // TODO:
-  private async updatePassword (): Promise<void> {
-    this.$dialog.notify.info(''+this.$tc('msg.will_be_added_soon'))
-    // this.$loader.on()
-
-    // const [err] = await to(
-    //   auth.confirmPasswordReset(
-    //     this.formValues.code,
-    //     this.formValues.newPassword,
-    //   )
-    // )
-
-    // if (err) {
-    //   console.error(err)
-    //   this.$loader.off()
-    //   return this.$ui.dialog.notification(
-    //     _get(err, 'message', this.$t('msg.something_went_wrong')),
-    //     {type: 'error'}
-    //   )
-    // }
-
-    // this.$router.push({name: 'signIn'})
-    // this.$loader.off()
-  }
-
-  // TODO:
   private async changePassword (): Promise<void> {
-    this.$dialog.notify.info(''+this.$tc('msg.will_be_added_soon'))
+    this.$loader.on()
 
-    // this.$loader.on()
+    const email: string = _get(auth, 'currentUser.email', '')
 
-    // const email: string = _get(auth, 'currentUser.email', '')
+    if (!email) {
+      this.$loader.off()
+      return this.$dialog.notify.error(
+        ''+this.$t('auth.email_wasnt_set_for_user')
+      )
+    }
 
-    // if (!email) {
-    //   this.$loader.off()
-    //   return this.$ui.dialog.notification(
-    //     this.$t('auth.email_wasnt_set_for_user'),
-    //     {type: 'error'}
-    //   )
-    // }
+    let [err] = await to(auth
+      .signInWithEmailAndPassword(email, this.formValues.password)
+    )
 
-    // let [err] = await to(auth
-    //   .signInWithEmailAndPassword(email, this.formValues.password)
-    // )
+    if (err) {
+      console.error(err)
+      this.$loader.off()
+      return this.$dialog.notify.error(
+        err?.message || ''+this.$t('msg.something_went_wrong')
+      )
+    }
 
-    // if (err) {
-    //   console.error(err)
-    //   this.$loader.off()
-    //   return this.$ui.dialog.notification(
-    //     _get(err, 'message', this.$t('msg.something_went_wrong')),
-    //     {type: 'error'}
-    //   )
-    // }
+    if (!auth.currentUser) {
+      console.error(err)
+      this.$loader.off()
+      return this.$dialog.notify.error(
+        ''+this.$t('msg.not_authenticated')
+      )
+    }
 
-    // if (!auth.currentUser) {
-    //   console.error(err)
-    //   this.$loader.off()
-    //   return this.$ui.dialog.notification(
-    //     this.$t('msg.not_authenticated'),
-    //     {type: 'error'}
-    //   )
-    // }
+    [err] = await to(
+      auth.currentUser.updatePassword(this.formValues.newPassword)
+    )
 
-    // [err] = await to(
-    //   auth.currentUser.updatePassword(this.formValues.newPassword)
-    // )
+    if (err) {
+      console.error(err)
+      this.$loader.off()
+      return this.$dialog.notify.error(
+        err?.message || ''+this.$t('msg.something_went_wrong')
+      )
+    }
 
-    // if (err) {
-    //   console.error(err)
-    //   this.$loader.off()
-    //   return this.$dialog.notify.error(
-    //     err?.message || ''+this.$t('msg.something_went_wrong')
-    //   )
-    // }
-
-    // this.$loader.off()
-    // this.resetValidation()
-    // this.formValues.password = ''
-    // this.formValues.newPassword = ''
-    // this.formValues.newPasswordConfirm = ''
-    // return this.$dialog.notify.success(
-    //   ''+this.$t('auth.password_successfully_changed')
-    // )
+    this.$loader.off()
+    this.resetValidation()
+    this.formValues.password = ''
+    this.formValues.newPassword = ''
+    this.formValues.newPasswordConfirm = ''
+    return this.$dialog.notify.success(
+      ''+this.$t('auth.password_successfully_changed')
+    )
   }
 
   private async signIn (): Promise<void> {

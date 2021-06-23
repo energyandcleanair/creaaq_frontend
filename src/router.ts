@@ -29,7 +29,8 @@ const routes: Array<RouteConfig> = [
         ) as RouteConfig[])
         .map((r: RouteConfig) => r.name || 'unknown')
 
-      if (Vue.auth.currentUser) next({name: 'home'})
+      if (Vue.auth.currentUser && to.name === 'changePassword') next()
+      else if (Vue.auth.currentUser) next({name: 'home'})
       else if (!AUTH_ROUTES.includes(to.name || '')) next({name: 'signIn'})
       else next()
     },
@@ -51,8 +52,8 @@ const routes: Array<RouteConfig> = [
         path: 'reset-password-done'
       },
       {
-        name: 'updatePassword',
-        path: 'update-password'
+        name: 'changePassword',
+        path: 'change-password'
       },
       {
         path: '*'
@@ -68,9 +69,9 @@ const routes: Array<RouteConfig> = [
     }
   },
   {
-    path: '/settings',
-    name: 'settings',
-    component: () => import(/* webpackChunkName: "settings" */ '@/views/settings/Settings.vue'),
+    path: '/profile',
+    name: 'profile',
+    component: () => import(/* webpackChunkName: "profile" */ '@/views/profile/Profile.vue'),
     meta: {
       requiresAuth: true
     }

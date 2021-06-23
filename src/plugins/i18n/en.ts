@@ -55,6 +55,7 @@ export default {
   running_average: 'Running average',
   chart_size: 'Chart size',
   chart_columns: 'Chart columns',
+  profile: 'Profile',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

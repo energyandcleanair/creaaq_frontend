@@ -2,7 +2,6 @@
 <v-form
   ref="form"
   class="fill-height overflow-y-auto px-8 pb-16 pt-16"
-  v-model="isValid"
 >
 
   <a
@@ -22,13 +21,14 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from 'vue-property-decorator'
+import { Component, Vue } from 'vue-property-decorator'
 
 @Component
-export default class UpdatePasswordForm extends Vue {
+export default class ResetPasswordMessageForm extends Vue {
   private get isValid (): boolean {
     return true
   }
+  private set isValid (val: boolean) {}
 
   public validate (): void {}
 }

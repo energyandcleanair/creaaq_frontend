@@ -24,47 +24,75 @@
 
     <v-spacer/>
 
-    <v-list-item
+    <v-menu
       v-if="$auth.currentUser"
-      style="max-width: fit-content;"
+      v-model="isMenuOpen"
+      :close-on-content-click="true"
+      :max-width="250"
+      offset-x
     >
-      <v-list-item-content>
-        <v-list-item-title
-          class="grey--text text--darken-2"
-          v-text="$auth.currentUser.email"
-        />
-      </v-list-item-content>
-    </v-list-item>
+      <template v-slot:activator="{ on, attrs }">
+        <v-list-item
+          style="max-width: fit-content;"
+          v-bind="attrs"
+          v-on="on"
+        >
+          <v-list-item-content>
+            <v-list-item-title
+              class="grey--text text--darken-2"
+              v-text="userName"
+            />
+          </v-list-item-content>
 
-    <v-btn
-      v-if="$auth.currentUser"
-      class="mr-0"
-      :to="{name: 'settings'}"
-      color="primary"
-      icon
-    >
-      <v-icon>{{ mdiCogOutline }}</v-icon>
-    </v-btn>
+          <v-list-item-avatar>
+            <v-img
+              v-if="userPhoto"
+              :alt="userName"
+              :src="userPhoto"
+            />
+            <v-icon v-else class="grey--text text--lighten-2">
+              {{ mdiAccountCircle }}
+            </v-icon>
+          </v-list-item-avatar>
+        </v-list-item>
+      </template>
 
-    <v-btn
-      v-if="$auth.currentUser"
-      class="mr-0"
-      color="primary"
-      icon
-      @click="signOut"
-    >
-      <v-icon>{{ mdiLogout }}</v-icon>
-    </v-btn>
+      <v-list>
+        <v-list-item>
+          <v-list-item-avatar>
+            <v-img
+              v-if="userPhoto"
+              :alt="userName"
+              :src="userPhoto"
+            />
+            <v-icon v-else class="grey--text text--lighten-2">
+              {{ mdiAccountCircle }}
+            </v-icon>
+          </v-list-item-avatar>
 
-    <!-- <v-btn
-      v-if="$auth.currentUser"
-      class="mr-0"
-      color="primary"
-      icon
-      @click="signOut"
-    >
-      <v-icon>{{ mdiLogout }}</v-icon>
-    </v-btn> -->
+          <v-list-item-content v-if="$auth.currentUser">
+            <v-list-item-title v-text="userName"/>
+            <v-list-item-subtitle v-if="userName && userEmail" v-text="userEmail"/>
+          </v-list-item-content>
+        </v-list-item>
+      </v-list>
+
+      <v-divider></v-divider>
+
+      <v-list>
+        <v-list-item
+          v-for="item of menuItems"
+          :key="item.id"
+          :disabled="item.disabled"
+          @click="item.action"
+        >
+          <v-list-item-icon>
+            <v-icon>{{ item.icon }}</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>{{ item.label }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-menu>
   </v-app-bar>
 
   <AppDrawer :open="!!$auth.currentUser"/>
@@ -79,7 +107,7 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
-import { mdiCogOutline, mdiLogout } from '@mdi/js'
+import { mdiLogout, mdiAccountCircle, mdiAccount } from '@mdi/js'
 import AppDrawer from '@/components/AppDrawer.vue'
 import axios from 'axios'
 import config from '@/config'
@@ -90,8 +118,40 @@ import config from '@/config'
   }
 })
 export default class App extends Vue {
-  private mdiCogOutline = mdiCogOutline
-  private mdiLogout = mdiLogout
+  private mdiAccount = mdiAccount
+  private mdiAccountCircle = mdiAccountCircle
+  private isMenuOpen: boolean = false
+
+  private get userName (): string {
+    return this.$auth.currentUser?.displayName || 'User'
+  }
+
+  private get userEmail (): string {
+    return this.$auth.currentUser?.email || ''
+  }
+
+  private get userPhoto (): string {
+    return this.$auth.currentUser?.photoURL || ''
+  }
+
+  private get menuItems (): any[] {
+    return [
+      {
+        id: 'profile',
+        label: this.$t('profile'),
+        icon: mdiAccount,
+        disabled: this.$route.name === 'profile',
+        action: () => this.$router.push({name: 'profile'}),
+      },
+      {
+        id: 'logout',
+        label: this.$t('auth.sign_out'),
+        icon: mdiLogout,
+        disabled: false,
+        action: this.signOut,
+      },
+    ]
+  }
 
   private beforeMount () {
     document.getElementsByTagName('html')[0]
