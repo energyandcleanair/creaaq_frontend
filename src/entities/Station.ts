@@ -6,6 +6,7 @@ export default class Station {
   public cityId!: City['id']
 
   public city?: City
+  public _measurementsNumber?: number
 
   constructor (data: Station) {
     Object.assign(this, data)

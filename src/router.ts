@@ -1,7 +1,6 @@
 import Vue from 'vue'
 import _get from 'lodash.get'
 import VueRouter, { RouteConfig } from 'vue-router'
-// import { auth } from '@/plugins/firebase'
 
 Vue.use(VueRouter)
 

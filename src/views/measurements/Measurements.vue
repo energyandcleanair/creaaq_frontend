@@ -14,7 +14,7 @@
           return-object
           hide-details
           has-deselect-all
-          @input="onChangeQueryForm"
+          @input="onChangeQueryForm('cities')"
         >
           <template v-slot:item-subtext="{item}">
             <CountryFlag
@@ -506,8 +506,17 @@ export default class ViewMeasurements extends Vue {
 
     const sourcesMap = measurementsByCities
       .reduce((memo: {[sourceId: string]: Source}, meas: Measurement) => {
-        if (meas.source && !memo[meas.source]) {
-          memo[meas.source] = {id: meas.source, label: meas.source}
+        if (!meas.source) return memo
+        if (memo[meas.source]) {
+          memo[meas.source]._measurementsNumber = 1 + (memo[meas.source]?._measurementsNumber || 0)
+        } else {
+          memo[meas.source] = {
+            id: meas.source,
+            label: meas.source,
+            cityId: meas.city_id,
+            level: meas.level,
+            _measurementsNumber: 0,
+          }
         }
         return memo
       }, {})
@@ -515,11 +524,15 @@ export default class ViewMeasurements extends Vue {
 
     const stationsMap = measurementsByStations
       .reduce((memo: {[stationId: string]: Station}, meas: Measurement) => {
-        if (meas.location_id && !memo[meas.location_id]) {
+        if (!meas.source) return memo
+        if (memo[meas.location_id]) {
+          memo[meas.location_id]._measurementsNumber = 1 + (memo[meas.location_id]?._measurementsNumber || 0)
+        } else {
           memo[meas.location_id] = {
             id: meas.location_id,
             label: meas.location_id,
             cityId: meas.city_id,
+            _measurementsNumber: 0,
           }
         }
         return memo
@@ -548,9 +561,11 @@ export default class ViewMeasurements extends Vue {
 
     let visibleSources = this.pageProperties.visibleSources
       .filter(srcId => this.pageProperties.sources.find((s) => s.id === srcId))
+
+    // automatically select the source with the most measurements in city-level
     if (!visibleSources.length) {
-      const _sources = _orderBy(this.pageProperties.sources || [], 'length', 'desc')
-      visibleSources = _sources.length ? [_sources[0]?.id] : []
+      const defaultSource = this.chooseDefaultSource(this.pageProperties.sources)
+      visibleSources = defaultSource ? [defaultSource.id] : []
     }
     this.pageProperties.visibleSources = visibleSources
 
@@ -589,9 +604,26 @@ export default class ViewMeasurements extends Vue {
     return measurements || []
   }
 
-  private onChangeQueryForm () {
+  private onChangeQueryForm (fieldName?: keyof MeasurementsQuery) {
+    // let sources = this.urlQuery.sources
+
+    // if (fieldName === 'cities') {
+    //   const oldIds = [...this.urlQuery.cities]
+    //     .sort((a, b) => a.localeCompare(b))
+    //     .join(',')
+    //   const newIds = [...this.queryForm.cities]
+    //     .map(i => i.id)
+    //     .sort((a, b) => a.localeCompare(b))
+    //     .join(',')
+    //   if (oldIds !== newIds) {
+    //     sources = []
+    //     this.pageProperties.visibleSources = []
+    //   }
+    // }
+
     this.urlQuery = {
       ...this.urlQuery,
+      // sources,
       cities: this.queryForm.cities.map(i => i.id),
       date_start: _toQueryDate(this.queryForm.dateStart),
       date_end: this.queryForm.dateEnd ? _toQueryDate(this.queryForm.dateEnd) : undefined,
@@ -617,6 +649,22 @@ export default class ViewMeasurements extends Vue {
 
   private async onClickRefresh () {
     this.$loader.on()
+
+    const oldIds = [...this.urlQuery.cities]
+      .sort((a, b) => a.localeCompare(b))
+      .join(',')
+    const newIds = [...this.queryForm.cities]
+      .map(i => i.id)
+      .sort((a, b) => a.localeCompare(b))
+      .join(',')
+
+    if (oldIds !== newIds) {
+      this.onChangePageProperties({
+        ...this.pageProperties,
+        visibleSources: [],
+      })
+    }
+
     await this.refreshChartData()
     this.$loader.off()
   }
@@ -625,6 +673,11 @@ export default class ViewMeasurements extends Vue {
     const _query = queryText.toLocaleLowerCase()
     return itemText.toLocaleLowerCase().indexOf(_query) > -1 ||
       (item.country_name || '').toLocaleLowerCase().indexOf(_query) > -1
+  }
+
+  private chooseDefaultSource (sources: Source[] = []): Source|undefined {
+    const _sources = _orderBy(sources, '_measurementsNumber', 'desc')
+    return _sources[0]
   }
 }
 </script>

@@ -8,6 +8,10 @@ export enum MeasurementProcesses {
   station_day_mad = 'station_day_mad',
 }
 
+export enum MeasurementLevels {
+  city = 'city',
+}
+
 // TODO: approve the schema
 export default class Measurement {
   public id!: string
@@ -17,7 +21,7 @@ export default class Measurement {
   public city_id!: City['id']
   public source!: Source['id']
   public date!: string|Date
-  public level!: 'city'
+  public level!: MeasurementLevels
   public value!: number
 
   public unit?: string
