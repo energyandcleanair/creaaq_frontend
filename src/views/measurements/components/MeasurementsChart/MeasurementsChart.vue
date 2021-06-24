@@ -5,6 +5,7 @@
     'measurements-chart--dense': dense
   }"
   fluid
+  v-resize="onResize"
 >
 
   <template v-if="loading">
@@ -197,6 +198,8 @@ export default class MeasurementsChart extends Vue {
     }
 
     const rows: ChartRow[] = []
+    const dateStart: number = this.chartData.dateStart || 0
+    const dateEnd: number = this.chartData.dateEnd || 0
 
     for (const pollutant of this.pollutants) {
       const rowId: string = pollutant.id
@@ -209,7 +212,6 @@ export default class MeasurementsChart extends Vue {
         const first = i % this._cols === 0
         const last = i % this._cols === this._cols - 1
           || i === this.cities.length - 1
-        // const last = i === this.cities.length - 1
         const chartData = this.genChartData(
           city,
           pollutant,
@@ -323,7 +325,10 @@ export default class MeasurementsChart extends Vue {
 
       // set one grid range to all charts in row
       const MARGIN = 3
-      const generalRangeX = [row.rangeBox.x0 - MARGIN, row.rangeBox.x1 + MARGIN]
+      const generalRangeX = [
+        (dateStart || row.rangeBox.x0) - MARGIN,
+        (dateEnd || row.rangeBox.x1) + MARGIN,
+      ]
       const generalRangeY = [row.rangeBox.y0 - MARGIN, row.rangeBox.y1 + MARGIN]
       for (const col of row.cols) {
         _set(col, 'layout.xaxis.range', generalRangeX.slice())
@@ -427,6 +432,8 @@ export default class MeasurementsChart extends Vue {
     }
 
     let primaryColorUsed = false
+    const dateStart: number = this.chartData.dateStart || 0
+    const dateEnd: number = this.chartData.dateEnd || 0
     const traces: ChartTrace[] = []
 
     for (const traceId in tracesMap) {
@@ -476,16 +483,25 @@ export default class MeasurementsChart extends Vue {
           && pointsGroup.length
         ) {
           const days = RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] || 1
-          const shiftX = Math.floor(days / 2)
           trace.y = _computeMovingAverage(trace.y, days)
 
+          // shift the trace to the center
+          const shiftX = Math.floor(days / 2)
           if (shiftX * 2 < trace.x.length) {
-            trace.x = trace.x.slice(shiftX, trace.x.length - shiftX)
+            trace.x = trace.x.slice(shiftX, -shiftX)
           } else {
             const midIndex = Math.floor(trace.x.length / 2)
             trace.x = [trace.x[midIndex]]
           }
         }
+
+        // cut the dates over the frame [dateStart, dateEnd]
+        let indexStart: number = trace.x.findIndex(x => x > dateStart) - 1
+        if (indexStart < 0) indexStart = 0
+        let indexEnd: number|undefined = trace.x.findIndex(x => x > dateEnd)
+        if (indexEnd === -1) indexEnd = undefined
+        trace.x = trace.x.slice(indexStart, indexEnd)
+        trace.y = trace.y.slice(indexStart, indexEnd)
 
         traces.push(trace)
       }
@@ -494,6 +510,18 @@ export default class MeasurementsChart extends Vue {
     return {
       data: _sortBy(traces, 'zIndex'),
       rangeBox,
+    }
+  }
+
+  private onResize () {
+    this.resize()
+  }
+
+  public resize () {
+    for (const refId in this.$refs) {
+      const $refList = this.$refs[refId] as any[]
+      const $ref: typeof Plotly = $refList?.[0]
+      $ref?.relayout({autosize: true})
     }
   }
 

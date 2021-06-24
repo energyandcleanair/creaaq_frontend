@@ -6,7 +6,7 @@ import { MeasurementProcesses } from '@/entities/Measurement'
 
 export default class MeasurementsQuery {
   public cities!: City[]
-  public dateStart!: number
+  public dateStart?: number
   public dateEnd?: number
   public sources?: Source[]
   public pollutants?: Pollutant[]

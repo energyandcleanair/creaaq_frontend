@@ -97,4 +97,15 @@ export default {
     email_wasnt_set_for_user: 'Email wasn\'t set for the user',
     password_successfully_changed: 'Password successfully changed',
   },
+
+  dates_interval: {
+    title: 'Dates interval',
+    this_year: 'This year',
+    last_n_years: 'Last {n} years',
+    all: 'All',
+    custom: 'Custom',
+    from_x_to_y: '<i>from</i> <b>{x}</b> <i>to</i> <b>{y}</b>',
+    from: 'From',
+    to: 'To',
+  }
 }
