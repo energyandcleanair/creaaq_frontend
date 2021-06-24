@@ -2,7 +2,7 @@
 <div class="view-measurements fill-height" style="overflow: auto;">
   <v-container class="pt-10 pt-md-4 px-8" fluid>
     <v-row>
-      <v-col cols="12" md="3" lg="3" xl="2">
+      <v-col cols="12" md="5" lg="6" xl="6">
         <SelectBox
           v-model="queryForm.cities"
           :label="$t('cities')"
@@ -28,79 +28,30 @@
         </SelectBox>
       </v-col>
 
-      <v-col cols="12" sm="6" md="3" lg="2" xl="2">
-        <v-menu
-          v-model="isMenuDateStartOpen"
-          :close-on-content-click="false"
-          transition="scale-transition"
-          min-width="auto"
-          offset-y
-          left
-        >
-          <template v-slot:activator="{ on, attrs }">
-            <v-text-field
-              :value="dateStartFormat"
-              :label="$t('from')"
-              :prepend-icon="mdiCalendar"
-              :disabled="isLoading"
-              readonly
-              hide-details
-              v-bind="attrs"
-              v-on="on"
-            />
-          </template>
-
-          <v-date-picker
-            :value="dateStartFormat"
-            @input="($e) => {
-              queryForm.dateStart = +new Date($e);
-              isMenuDateStartOpen = false;
-              onChangeQueryForm()
-            }"
-          />
-        </v-menu>
-      </v-col>
-
-      <v-col cols="12" sm="6" md="3" lg="2" xl="2">
-        <v-menu
-          v-model="isMenuDateEndOpen"
-          :close-on-content-click="false"
-          transition="scale-transition"
-          min-width="auto"
-          offset-y
-          left
-        >
-          <template v-slot:activator="{ on, attrs }">
-            <v-text-field
-              :value="dateEndFormat"
-              :label="$t('to')"
-              :prepend-icon="mdiCalendar"
-              :disabled="isLoading"
-              readonly
-              hide-details
-              v-bind="attrs"
-              v-on="on"
-            />
-          </template>
-
-          <v-date-picker
-            :value="dateEndFormat"
-            @input="($e) => {
-              queryForm.dateEnd = +new Date($e);
-              isMenuDateEndOpen = false;
-              onChangeQueryForm()
-            }"
-          />
-        </v-menu>
+      <v-col cols="12" sm="6" md="4">
+        <DatesIntervalInput
+          :dateStart="queryForm.dateStart"
+          :dateEnd="queryForm.dateEnd"
+          format="YYYY-MM-DD"
+          :disabled="isLoading"
+          @input="($e) => {
+            queryForm.dateStart = $e.dateStart;
+            queryForm.dateEnd = $e.dateEnd;
+            onChangeQueryForm()
+          }"
+        />
       </v-col>
 
       <v-col
         class="d-flex justify-end justify-md-start align-center"
         cols="12"
+        sm="6"
         md="2"
+        offset-md="1"
+        offset-lg="1"
       >
         <v-btn
-          class="ml-5"
+          class="ml-1"
           :disabled="isLoading"
           :loading="isLoading || isChartLoading"
           @click="onClickRefresh"
@@ -153,6 +104,7 @@ import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
 import SelectBox from './components/SelectBox.vue'
+import DatesIntervalInput from './components/DatesIntervalInput/DatesIntervalInput.vue'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
 import MeasurementsQuery from './components/MeasurementsChart/MeasurementsQuery'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
@@ -164,18 +116,20 @@ import RunningAverageEnum from './types/RunningAverageEnum'
 
 const QUERY_DATE_FORMAT = 'YYYY-MM-DD'
 type QueryDateString = typeof QUERY_DATE_FORMAT|string
-const _toQueryDate = (d: string|number): string => typeof d === 'string'
-  ? moment(d, QUERY_DATE_FORMAT).format(QUERY_DATE_FORMAT)
-  : moment(+d).format(QUERY_DATE_FORMAT)
-const _toNumberDate = (d: string): number => moment(d, QUERY_DATE_FORMAT).valueOf()
-const today: string = _toQueryDate(moment().format(QUERY_DATE_FORMAT))
+const _toStringDate = (d: string|number): string => typeof d === 'string'
+  ? d === '0' ? '0' : moment(d, QUERY_DATE_FORMAT).format(QUERY_DATE_FORMAT)
+  : d === 0 ? '0' : moment(+d).format(QUERY_DATE_FORMAT)
+const _toNumberDate = (d: string): number => d === '0'
+  ? 0
+  : moment(d, QUERY_DATE_FORMAT).valueOf()
+const today: string = _toStringDate(moment().format(QUERY_DATE_FORMAT))
 
 interface URLQuery {
   cities: City['id'][]
   sources: Source['id'][]
   pollutants: Pollutant['id'][]
   stations?: Station['id'][]
-  date_start: QueryDateString
+  date_start?: QueryDateString
   date_end?: QueryDateString
   display_mode?: ChartDisplayModes
   running_average?: RunningAverageEnum
@@ -188,6 +142,7 @@ const DEFAUL_RUNNING_AVERAGE = RunningAverageEnum['1d']
 @Component({
   components: {
     MeasurementsRightDrawer,
+    DatesIntervalInput,
     SelectBox,
     MeasurementsChart,
     CountryFlag,
@@ -203,6 +158,8 @@ export default class ViewMeasurements extends Vue {
   private isMenuDateEndOpen: boolean = false
 
   private chartData: ChartComponentData = {
+    dateStart: 0,
+    dateEnd: 0,
     cities: [],
     measurements: [],
     pollutants: [],
@@ -248,10 +205,10 @@ export default class ViewMeasurements extends Vue {
     const pollutants = Array.isArray(q.pollutants) ? q.pollutants : [q.pollutants]
     const stations = Array.isArray(q.stations) ? q.stations : [q.stations]
     const date_start = q.date_start
-      ? _toQueryDate(q.date_start as string)
+      ? _toStringDate(q.date_start as string)
       : ''
     const date_end = q.date_end
-      ? _toQueryDate(q.date_end as string)
+      ? _toStringDate(q.date_end as string)
       : ''
 
     return {
@@ -262,6 +219,7 @@ export default class ViewMeasurements extends Vue {
       date_start,
       date_end,
       chart_cols: (Number(q.chart_cols) || 0) as ChartColumnSize,
+      running_average: q.running_average as RunningAverageEnum || undefined,
       display_mode: q.display_mode
         ? (String(q.display_mode) || '').toUpperCase() as ChartDisplayModes
         : undefined,
@@ -273,10 +231,10 @@ export default class ViewMeasurements extends Vue {
       ...queryForm,
     }
     const date_start = queryForm.date_start
-      ? _toQueryDate(queryForm.date_start)
+      ? _toStringDate(queryForm.date_start)
       : ''
     const date_end = queryForm.date_end
-      ? _toQueryDate(queryForm.date_end)
+      ? _toStringDate(queryForm.date_end)
       : ''
 
     if (date_start) query.date_start = date_start
@@ -406,18 +364,18 @@ export default class ViewMeasurements extends Vue {
       urlQuery.chart_cols = MeasurementsChart.getDefaultChartCols(this.$vuetify)
     }
 
-    if (urlQuery.date_start) {
+    if (urlQuery.date_start || urlQuery.date_start === '0') {
       queryForm.dateStart = _toNumberDate(urlQuery.date_start)
     } else {
       if (!queryForm.dateStart) queryForm.dateStart = _toNumberDate(today)
-      urlQuery.date_start = _toQueryDate(queryForm.dateStart)
+      urlQuery.date_start = _toStringDate(queryForm.dateStart)
     }
 
-    if (urlQuery.date_end) {
+    if (urlQuery.date_end || urlQuery.date_end === '0') {
       queryForm.dateEnd = _toNumberDate(urlQuery.date_end)
     } else {
       if (!queryForm.dateEnd) queryForm.dateEnd = _toNumberDate(today)
-      urlQuery.date_end = _toQueryDate(queryForm.dateEnd)
+      urlQuery.date_end = _toStringDate(queryForm.dateEnd)
     }
 
     pageProperties.chartColumnSize = urlQuery.chart_cols as ChartColumnSize
@@ -462,14 +420,25 @@ export default class ViewMeasurements extends Vue {
   }
 
   private async fetchChartData (): Promise<ChartComponentData> {
+    let dateStart = this.queryForm.dateStart
+
+    // shift the queried 'from' date by 1 year ago
+    // so the running average display well
+    if ((dateStart || 0) > 0) {
+      const _date = moment(dateStart)
+      dateStart = +_date.year(_date.year() - 1)
+    }
+
     const promise_measurementsByCities = this.fetchMeasurements({
       ...this.queryForm,
+      dateStart,
       process: MeasurementProcesses.city_day_mad,
       sortBy: 'asc(pollutant),asc(date)'
     })
 
     const promise_measurementsByStations = this.fetchMeasurements({
       ...this.queryForm,
+      dateStart,
       process: MeasurementProcesses.station_day_mad,
       sortBy: 'asc(pollutant),asc(date)'
     })
@@ -540,6 +509,8 @@ export default class ViewMeasurements extends Vue {
     const stations = _orderBy(Object.values(stationsMap), 'id')
 
     const chartData = {
+      dateStart: this.queryForm.dateStart || 0,
+      dateEnd: this.queryForm.dateEnd || 0,
       cities: this.queryForm.cities.slice(),
       measurements: measurements,
       pollutants: pollutants,
@@ -605,28 +576,11 @@ export default class ViewMeasurements extends Vue {
   }
 
   private onChangeQueryForm (fieldName?: keyof MeasurementsQuery) {
-    // let sources = this.urlQuery.sources
-
-    // if (fieldName === 'cities') {
-    //   const oldIds = [...this.urlQuery.cities]
-    //     .sort((a, b) => a.localeCompare(b))
-    //     .join(',')
-    //   const newIds = [...this.queryForm.cities]
-    //     .map(i => i.id)
-    //     .sort((a, b) => a.localeCompare(b))
-    //     .join(',')
-    //   if (oldIds !== newIds) {
-    //     sources = []
-    //     this.pageProperties.visibleSources = []
-    //   }
-    // }
-
     this.urlQuery = {
       ...this.urlQuery,
-      // sources,
       cities: this.queryForm.cities.map(i => i.id),
-      date_start: _toQueryDate(this.queryForm.dateStart),
-      date_end: this.queryForm.dateEnd ? _toQueryDate(this.queryForm.dateEnd) : undefined,
+      date_start: _toStringDate(this.queryForm.dateStart || 0),
+      date_end: _toStringDate(this.queryForm.dateEnd || 0),
     }
   }
 

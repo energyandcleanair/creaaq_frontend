@@ -10,5 +10,6 @@ module.exports = {
   },
   transformIgnorePatterns: [
     'node_modules/(?!vuetify/src/locale.*)'
-  ]
+  ],
+  collectCoverage: false,
 }

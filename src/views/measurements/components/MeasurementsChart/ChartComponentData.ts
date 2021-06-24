@@ -5,6 +5,8 @@ import Source from '@/entities/Source'
 import Station from '@/entities/Station'
 
 export default interface ChartComponentData {
+  dateStart: number
+  dateEnd: number
   cities: City[]
   measurements: Measurement[]
   pollutants: Pollutant[]
