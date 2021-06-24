@@ -48,10 +48,10 @@
         sm="6"
         md="2"
         offset-md="1"
-        offset-lg="1"
+        offset-lg="0"
       >
         <v-btn
-          class="ml-1"
+          class="ml-3"
           :disabled="isLoading"
           :loading="isLoading || isChartLoading"
           @click="onClickRefresh"

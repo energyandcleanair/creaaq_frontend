@@ -5,6 +5,7 @@
     'measurements-chart--dense': dense
   }"
   fluid
+  v-resize="onResize"
 >
 
   <template v-if="loading">
@@ -509,6 +510,18 @@ export default class MeasurementsChart extends Vue {
     return {
       data: _sortBy(traces, 'zIndex'),
       rangeBox,
+    }
+  }
+
+  private onResize () {
+    this.resize()
+  }
+
+  public resize () {
+    for (const refId in this.$refs) {
+      const $refList = this.$refs[refId] as any[]
+      const $ref: typeof Plotly = $refList?.[0]
+      $ref?.relayout({autosize: true})
     }
   }
 

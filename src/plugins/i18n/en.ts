@@ -104,7 +104,7 @@ export default {
     last_n_years: 'Last {n} years',
     all: 'All',
     custom: 'Custom',
-    from_x_to_y: 'from {x} to {y}',
+    from_x_to_y: '<i>from</i> <b>{x}</b> <i>to</i> <b>{y}</b>',
     from: 'From',
     to: 'To',
   }

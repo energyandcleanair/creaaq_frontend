@@ -22,7 +22,7 @@
           :loading="loading || !formattedValue"
           depressed
         >
-          {{ formattedValue }}
+          <span v-html="formattedValue" />
         </v-btn>
       </div>
     </template>
@@ -261,7 +261,6 @@ export default class DatesRangeInput extends Vue {
   }
 
   private onChangeSelectInput (val: DatesIntervals = DatesIntervals.custom) {
-
     if (val === DatesIntervals.custom) return
     const dates = this.determineDates(val)
     this.onChange(dates)
@@ -345,11 +344,19 @@ export default class DatesRangeInput extends Vue {
 </script>
 
 <style lang="scss">
+@import '~vuetify/src/styles/styles.sass';
+
 .dates-interval-input {
   .main-button {
     min-width: 100px !important;
     border: 0 !important;
     text-transform: none !important;
+    font-weight: 400;
+
+    i {
+      font-style: normal;
+      color: map-get($grey, darken-1);
+    }
   }
 }
 </style>
