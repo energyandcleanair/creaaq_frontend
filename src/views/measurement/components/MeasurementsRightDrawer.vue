@@ -187,7 +187,7 @@ import PagePropertiesForm from '../types/PagePropertiesForm'
 import RunningAverageEnum from '../types/RunningAverageEnum'
 import ChartColumnSize, { CHART_COLUMN_SIZES } from '../types/ChartColumnSize'
 import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
-import SelectBox from './SelectBox.vue'
+import SelectBox from '@/components/SelectBox.vue'
 
 interface StationsNCityGroup {
   city: City

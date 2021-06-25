@@ -4,7 +4,7 @@ import Pollutant from '@/entities/Pollutant'
 import Source from '@/entities/Source'
 import Station from '@/entities/Station'
 
-export default interface ChartComponentData {
+export default interface ChartParams {
   dateStart: number
   dateEnd: number
   cities: City[]

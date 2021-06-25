@@ -62,7 +62,15 @@ const routes: Array<RouteConfig> = [
   {
     path: '/measurements',
     name: 'measurements',
-    component: () => import(/* webpackChunkName: "measurements" */ '@/views/measurements/Measurements.vue'),
+    component: () => import(/* webpackChunkName: "measurements" */ '@/views/measurement/Measurements.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/violations',
+    name: 'violations',
+    component: () => import(/* webpackChunkName: "violations" */ '@/views/violation/Violations.vue'),
     meta: {
       requiresAuth: true
     }

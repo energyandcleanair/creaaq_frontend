@@ -3,29 +3,13 @@
   <v-container class="pt-10 pt-md-4 px-8" fluid>
     <v-row>
       <v-col cols="12" md="5" lg="6" xl="6">
-        <SelectBox
-          v-model="queryForm.cities"
+        <SelectBoxCities
+          v-model="urlQuery.cities"
           :label="$t('cities')"
           :items="cities"
           :disabled="isLoading"
-          :filter="citiesInputFilter"
-          item-text="name"
-          item-value="id"
-          return-object
-          hide-details
-          has-deselect-all
           @input="onChangeQueryForm('cities')"
-        >
-          <template v-slot:item-subtext="{item}">
-            <CountryFlag
-              :country="(item.country_id || '').toLowerCase()"
-              size="small"
-            />
-            <span class="grey--text text--base">
-              &nbsp;&nbsp;{{ item.country_name }}
-            </span>
-          </template>
-        </SelectBox>
+        />
       </v-col>
 
       <v-col cols="12" sm="6" md="4">
@@ -91,9 +75,7 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
-import CountryFlag from 'vue-country-flag'
 import { Component, Vue, Ref } from 'vue-property-decorator'
-import { mdiCalendar } from '@mdi/js'
 import { ModuleState } from '@/store'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
@@ -103,12 +85,12 @@ import Measurement, { MeasurementProcesses } from '@/entities/Measurement'
 import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
-import SelectBox from './components/SelectBox.vue'
-import DatesIntervalInput from './components/DatesIntervalInput/DatesIntervalInput.vue'
+import SelectBoxCities from '@/components/SelectBoxCities.vue'
+import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
-import MeasurementsQuery from './components/MeasurementsChart/MeasurementsQuery'
+import MeasurementsQuery from './types/MeasurementsQuery'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
-import ChartComponentData from './components/MeasurementsChart/ChartComponentData'
+import ChartParams from './components/MeasurementsChart/ChartParams'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 import PagePropertiesForm from './types/PagePropertiesForm'
 import ChartColumnSize from './types/ChartColumnSize'
@@ -123,6 +105,7 @@ const _toNumberDate = (d: string): number => d === '0'
   ? 0
   : moment(d, QUERY_DATE_FORMAT).valueOf()
 const today: string = _toStringDate(moment().format(QUERY_DATE_FORMAT))
+const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
 
 interface URLQuery {
   cities: City['id'][]
@@ -143,21 +126,17 @@ const DEFAUL_RUNNING_AVERAGE = RunningAverageEnum['1d']
   components: {
     MeasurementsRightDrawer,
     DatesIntervalInput,
-    SelectBox,
+    SelectBoxCities,
     MeasurementsChart,
-    CountryFlag,
   }
 })
 export default class ViewMeasurements extends Vue {
   @Ref('measurementsChart') $measurementsChart?: MeasurementsChart
   private cities: City[] = []
-  private mdiCalendar = mdiCalendar
   private isLoading: boolean = false
   private isChartLoading: boolean = false
-  private isMenuDateStartOpen: boolean = false
-  private isMenuDateEndOpen: boolean = false
 
-  private chartData: ChartComponentData = {
+  private chartData: ChartParams = {
     dateStart: 0,
     dateEnd: 0,
     cities: [],
@@ -318,15 +297,15 @@ export default class ViewMeasurements extends Vue {
     const cities = await this.fetchCities()
     this.cities = cities
 
-    if (!this.urlQuery.cities.length &&
-      this.queryFormCached?.cities.length) {
-
+    // set from cahce
+    if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
       this.urlQuery = {
         ...this.urlQuery,
         cities: this.queryFormCached?.cities || []
       }
     }
 
+    // filter only existing cities
     if (this.urlQuery.cities.length) {
       const idsMap = this.urlQuery.cities
         .reduce((memo: {[id: string]: number}, id: City['id']) => {
@@ -367,7 +346,7 @@ export default class ViewMeasurements extends Vue {
     if (urlQuery.date_start || urlQuery.date_start === '0') {
       queryForm.dateStart = _toNumberDate(urlQuery.date_start)
     } else {
-      if (!queryForm.dateStart) queryForm.dateStart = _toNumberDate(today)
+      if (!queryForm.dateStart) queryForm.dateStart = JAN_1__THREE_YEARS_AGO
       urlQuery.date_start = _toStringDate(queryForm.dateStart)
     }
 
@@ -419,7 +398,7 @@ export default class ViewMeasurements extends Vue {
     return _orderBy(cities || [], 'name')
   }
 
-  private async fetchChartData (): Promise<ChartComponentData> {
+  private async fetchChartData (): Promise<ChartParams> {
     let dateStart = this.queryForm.dateStart
 
     // shift the queried 'from' date by 1 year ago
@@ -564,7 +543,7 @@ export default class ViewMeasurements extends Vue {
   private async fetchMeasurements (query: MeasurementsQuery): Promise<Measurement[]> {
     const q: string = MeasurementsQuery.toQueryString(query)
 
-    const [err, measurements] = await to(MeasurementAPI.findAll(q))
+    const [err, items] = await to(MeasurementAPI.findAll(q))
     if (err) {
       this.$dialog.notify.error(
         err?.message || ''+this.$t('msg.something_went_wrong')
@@ -572,13 +551,12 @@ export default class ViewMeasurements extends Vue {
       console.error(err)
       return []
     }
-    return measurements || []
+    return items || []
   }
 
   private onChangeQueryForm (fieldName?: keyof MeasurementsQuery) {
     this.urlQuery = {
       ...this.urlQuery,
-      cities: this.queryForm.cities.map(i => i.id),
       date_start: _toStringDate(this.queryForm.dateStart || 0),
       date_end: _toStringDate(this.queryForm.dateEnd || 0),
     }

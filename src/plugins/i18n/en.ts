@@ -33,6 +33,8 @@ export default {
   others: 'Others',
   language: 'Language',
   measurements: 'Measurements',
+  violation: 'Violation',
+  violations: 'Violations',
   trajectories: 'Trajectories',
   station: 'Station',
   stations: 'Stations',
@@ -44,6 +46,8 @@ export default {
   sources: 'Sources',
   pollutant: 'Pollutant',
   pollutants: 'Pollutants',
+  organization: 'Organization',
+  organizations: 'Organizations',
   select_all: 'Select all',
   deselect_all: 'Deselect all',
   display_mode: 'Display mode',
@@ -56,6 +60,7 @@ export default {
   chart_size: 'Chart size',
   chart_columns: 'Chart columns',
   profile: 'Profile',
+  year: 'Year',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

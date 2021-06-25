@@ -13,6 +13,9 @@ interface UIParams {
   measurements: {
     isRightPanelOpen: boolean
   }
+  violations: {
+    isRightPanelOpen: boolean
+  }
 }
 
 interface QueryForm {
@@ -30,8 +33,11 @@ export class ModuleState {
   }
   public ui: UIParams = {
     measurements: {
-      isRightPanelOpen: true
-    }
+      isRightPanelOpen: true,
+    },
+    violations: {
+      isRightPanelOpen: true,
+    },
   }
   public currentUser: User|null = null
 }
