@@ -326,7 +326,12 @@ export default class MeasurementsChart extends Vue {
 
       // set one grid range to all charts in row
       const MARGIN = 3
-      const generalRangeX = [row.rangeBox.x0 - MARGIN, row.rangeBox.x1 + MARGIN]
+      const dateStart: number = this.chartData.dateStart || 0
+      const dateEnd: number = this.chartData.dateEnd || 0
+      const generalRangeX = [
+        dateStart || row.rangeBox.x0 - MARGIN,
+        dateEnd || row.rangeBox.x1 + MARGIN,
+      ]
       const generalRangeY = [row.rangeBox.y0 - MARGIN, row.rangeBox.y1 + MARGIN]
       for (const col of row.cols) {
         _set(col, 'layout.xaxis.range', generalRangeX.slice())
@@ -480,16 +485,8 @@ export default class MeasurementsChart extends Vue {
           && pointsGroup.length
         ) {
           const days = RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] || 1
+          trace.x = _stretchArray(trace.x, days)
           trace.y = _computeMovingAverage(trace.y, days)
-
-          // shift the trace to the center
-          const shiftX = Math.floor(days / 2)
-          if (shiftX * 2 < trace.x.length) {
-            trace.x = trace.x.slice(shiftX, -shiftX)
-          } else {
-            const midIndex = Math.floor(trace.x.length / 2)
-            trace.x = [trace.x[midIndex]]
-          }
         }
 
         // cut the dates over the frame [dateStart, dateEnd]
@@ -621,6 +618,23 @@ function _computeMovingAverage (arr: any[], period: number): number[] {
     movingAverages.push(_getAverage(arr.slice(x, x + period)))
   }
   return movingAverages
+}
+
+function _stretchArray (arr: any[], period: number): number[] {
+  const newArr = []
+
+  const first = arr[0]
+  const last = arr[arr.length - 1]
+  const newLength = arr.length - period
+  const average = (last - first) / newLength
+  newArr.push(first)
+
+  for (let i = 1; i < newLength; i++) {
+    newArr.push(first + (i * average))
+  }
+
+  newArr.push(last)
+  return newArr
 }
 
 function _genRangeBox (items: any): RangeBox {
