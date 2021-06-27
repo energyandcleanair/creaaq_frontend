@@ -1,6 +1,10 @@
 export default interface ChartCol {
   id: string
   title: string
-  data: any[]
+  date: string
+  events: {
+    // [date: string]: number
+    [date: string]: any
+  }
   isEmpty?: boolean
 }

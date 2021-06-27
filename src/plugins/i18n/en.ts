@@ -46,6 +46,8 @@ export default {
   sources: 'Sources',
   pollutant: 'Pollutant',
   pollutants: 'Pollutants',
+  target: 'Target',
+  targets: 'Targets',
   organization: 'Organization',
   organizations: 'Organizations',
   select_all: 'Select all',

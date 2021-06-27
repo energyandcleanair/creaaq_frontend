@@ -2,26 +2,24 @@
 <div class="view-violations fill-height" style="overflow: auto;">
   <v-container class="pt-10 pt-md-4 px-8" fluid>
     <v-row>
-      <v-col cols="12" md="5" lg="6" xl="6">
+      <v-col cols="12" sm="8" md="6">
         <SelectBoxCities
-          v-model="urlQuery.cities"
+          :value="urlQuery.cities"
           :label="$t('cities')"
           :items="chartData.cities"
           :disabled="isLoading"
-          @input="onChangeQuery(urlQuery)"
+          @input="onChangeQuery({...urlQuery, cities: $event})"
         />
       </v-col>
 
-      <!-- <v-col
-        class="d-flex justify-end justify-md-start align-center"
+      <v-col
+        class="d-flex justify-end align-center"
         cols="12"
-        sm="6"
-        md="2"
-        offset-md="1"
-        offset-lg="0"
+        sm="4"
+        md="6"
       >
         <v-btn
-          class="ml-3"
+          class="ml-2"
           :disabled="isLoading"
           :loading="isLoading || isChartLoading"
           @click="onClickRefresh"
@@ -30,7 +28,7 @@
         >
           {{ $t('refresh') }}
         </v-btn>
-      </v-col> -->
+      </v-col>
     </v-row>
   </v-container>
 
@@ -65,16 +63,15 @@ import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
 import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
-// import TargetAPI from '@/api/TargetAPI'
+import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import { _toURLStringDate, _toNumberDate, _toQueryString } from '@/helpers'
+import { _toURLStringDate, _toNumberDate, _toQueryString, URL_DATE_FORMAT } from '@/helpers'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
 import URLQuery from './types/URLQuery'
 
-// const today: string = _toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1: number = +moment(0).year(moment().year())
 
 @Component({
@@ -191,22 +188,13 @@ export default class ViewViolations extends Vue {
   }
 
   private setQueryFormDefaults (): void {
-    // const pageProperties = {...this.pageProperties}
-    // const chartData = {...this.chartData}
     const urlQuery = {...this.urlQuery}
-    // const queryForm = {...this.queryForm}
-
-    // if (!urlQuery.chart_cols) {
-    //   urlQuery.chart_cols = ViolationsChart.getDefaultChartCols(this.$vuetify)
-    // }
 
     if (!urlQuery.date_start) {
       urlQuery.date_start = _toURLStringDate(JAN_1)
     }
 
     Object.assign(this.urlQuery, urlQuery)
-    // Object.assign(this.queryForm, queryForm)
-    // Object.assign(this.chartData, chartData)
   }
 
   private async fetchCities (): Promise<City[]> {
@@ -222,14 +210,23 @@ export default class ViewViolations extends Vue {
   }
 
   private async fetchChartData (): Promise<ChartData> {
+    if (!this.urlQuery?.cities.length) {
+      return {
+        cities: this.chartData.cities,
+        violations: [],
+        pollutants: [],
+        organizations: [],
+        targets: [],
+      }
+    }
+
     const promise = this.fetchViolations({
       city: this.urlQuery.cities,
       date_from: this.urlQuery.date_start,
-      sort_by: 'asc(pollutant),asc(date)'
+      sort_by: 'asc(date)'
     })
 
     let [err, violations = []] = await to<Violation[]>(promise)
-    console.log('violations: ', violations)
 
     if (err) {
       this.$dialog.notify.error(
@@ -238,19 +235,31 @@ export default class ViewViolations extends Vue {
       throw err
     }
 
-    // const targetsIds = Object.keys(violations
-    //   .reduce((memo: {[targetId: string]: number}, item: Violation) => {
-    //     if (!item.target_id) return memo
-    //     if (!memo[item.target_id]) memo[item.target_id] = 1
-    //     return memo
-    //   }, {}))
+    const targetsIds = Object.keys(violations
+      .reduce((memo: {[targetId: string]: number}, item: Violation) => {
+        if (!item.target_id) return memo
+        if (!memo[item.target_id]) memo[item.target_id] = 1
+        return memo
+      }, {}))
 
-    const pollutantsMap = violations
-      .reduce((memo: {[pollutantId: string]: Pollutant}, item: Violation) => {
+    const promiseTargets = this.fetchTargets(targetsIds)
+
+    let targets: Target[]
+    [err, targets = []] = await to<Target[]>(promiseTargets)
+
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || ''+this.$t('msg.something_went_wrong')
+      )
+      throw err
+    }
+
+    const pollutantsMap = targets
+      .reduce((memo: {[pollutantId: string]: Pollutant}, item: Target) => {
         if (item.pollutant && !memo[item.pollutant]) {
           const pollutant = POLLUTANTS.find(i => i.id === item.pollutant)
           if (pollutant) {
-            memo[item.pollutant] = {...pollutant, unit: item.unit}
+            memo[item.pollutant] = {...pollutant, unit: item.target_unit}
           } else {
             console.warn(`Unknown pollutant: ${item.pollutant}`)
           }
@@ -259,8 +268,8 @@ export default class ViewViolations extends Vue {
       }, {})
     const pollutants = _orderBy(Object.values(pollutantsMap), 'id')
 
-    const organizationsMap = violations
-      .reduce((memo: {[orgId: string]: Organization}, item: Violation) => {
+    const organizationsMap = targets
+      .reduce((memo: {[orgId: string]: Organization}, item: Target) => {
         if (!item.organization) return memo
         if (memo[item.organization]) {
           memo[item.organization]._violationsNumber = 1 + (memo[item.organization]?._violationsNumber || 0)
@@ -281,7 +290,7 @@ export default class ViewViolations extends Vue {
       violations,
       pollutants,
       organizations,
-      targets: [],
+      targets,
     }
     return chartData
   }
@@ -317,7 +326,13 @@ export default class ViewViolations extends Vue {
     sort_by?: string
   }): Promise<Violation[]> {
 
-    const [err, items] = await to(ViolationAPI.findAll(_toQueryString(query)))
+    const $startDate = moment(query.date_from)
+    const q = {
+      ...query,
+      date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT)
+    }
+
+    const [err, items] = await to(ViolationAPI.findAll(_toQueryString(q)))
     if (err) {
       this.$dialog.notify.error(
         err?.message || ''+this.$t('msg.something_went_wrong')
@@ -328,61 +343,31 @@ export default class ViewViolations extends Vue {
     return items || []
   }
 
-  // private async fetchTargets (ids: Target['id'][]): Promise<Target[]> {
-  //   const [err, items] = await to(TargetAPI.findAll({id: ids}))
-  //   if (err) {
-  //     this.$dialog.notify.error(
-  //       err?.message || ''+this.$t('msg.something_went_wrong')
-  //     )
-  //     console.error(err)
-  //     return []
-  //   }
-  //   return items || []
-  // }
-
-  private onChangeQuery (query: URLQuery) {
-    this.urlQuery = query
+  private async fetchTargets (ids: Target['id'][]): Promise<Target[]> {
+    const [err, items] = await to(TargetAPI.findAll({id: ids.join(',')}))
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || ''+this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
   }
 
-  // private onChangeQueryForm (queryForm: ViolationsQueryForm) {
-  //   this.urlQuery = {
-  //     ...this.urlQuery,
-  //     cities: queryForm.cities.map(i => i.id),
-  //     date_start: _toURLStringDate(queryForm.dateStart || 0),
-  //   }
-  // }
+  private onChangeQuery (query: URLQuery) {
+    const needRefresh = query.date_start !== this.urlQuery.date_start ||
+      query.cities?.join(',') !== this.urlQuery.cities?.join(',')
 
-  // private onChangeChartData (data: ChartData) {
-  //   // this.chartData = {...data}
-  //   this.urlQuery = {
-  //     ...this.urlQuery,
-  //     date_start: _toURLStringDate(data.dateStart),
-  //     // pollutants: data.visiblePollutants,
-  //     // targets: data.visibleTargets,
-  //     // organizations: data.visibleOrganizations,
-  //   }
-  // }
+    this.urlQuery = query
 
-  // private async onClickRefresh () {
-  //   this.$loader.on()
+    if (needRefresh) this.onClickRefresh()
+  }
 
-  //   const oldIds = [...this.urlQuery.cities]
-  //     .sort((a, b) => a.localeCompare(b))
-  //     .join(',')
-  //   const newIds = [...this.queryForm.cities]
-  //     .map(i => i.id)
-  //     .sort((a, b) => a.localeCompare(b))
-  //     .join(',')
-
-  //   if (oldIds !== newIds) {
-  //     this.onChangePageProperties({
-  //       ...this.pageProperties,
-  //       visibleSources: [],
-  //     })
-  //   }
-
-  //   await this.refreshChartData()
-  //   this.$loader.off()
-  // }
+  private async onClickRefresh () {
+    this.$loader.on()
+    await this.refreshChartData()
+    this.$loader.off()
+  }
 }
 </script>

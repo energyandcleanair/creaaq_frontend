@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Vuetify from 'vuetify/lib/framework'
 import colors from 'vuetify/lib/util/colors'
+import theme from '@/theme'
 
 Vue.use(Vuetify)
 
@@ -13,15 +14,15 @@ export default new Vuetify({
       light: {
         primary: {
           ...colors.blue,
-          base: '#35416C',
+          base: theme.colors.darkBlue.base,
         },
         secondary: {
           ...colors.purple,
-          base: colors.purple.lighten1
+          base: colors.purple.lighten1,
         },
         info: {
           ...colors.teal,
-          base: '#27a59c'
+          base: theme.colors.darkBlue.base,
         },
         error: {
           ...colors.pink,
@@ -31,7 +32,7 @@ export default new Vuetify({
         },
         blue: {
           ...colors.blue,
-          base: '#8cc9D0'
+          base: theme.colors.blue.base,
         },
       }
     }

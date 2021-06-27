@@ -59,6 +59,29 @@
         />
       </v-col>
     </v-row>
+
+    <div class="d-flex flex-row align-center my-6">
+      <v-divider class="d-inline-flex grey lighten-2"/>
+      <span class="d-inline-flex px-2 black--text">{{ $t('or') }}</span>
+      <v-divider class="d-inline-flex grey lighten-2"/>
+    </div>
+
+    <v-row no-gutters>
+      <v-col class="subtitle-2" cols="12">{{ $t('targets') }}</v-col>
+
+      <v-col v-if="targets.length" class="pl-1" cols="12">
+        <v-checkbox
+          v-for="item of targets"
+          :input-value="queryParams.targets"
+          :key="item.id"
+          :value="item.id"
+          :label="item.short_name"
+          color="primary"
+          hide-details
+          @change="onChangeForm('targets', $event)"
+        />
+      </v-col>
+    </v-row>
   </v-form>
 </PageDrawer>
 </template>
@@ -71,6 +94,7 @@ import { _toURLStringDate, _toNumberDate } from '@/helpers'
 import PageDrawer from '@/components/PageDrawer.vue'
 import Pollutant from '@/entities/Pollutant'
 import Organization from '@/entities/Organization'
+import Target from '@/entities/Target'
 import URLQuery from '../types/URLQuery'
 import ChartData from './/ViolationsChart/ChartData'
 
@@ -112,6 +136,10 @@ export default class ViolationsRightDrawer extends Vue {
 
   private get organizations (): Organization[] {
     return this.chartData.organizations || []
+  }
+
+  private get targets (): Target[] {
+    return this.chartData.targets || []
   }
 
   @Emit('update:open')

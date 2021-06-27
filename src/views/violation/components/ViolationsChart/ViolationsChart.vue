@@ -16,11 +16,11 @@
     </v-row>
   </template>
 
-  <!-- <template v-else-if="!violations.length">
+  <template v-else-if="!violations.length">
     <v-alert class="text-center ma-12" color="grey lighten-3">
       {{ $t('msg.no_data') }}
     </v-alert>
-  </template> -->
+  </template>
 
   <template v-else>
     <v-row
@@ -30,7 +30,7 @@
     >
 
       <v-list-item
-        class="chart-row__title grey lighten-4 primary--text"
+        class="chart-row__title grey lighten-4 primary--text mb-6"
         two-line
       >
         <v-list-item-content>
@@ -46,35 +46,23 @@
         :key="col.id"
         :cols="vCols"
       >
-        <!-- [] -->
+        <v-list-item class="chart-col__title">
+          <v-list-item-content class="text-subtitle-2 font-weight-bold">
+            <v-list-item-title v-text="col.title"/>
+          </v-list-item-content>
+        </v-list-item>
 
         <v-date-picker
-          :value="dates"
+          class="chart-col__date-picker"
+          active-picker="DATE"
+          :value="col.date"
+          :events="col.events"
           :show-current="false"
+          :show-adjacent-months="false"
+          first-day-of-week="1"
+          no-title
           readonly
-        ></v-date-picker>
-        <!-- <v-tooltip bottom>
-          <template v-slot:activator="{ on, attrs }">
-            <v-list-item class="chart-col__title blue" v-bind="attrs" v-on="on">
-              <v-list-item-content>
-                <v-list-item-title v-text="col.title"/>
-              </v-list-item-content>
-            </v-list-item>
-          </template>
-          <span>{{ col.title }}</span>
-        </v-tooltip> -->
-
-        <!-- <Plotly
-          class-name="ooops"
-          :ref="`chart:${col.id}`"
-          :id="`chart:${col.id}`"
-          :data="col.data"
-          :layout="col.layout"
-          :config="{responsive: true}"
-          :displaylogo="false"
-          :display-mode-bar="col.isEmpty ? false : 'hover'"
-          @relayout="onRelayout(row.id, col.id, $refs[`chart:${col.id}`][0], $event)"
-        /> -->
+        />
       </v-col>
     </v-row>
   </template>
@@ -82,6 +70,7 @@
 </template>
 
 <script lang="ts">
+import chroma from 'chroma-js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _sortBy from 'lodash.sortby'
@@ -89,6 +78,8 @@ import _groupBy from 'lodash.groupby'
 import moment from 'moment'
 import { Component, Vue, Prop } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
+import { URL_DATE_FORMAT } from '@/helpers'
+import theme from '@/theme'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
 import Organization from '@/entities/Organization'
@@ -98,9 +89,20 @@ import URLQuery from '../../types/URLQuery'
 import ChartData from './ChartData'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
-import { URL_DATE_FORMAT } from '@/helpers'
 
 const COL_ID_DIVIDER = '--'
+
+interface ViolationsCalendar {
+  [year: string]: {
+    [month: string]: {
+      [date: string]: number // number of violations
+    }
+  }
+}
+
+interface MapFilter {
+  [id: string]: number
+}
 
 @Component({
   components: {
@@ -139,104 +141,91 @@ export default class ViolationsChart extends Vue {
   }
 
   private get vCols (): number /* Vuetify <v-col> size: [1, 12] */ {
-    return 2
+    const b = this.$vuetify.breakpoint
+    if (b.width >= 1620) return 2
+    if (b.width >= 1300) return 3
+    if (b.width >= 1100) return 4
+    if (b.width >= 600) return 6
+    return 12
   }
 
   private get chartRows (): ChartRow[] {
     if (this.loading) return []
     if (!this.queryParams.cities?.length) return []
 
+    const filterCities: MapFilter = this.queryParams.cities
+      .reduce((memo: MapFilter, id: City['id']) => (memo[id] = 1) && memo, {})
+
+    let filterPollutants: MapFilter|null = this.queryParams.pollutants
+      .reduce((memo: MapFilter, id: Pollutant['id']) => (memo[id] = 1) && memo, {})
+    if (!Object.keys(filterPollutants).length) filterPollutants = null
+
+    let filterOrganizations: MapFilter|null = this.queryParams.organizations
+      .reduce((memo: MapFilter, id: Organization['id']) => (memo[id] = 1) && memo, {})
+    if (!Object.keys(filterOrganizations).length) filterOrganizations = null
+
+    let filterTargets: MapFilter|null = this.queryParams.targets
+      .reduce((memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo, {})
+    if (!Object.keys(filterTargets).length) filterTargets = null
+
+    const citiesCalendars: {[cityId: string]: ViolationsCalendar} = {}
+
+    // gen violations calendar for each city
+    for (const violation of this.violations) {
+      const cityId = violation.location_id
+
+      if (!_valuePassesFilter(cityId, filterCities) ||
+        !_valuePassesFilter(violation.pollutant, filterPollutants) ||
+        !_valuePassesFilter(violation.organization, filterOrganizations) ||
+        !_valuePassesFilter(violation.target_id, filterTargets)) {
+        continue
+      }
+
+      if (!citiesCalendars[cityId]) citiesCalendars[cityId] = {}
+      const violationsCalendar: ViolationsCalendar = citiesCalendars[cityId]
+
+      const $date = moment(violation.date, URL_DATE_FORMAT)
+      const calendarProp = $date.format(`YYYY.MM.DD`)
+      const violations = _get(violationsCalendar, calendarProp) as any as number || 0
+      _set(violationsCalendar, calendarProp, violations + 1)
+    }
+
     const rows: ChartRow[] = []
-    const citiesMap = this.queryParams.cities
-      .reduce((memo: {[id: string]: number}, id: City['id']) => {
-        memo[id] = 1
-        return memo
-      }, {})
 
-    let pollutantsFilter: {[k: string]: number}|null = this.queryParams.pollutants
-      .reduce((memo: {[id: string]: number}, id: Pollutant['id']) => {
-        memo[id] = 1
-        return memo
-      }, {})
-    if (!Object.keys(pollutantsFilter).length) pollutantsFilter = null
-
-    let organizationsFilter: {[k: string]: number}|null = this.queryParams.organizations
-      .reduce((memo: {[id: string]: number}, id: Organization['id']) => {
-        memo[id] = 1
-        return memo
-      }, {})
-    if (!Object.keys(organizationsFilter).length) organizationsFilter = null
-
-    let targetsFilter: {[k: string]: number}|null = this.queryParams.targets
-      .reduce((memo: {[id: string]: number}, id: Target['id']) => {
-        memo[id] = 1
-        return memo
-      }, {})
-    if (!Object.keys(targetsFilter).length) targetsFilter = null
-
-
-    for (const city of this.cities) {
-      if (!citiesMap[city.id]) continue
-
+    // gen chart rows with the calendars
+    for (const cityId of this.queryParams.cities) {
+      const city: City = this.cities.find(itm => itm.id === cityId) as City
       const row: ChartRow = {
         id: city.id,
         cityId: city.id,
         title: city.name,
         cols: [],
       }
+      const violationsCalendar: ViolationsCalendar = citiesCalendars[city.id]
 
-      // const months: {date: string, events: any[]}[] = Array(12)
-      //   .fill(0)
-      //   .map((_, i) => ({
-      //     date: moment
-      //   }))
+      for (const year in violationsCalendar) {
+        for (let month = 0; month <= 11; month++) {
+          const monthStr = month < 10 ? `0${month}` : String(month)
 
-      const violationsCalendar: {[date: string]: number} = {}
+          const $firstDate = moment(0).year(+year).month(month).date(1)
+          const col: ChartCol = {
+            id: `${row.id}${COL_ID_DIVIDER}${year}${COL_ID_DIVIDER}${monthStr}`,
+            title: $firstDate.format('MMMM YYYY'),
+            date: $firstDate.format('YYYY-MM-DD'),
+            events: {},
+          }
 
-      for (const violation of this.violations) {
-        if (violation.location_id !== city.id) continue
+          const y_m = $firstDate.format('YYYY-MM')
+          for (let date = 1; date <= $firstDate.daysInMonth(); date++) {
+            const dateStr = date < 10 ? `0${date}` : String(date)
+            const key = `${y_m}-${dateStr}`
+            const val = _get(violationsCalendar, key.replace(/-/g, '.'), 0) as any as number
+            col.events[key] = _getViolationsColor(val)
+          }
 
-        // const pollutantId = violation.pollutant
-        // const organizationId = violation.organization
-        // const targetId = violation.target_id
-
-        // const passFilter_pollutant = !pollutantsFilter ||
-        //   (pollutantId && pollutantsFilter[pollutantId])
-
-        // const passFilter_organization = !organizationsFilter ||
-        //   (organizationId && organizationsFilter[organizationId])
-
-        // const passFilter_target = !targetsFilter ||
-        //   (targetId && targetsFilter[targetId])
-
-        // if (!passFilter_pollutant || !passFilter_organization || !passFilter_target) {
-        //   continue
-        // }
-
-        const $date = moment(violation.date, URL_DATE_FORMAT)
-        // const month = $date.month()
-        const dateString = $date.format(URL_DATE_FORMAT)
-
-        if (!violationsCalendar[dateString]) violationsCalendar[dateString] = 0
-        violationsCalendar[dateString]++
+          row.cols.push(col)
+        }
       }
-      console.log('violationsCalendar: ', violationsCalendar)
-
-
-      // let month = -1
-      // while (++month <= 11) {
-      //   console.log('month: ', month)
-
-      //   const col: ChartCol = {
-      //     id: `${row.id}${COL_ID_DIVIDER}${month}`,
-      //     title: city.name,
-      //     data,
-      //     isEmpty,
-      //     rangeBox: chartData.rangeBox,
-      //   }
-
-        // row.cols.push(col)
-      // }
 
       rows.push(row)
     }
@@ -244,9 +233,34 @@ export default class ViolationsChart extends Vue {
     return rows
   }
 }
+
+const VIOLATIONS_HIGHEST_AMOUNT = 10
+const VIOLATIONS_PALETTE_SIZE = 7
+const VIOLATIONS_SCALE = chroma.scale([
+  theme.colors.orange.base,
+  theme.colors.darkRed.base,
+])
+const PALETTE_COLORS = VIOLATIONS_SCALE.mode('lch').colors(VIOLATIONS_PALETTE_SIZE)
+function _getViolationsColor (num: number): string {
+  if (num === 0) return theme.colors.lightGray.base
+  const percentage = num / (VIOLATIONS_HIGHEST_AMOUNT / 100)
+  const scaleVal = Math.min(1, percentage / 100)
+  return PALETTE_COLORS[Math.round(VIOLATIONS_PALETTE_SIZE * scaleVal)]
+}
+
+function _valuePassesFilter (
+  key: any,
+  filterMap: MapFilter|null,
+): boolean {
+  return !filterMap || (key && filterMap[key])
+}
 </script>
 
 <style lang="scss">
+
+$violations-chart__picker--width: 170px;
+$violations-chart__picker--min-height: 170px;
+
 .violations-chart {
   padding: 0 0.5rem 0 0;
 
@@ -275,61 +289,110 @@ export default class ViolationsChart extends Vue {
     .chart-col {
       padding: 0.5rem 0.3rem;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
 
       &__title {
         min-height: auto;
-        text-align: center;
+        width: $violations-chart__picker--width;
+        text-align: left;
         border-radius: 3px;
-        padding: 0 0.3rem;
+        padding: 0 $violations-chart__picker--width / 20;
 
         .v-list-item__content {
           padding: 0;
         }
 
         .v-list-item__title {
-          font-size: 1em;
+          font-size: 1.15em;
           line-height: 1.4em;
         }
       }
-    }
 
-    // &--cols-1,
-    // &--cols-2 {
-    //   .chart-col {
-    //     .chart-col__title {
-    //       .v-list-item__title {
-    //         font-size: 0.8em;
-    //       }
-    //     }
-    //   }
-    // }
+      &__date-picker {
+        display: flex;
+
+        .v-picker__body {
+          width: $violations-chart__picker--width !important;
+        }
+
+        .v-date-picker-header {
+          display: none;
+        }
+
+        .v-date-picker-table {
+          min-height: $violations-chart__picker--min-height;
+          height: auto;
+          padding: 0;
+
+          > table {
+            tr {
+              font-size: 0.8rem;
+            }
+
+            .v-btn {
+              position: relative;
+              border-radius: 3px;
+              width: 21px;
+              height: 21px;
+              margin: 0 !important;
+              display: flex;
+
+              // deactivate the active button
+              &.v-btn--active {
+                background: none !important;
+                color: rgb(0 0 0 / 87%) !important;
+
+                &:before {
+                  opacity: 0;
+                }
+
+                &:hover {
+                  &:before {
+                    opacity: 0.08;
+                  }
+                }
+              }
+
+              &:hover {
+                .v-date-picker-table__events {
+                  opacity: 0.95;
+                }
+              }
+
+              .v-btn__content {
+                z-index: 5;
+                font-size: 0.9em;
+              }
+
+              .v-date-picker-table__events {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 0;
+                z-index: 1;
+                border-radius: inherit;
+
+                div {
+                  width: 100%;
+                  height: 100%;
+                  margin: 0;
+                  border-radius: inherit;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
     &--hidden {
       display: none;
     }
   }
-
-  // &--dense {
-  //   display: flex !important;
-  //   flex-wrap: wrap !important;
-  //   flex: 1 1 auto !important;
-  //   margin: -12px !important;
-
-  //   .chart-row {
-  //     flex-basis: 0 !important;
-  //     flex-grow: 1 !important;
-  //     padding: 0.5rem 0.3rem;
-
-  //     .chart-col {
-  //       flex: 0 0 100% !important;
-  //       max-width: 100% !important;
-  //       padding: 0;
-
-  //       .chart-col__title {
-  //         display: none;
-  //       }
-  //     }
-  //   }
-  // }
 }
 </style>
