@@ -148,7 +148,7 @@ export default class ViewMeasurements extends Vue {
 
   private queryForm: MeasurementsQuery = {
     cities: [],
-    dateStart: _toNumberDate(today),
+    dateStart: JAN_1__THREE_YEARS_AGO,
     dateEnd: _toNumberDate(today),
   }
 
