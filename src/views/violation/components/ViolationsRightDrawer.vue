@@ -96,7 +96,7 @@ import Pollutant from '@/entities/Pollutant'
 import Organization from '@/entities/Organization'
 import Target from '@/entities/Target'
 import URLQuery from '../types/URLQuery'
-import ChartData from './/ViolationsChart/ChartData'
+import ChartData from './ViolationsChart/ChartData'
 
 @Component({
   components: {

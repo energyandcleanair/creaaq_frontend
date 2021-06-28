@@ -4,25 +4,25 @@
     <v-row>
       <v-col cols="12" md="5" lg="6" xl="6">
         <SelectBoxCities
-          v-model="urlQuery.cities"
+          :value="urlQuery.cities"
           :label="$t('cities')"
-          :items="cities"
+          :items="chartData.cities"
           :disabled="isLoading"
-          @input="onChangeQueryForm('cities')"
+          @input="onChangeQuery({...urlQuery, cities: $event})"
         />
       </v-col>
 
       <v-col cols="12" sm="6" md="4">
         <DatesIntervalInput
-          :dateStart="queryForm.dateStart"
-          :dateEnd="queryForm.dateEnd"
+          :dateStart="_toNumberDate(urlQuery.date_start)"
+          :dateEnd="_toNumberDate(urlQuery.date_end)"
           format="YYYY-MM-DD"
           :disabled="isLoading"
-          @input="($e) => {
-            queryForm.dateStart = $e.dateStart;
-            queryForm.dateEnd = $e.dateEnd;
-            onChangeQueryForm()
-          }"
+          @input="onChangeQuery({
+            ...urlQuery,
+            date_start: _toURLStringDate($event.dateStart),
+            date_end: _toURLStringDate($event.dateEnd),
+          })"
         />
       </v-col>
 
@@ -50,13 +50,14 @@
 
   <v-container class="mt-4 px-8" fluid>
     <MeasurementsRightDrawer
-      :formData="pageProperties"
+      :queryParams="urlQuery"
+      :chartData="chartData"
       :open.sync="isRightPanelOpen"
-      @update:formData="onChangePageProperties"
+      @update:queryParams="onChangeQuery"
     />
 
     <MeasurementsChart
-      ref="measurementsChart"
+      :queryParams="urlQuery"
       :chartData="chartData"
       :cols.sync="chartCols"
       :displayMode="displayMode"
@@ -75,7 +76,8 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
-import { Component, Vue, Ref } from 'vue-property-decorator'
+import { Component, Vue } from 'vue-property-decorator'
+import { URL_DATE_FORMAT, _toURLStringDate, _toNumberDate, _toQueryString } from '@/helpers'
 import { ModuleState } from '@/store'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
@@ -88,39 +90,15 @@ import MeasurementAPI from '@/api/MeasurementAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
-import MeasurementsQuery from './types/MeasurementsQuery'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
-import ChartParams from './components/MeasurementsChart/ChartParams'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
-import PagePropertiesForm from './types/PagePropertiesForm'
 import ChartColumnSize from './types/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
+import URLQuery from './types/URLQuery'
+import ChartData from './components/MeasurementsChart/ChartData'
 
-const QUERY_DATE_FORMAT = 'YYYY-MM-DD'
-type QueryDateString = typeof QUERY_DATE_FORMAT|string
-const _toStringDate = (d: string|number): string => typeof d === 'string'
-  ? d === '0' ? '0' : moment(d, QUERY_DATE_FORMAT).format(QUERY_DATE_FORMAT)
-  : d === 0 ? '0' : moment(+d).format(QUERY_DATE_FORMAT)
-const _toNumberDate = (d: string): number => d === '0'
-  ? 0
-  : moment(d, QUERY_DATE_FORMAT).valueOf()
-const today: string = _toStringDate(moment().format(QUERY_DATE_FORMAT))
+const today: string = _toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
-
-interface URLQuery {
-  cities: City['id'][]
-  sources: Source['id'][]
-  pollutants: Pollutant['id'][]
-  stations?: Station['id'][]
-  date_start?: QueryDateString
-  date_end?: QueryDateString
-  display_mode?: ChartDisplayModes
-  running_average?: RunningAverageEnum
-  chart_cols?: ChartColumnSize|0
-}
-
-const DEFAUL_DISPLAY_MODE = ChartDisplayModes.NORMAL
-const DEFAUL_RUNNING_AVERAGE = RunningAverageEnum['1d']
 
 @Component({
   components: {
@@ -131,49 +109,15 @@ const DEFAUL_RUNNING_AVERAGE = RunningAverageEnum['1d']
   }
 })
 export default class ViewMeasurements extends Vue {
-  @Ref('measurementsChart') $measurementsChart?: MeasurementsChart
-  private cities: City[] = []
   private isLoading: boolean = false
   private isChartLoading: boolean = false
 
-  private chartData: ChartParams = {
-    dateStart: 0,
-    dateEnd: 0,
+  private chartData: ChartData = {
     cities: [],
     measurements: [],
     pollutants: [],
     sources: [],
     stations: [],
-  }
-
-  private queryForm: MeasurementsQuery = {
-    cities: [],
-    dateStart: JAN_1__THREE_YEARS_AGO,
-    dateEnd: _toNumberDate(today),
-  }
-
-  private pageProperties: PagePropertiesForm = {
-    displayMode: DEFAUL_DISPLAY_MODE,
-    runningAverage: DEFAUL_RUNNING_AVERAGE,
-    chartColumnSize: 12,
-    cities: [],
-    sources: [],
-    visibleSources: [],
-    pollutants: [],
-    visiblePollutants: [],
-    stations: [],
-    visibleStations: [],
-  }
-
-  private get DISPLAY_MODES (): any {
-    return Object.values(ChartDisplayModes)
-      .reduce((memo: any[], val) => {
-        memo.push({
-          label: this.$t(val.toLowerCase() || '').toString(),
-          value: val,
-        })
-        return memo
-      }, [])
   }
 
   private get urlQuery (): URLQuery {
@@ -184,10 +128,10 @@ export default class ViewMeasurements extends Vue {
     const pollutants = Array.isArray(q.pollutants) ? q.pollutants : [q.pollutants]
     const stations = Array.isArray(q.stations) ? q.stations : [q.stations]
     const date_start = q.date_start
-      ? _toStringDate(q.date_start as string)
+      ? _toURLStringDate(q.date_start as string)
       : ''
     const date_end = q.date_end
-      ? _toStringDate(q.date_end as string)
+      ? _toURLStringDate(q.date_end as string)
       : ''
 
     return {
@@ -210,10 +154,10 @@ export default class ViewMeasurements extends Vue {
       ...queryForm,
     }
     const date_start = queryForm.date_start
-      ? _toStringDate(queryForm.date_start)
+      ? _toURLStringDate(queryForm.date_start)
       : ''
     const date_end = queryForm.date_end
-      ? _toStringDate(queryForm.date_end)
+      ? _toURLStringDate(queryForm.date_end)
       : ''
 
     if (date_start) query.date_start = date_start
@@ -232,31 +176,30 @@ export default class ViewMeasurements extends Vue {
   }
 
   private get filterSources (): Source['id'][] {
-    return this.pageProperties.visibleSources || []
+    return this.urlQuery.sources || []
   }
 
   private get filterPollutants (): Pollutant['id'][] {
-    return this.pageProperties.visiblePollutants || []
+    return this.urlQuery.pollutants || []
   }
 
   private get filterStations (): Station['id'][] {
-    return this.pageProperties.visibleStations || []
+    return this.urlQuery.stations || []
   }
 
   private get displayMode (): ChartDisplayModes|null {
-    return this.pageProperties.displayMode || null
+    return this.urlQuery.display_mode || null
   }
 
   private get runningAverage (): RunningAverageEnum|null {
-    return this.pageProperties.runningAverage || null
+    return this.urlQuery.running_average || null
   }
 
   private get chartCols (): ChartColumnSize|0 {
-    return this.pageProperties.chartColumnSize || 0
+    return this.urlQuery.chart_cols || 0
   }
 
   private set chartCols (cols: ChartColumnSize|0) {
-    this.pageProperties.chartColumnSize = cols
     this.urlQuery = {
       ...this.urlQuery,
       chart_cols: cols
@@ -274,14 +217,6 @@ export default class ViewMeasurements extends Vue {
     return this.$store.getters.GET('queryForm') || null
   }
 
-  private get dateStartFormat (): string {
-    return moment(this.queryForm.dateStart).format('YYYY-MM-DD')
-  }
-
-  private get dateEndFormat (): string {
-    return moment(this.queryForm.dateEnd).format('YYYY-MM-DD')
-  }
-
   private async beforeMount () {
     this.isLoading = true
     await this.fetch()
@@ -295,7 +230,7 @@ export default class ViewMeasurements extends Vue {
     this.setQueryFormDefaults()
 
     const cities = await this.fetchCities()
-    this.cities = cities
+    this.chartData.cities = cities
 
     // set from cahce
     if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
@@ -313,18 +248,16 @@ export default class ViewMeasurements extends Vue {
           return memo
         }, {})
 
-      this.queryForm.cities = this.cities
-        .filter(city => idsMap[city.id])
+      const existingCities = cities.filter(city => idsMap[city.id])
 
       this.urlQuery = {
         ...this.urlQuery,
-        cities: this.queryForm.cities.map(i => i.id)
+        cities: existingCities.map(i => i.id)
       }
-    } else if (this.cities[0]) {
-      this.queryForm.cities = [this.cities[0]]
+    } else if (cities[0]) {
       this.urlQuery = {
         ...this.urlQuery,
-        cities: [this.cities[0].id]
+        cities: [cities[0].id]
       }
     }
 
@@ -335,55 +268,21 @@ export default class ViewMeasurements extends Vue {
   }
 
   private setQueryFormDefaults (): void {
-    const pageProperties = {...this.pageProperties}
     const urlQuery = {...this.urlQuery}
-    const queryForm = {...this.queryForm}
 
     if (!urlQuery.chart_cols) {
       urlQuery.chart_cols = MeasurementsChart.getDefaultChartCols(this.$vuetify)
     }
 
-    if (urlQuery.date_start || urlQuery.date_start === '0') {
-      queryForm.dateStart = _toNumberDate(urlQuery.date_start)
-    } else {
-      if (!queryForm.dateStart) queryForm.dateStart = JAN_1__THREE_YEARS_AGO
-      urlQuery.date_start = _toStringDate(queryForm.dateStart)
+    if (!urlQuery.date_start) {
+      urlQuery.date_start = _toURLStringDate(JAN_1__THREE_YEARS_AGO)
     }
 
-    if (urlQuery.date_end || urlQuery.date_end === '0') {
-      queryForm.dateEnd = _toNumberDate(urlQuery.date_end)
-    } else {
-      if (!queryForm.dateEnd) queryForm.dateEnd = _toNumberDate(today)
-      urlQuery.date_end = _toStringDate(queryForm.dateEnd)
+    if (!urlQuery.date_end) {
+      urlQuery.date_end = _toURLStringDate(today)
     }
 
-    pageProperties.chartColumnSize = urlQuery.chart_cols as ChartColumnSize
-
-    if (urlQuery.display_mode) {
-      pageProperties.displayMode = urlQuery.display_mode
-    } else if (!pageProperties.displayMode) {
-      pageProperties.displayMode = DEFAUL_DISPLAY_MODE
-    }
-
-    if (urlQuery.running_average) {
-      pageProperties.runningAverage = urlQuery.running_average
-    } else if (!pageProperties.runningAverage) {
-      pageProperties.runningAverage = DEFAUL_RUNNING_AVERAGE
-    }
-
-    if (urlQuery.sources?.length) {
-      pageProperties.visibleSources = urlQuery.sources
-    }
-    if (urlQuery.pollutants?.length) {
-      pageProperties.visiblePollutants = urlQuery.pollutants
-    }
-    if (urlQuery.stations?.length) {
-      pageProperties.visibleStations = urlQuery.stations
-    }
-
-    Object.assign(this.pageProperties, pageProperties)
     Object.assign(this.urlQuery, urlQuery)
-    Object.assign(this.queryForm, queryForm)
   }
 
   private async fetchCities (): Promise<City[]> {
@@ -398,8 +297,18 @@ export default class ViewMeasurements extends Vue {
     return _orderBy(cities || [], 'name')
   }
 
-  private async fetchChartData (): Promise<ChartParams> {
-    let dateStart = this.queryForm.dateStart
+  private async fetchChartData (): Promise<ChartData> {
+    if (!this.urlQuery?.cities.length) {
+      return {
+        cities: this.chartData.cities,
+        measurements: [],
+        pollutants: [],
+        sources: [],
+        stations: [],
+      }
+    }
+
+    let dateStart = _toNumberDate(this.urlQuery.date_start || '0')
 
     // shift the queried 'from' date by 1 year ago
     // so the running average display well
@@ -409,17 +318,19 @@ export default class ViewMeasurements extends Vue {
     }
 
     const promise_measurementsByCities = this.fetchMeasurements({
-      ...this.queryForm,
-      dateStart,
+      city: this.urlQuery.cities,
+      date_from: _toURLStringDate(dateStart),
+      date_to: this.urlQuery.date_end || '',
       process: MeasurementProcesses.city_day_mad,
-      sortBy: 'asc(pollutant),asc(date)'
+      sort_by: 'asc(pollutant),asc(date)',
     })
 
     const promise_measurementsByStations = this.fetchMeasurements({
-      ...this.queryForm,
-      dateStart,
+      city: this.urlQuery.cities,
+      date_from: _toURLStringDate(dateStart),
+      date_to: this.urlQuery.date_end || '',
       process: MeasurementProcesses.station_day_mad,
-      sortBy: 'asc(pollutant),asc(date)'
+      sort_by: 'asc(pollutant),asc(date)',
     })
 
     const [err, arrays] = await to<Measurement[][]>(Promise.all([
@@ -488,9 +399,7 @@ export default class ViewMeasurements extends Vue {
     const stations = _orderBy(Object.values(stationsMap), 'id')
 
     const chartData = {
-      dateStart: this.queryForm.dateStart || 0,
-      dateEnd: this.queryForm.dateEnd || 0,
-      cities: this.queryForm.cities.slice(),
+      cities: this.chartData.cities,
       measurements: measurements,
       pollutants: pollutants,
       sources: sources,
@@ -503,33 +412,27 @@ export default class ViewMeasurements extends Vue {
     this.isChartLoading = true
 
     const chartData = await this.fetchChartData()
-    this.chartData = chartData
-    this.pageProperties.cities = this.chartData.cities || []
-    this.pageProperties.sources = this.chartData.sources || []
-    this.pageProperties.pollutants = this.chartData.pollutants || []
-    this.pageProperties.stations = this.chartData.stations || []
-
-    let visibleSources = this.pageProperties.visibleSources
-      .filter(srcId => this.pageProperties.sources.find((s) => s.id === srcId))
 
     // automatically select the source with the most measurements in city-level
+    const allSources = chartData.sources
+    let visibleSources = (this.urlQuery.sources || [])
+      .filter(id => allSources.find((p) => p.id === id))
     if (!visibleSources.length) {
-      const defaultSource = this.chooseDefaultSource(this.pageProperties.sources)
+      const defaultSource = this.chooseDefaultSource(allSources)
       visibleSources = defaultSource ? [defaultSource.id] : []
     }
-    this.pageProperties.visibleSources = visibleSources
 
-    let visiblePollutants = this.pageProperties.visiblePollutants
-      .filter(pollId => this.pageProperties.pollutants.find((p) => p.id === pollId))
-    if (!visiblePollutants.length) {
-      visiblePollutants = this.pageProperties.pollutants.map(i => i.id)
-    }
-    this.pageProperties.visiblePollutants = visiblePollutants
+    const allPollutants = chartData.pollutants
+    let visiblePollutants = (this.urlQuery.pollutants || [])
+      .filter(id => allPollutants.find((p) => p.id === id))
+    if (!visiblePollutants.length) visiblePollutants = allPollutants.map(i => i.id)
 
-    const visibleStations = this.pageProperties.visibleStations
-      .filter(statId => this.pageProperties.stations.find((s) => s.id === statId))
-    this.pageProperties.visibleStations = visibleStations
+    const allStations = chartData.stations
+    let visibleStations = (this.urlQuery.stations || [])
+      .filter(id => allStations.find((p) => p.id === id))
+    // if (!visibleStations.length) visibleStations = allStations.map(i => i.id)
 
+    this.chartData = chartData
     this.urlQuery = {
       ...this.urlQuery,
       sources: visibleSources,
@@ -540,10 +443,17 @@ export default class ViewMeasurements extends Vue {
     this.isChartLoading = false
   }
 
-  private async fetchMeasurements (query: MeasurementsQuery): Promise<Measurement[]> {
-    const q: string = MeasurementsQuery.toQueryString(query)
+  private async fetchMeasurements (
+    query: {
+      city: string[]
+      date_from?: string
+      date_to?: string
+      process?: MeasurementProcesses
+      sort_by?: string
+    }
+  ): Promise<Measurement[]> {
 
-    const [err, items] = await to(MeasurementAPI.findAll(q))
+    const [err, items] = await to(MeasurementAPI.findAll(_toQueryString(query)))
     if (err) {
       this.$dialog.notify.error(
         err?.message || ''+this.$t('msg.something_went_wrong')
@@ -554,62 +464,41 @@ export default class ViewMeasurements extends Vue {
     return items || []
   }
 
-  private onChangeQueryForm (fieldName?: keyof MeasurementsQuery) {
-    this.urlQuery = {
-      ...this.urlQuery,
-      date_start: _toStringDate(this.queryForm.dateStart || 0),
-      date_end: _toStringDate(this.queryForm.dateEnd || 0),
-    }
-  }
+  private onChangeQuery (query: URLQuery) {
+    const oldIds = [...this.urlQuery.cities]
+      .sort((a, b) => a.localeCompare(b))
+      .join(',')
+    const newIds = [...query.cities]
+      .sort((a, b) => a.localeCompare(b))
+      .join(',')
+    const citiesChanged = oldIds !== newIds
+    if (citiesChanged) query.sources = []
 
-  private onChangePageProperties (data: PagePropertiesForm) {
-    this.pageProperties = {...data}
-    this.urlQuery = {
-      ...this.urlQuery,
-      chart_cols: data.chartColumnSize,
-      sources: data.visibleSources,
-      pollutants: data.visiblePollutants,
-      stations: data.visibleStations,
-      display_mode: data.displayMode ===  DEFAUL_DISPLAY_MODE
-        ? undefined
-        : data.displayMode,
-      running_average: data.runningAverage === DEFAUL_RUNNING_AVERAGE
-        ? undefined
-        : data.runningAverage,
-    }
+    const needRefresh = query.date_start !== this.urlQuery.date_start ||
+      query.date_end !== this.urlQuery.date_end ||
+      citiesChanged
+
+    this.urlQuery = query
+
+    if (needRefresh) this.onClickRefresh()
   }
 
   private async onClickRefresh () {
     this.$loader.on()
-
-    const oldIds = [...this.urlQuery.cities]
-      .sort((a, b) => a.localeCompare(b))
-      .join(',')
-    const newIds = [...this.queryForm.cities]
-      .map(i => i.id)
-      .sort((a, b) => a.localeCompare(b))
-      .join(',')
-
-    if (oldIds !== newIds) {
-      this.onChangePageProperties({
-        ...this.pageProperties,
-        visibleSources: [],
-      })
-    }
-
     await this.refreshChartData()
     this.$loader.off()
-  }
-
-  private citiesInputFilter (item: any, queryText: string, itemText: string): boolean {
-    const _query = queryText.toLocaleLowerCase()
-    return itemText.toLocaleLowerCase().indexOf(_query) > -1 ||
-      (item.country_name || '').toLocaleLowerCase().indexOf(_query) > -1
   }
 
   private chooseDefaultSource (sources: Source[] = []): Source|undefined {
     const _sources = _orderBy(sources, '_measurementsNumber', 'desc')
     return _sources[0]
+  }
+
+  private _toURLStringDate (d: number): string {
+    return _toURLStringDate(d)
+  }
+  private _toNumberDate (d: string): number {
+    return _toNumberDate(d)
   }
 }
 </script>

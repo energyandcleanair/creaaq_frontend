@@ -103,18 +103,23 @@ import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
 import Station from '@/entities/Station'
-import ChartColumnSize from '../../types/ChartColumnSize'
 import RunningAverageEnum, { RUNNING_AVERAGE_DAYS_MAP } from '../../types/RunningAverageEnum'
+import ChartColumnSize from '../../types/ChartColumnSize'
+import URLQuery from '../../types/URLQuery'
 import ChartDisplayModes from './ChartDisplayModes'
 import RangeBox from './RangeBox'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
 import ChartTrace from './ChartTrace'
 import ChartTracePoint from './ChartTracePoint'
+import { _toNumberDate } from '@/helpers'
 import ChartData from './ChartData'
-import ChartParams from './ChartParams'
 
 const COL_ID_DIVIDER = '--'
+
+interface MapFilter {
+  [id: string]: number
+}
 
 @Component({
   components: {
@@ -123,8 +128,11 @@ const COL_ID_DIVIDER = '--'
 })
 export default class MeasurementsChart extends Vue {
 
+  @Prop({type: Object, required: true})
+  readonly queryParams!: URLQuery
+
   @Prop()
-  public readonly chartData!: ChartParams
+  public readonly chartData!: ChartData
 
   @Prop({type: Number})
   public readonly cols?: ChartColumnSize
@@ -164,7 +172,7 @@ export default class MeasurementsChart extends Vue {
 
   // display pollutants as cells and not rows
   private get dense (): boolean {
-    return this.chartData.cities?.length === 1
+    return this.queryParams.cities?.length === 1
   }
 
   private get _isDisplayStations (): boolean {
@@ -203,25 +211,34 @@ export default class MeasurementsChart extends Vue {
         ? 10
         : 12
 
+    let filterPollutants: MapFilter|null = this.queryParams.pollutants
+      .reduce((memo: MapFilter, id: Pollutant['id']) => (memo[id] = 1) && memo, {})
+    if (!Object.keys(filterPollutants).length) filterPollutants = null
+
     for (const pollutant of this.pollutants) {
+      if (!_valuePassesFilter(pollutant.id, filterPollutants)) continue
+
       const rowId: string = pollutant.id
       const cols: ChartCol[] = []
 
-      for (const _i in this.cities) {
+      for (const _i in this.queryParams.cities) {
         const i = +_i
-        const city = this.cities[i]
+        const cityId = this.queryParams.cities[i]
+        const city = this.chartData.cities.find(i => i.id === cityId)
+        if (!city) continue
+
         const colId = city.id
         const first = i % this._cols === 0
         const last = i % this._cols === this._cols - 1
           || i === this.cities.length - 1
-        const chartData = this.genChartData(
+        const chartTraces = this.genChartTraces(
           city,
           pollutant,
           this.filterSources,
           this.filterStations
         )
 
-        const data = chartData.data.map(trace => {
+        const data = chartTraces.traces.map(trace => {
           trace.x = trace.x.map(val => new Date(val))
           return trace
         })
@@ -239,7 +256,7 @@ export default class MeasurementsChart extends Vue {
           title: city.name,
           data,
           isEmpty,
-          rangeBox: chartData.rangeBox,
+          rangeBox: chartTraces.rangeBox,
           layout: {
             showlegend: showlegend,
             legendfont: {
@@ -326,8 +343,8 @@ export default class MeasurementsChart extends Vue {
 
       // set one grid range to all charts in row
       const MARGIN = 3
-      const dateStart: number = this.chartData.dateStart || 0
-      const dateEnd: number = this.chartData.dateEnd || 0
+      const dateStart: number = _toNumberDate(this.queryParams.date_start || '') || 0
+      const dateEnd: number = _toNumberDate(this.queryParams.date_end || '') || 0
       const generalRangeX = [
         dateStart || row.rangeBox.x0 - MARGIN,
         dateEnd || row.rangeBox.x1 + MARGIN,
@@ -361,18 +378,18 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private genChartData (
+  private genChartTraces (
     city: City,
     pollutant: Pollutant,
     filterSources: Source['id'][],
     filterStations: Station['id'][],
-  ): ChartData {
+  ): {traces: ChartTrace[], rangeBox: RangeBox} {
 
     const cityId: City['id'] = city.id
     const pollutantId = pollutant.id
-    const dateStart: number = this.chartData.dateStart || 0
+    const dateStart: number = _toNumberDate(this.queryParams.date_start || '') || 0
     const dateStartYear: number = moment(dateStart).year()
-    const dateEnd: number = this.chartData.dateEnd || 0
+    const dateEnd: number = _toNumberDate(this.queryParams.date_end || '') || 0
     const rangeBox: RangeBox = {
       x0: -Infinity,
       y0: -Infinity,
@@ -502,7 +519,7 @@ export default class MeasurementsChart extends Vue {
     }
 
     return {
-      data: _sortBy(traces, 'zIndex'),
+      traces: _sortBy(traces, 'zIndex'),
       rangeBox,
     }
   }
@@ -658,6 +675,13 @@ function _genRangeBox (items: any): RangeBox {
   }
 
   return rangeBox
+}
+
+function _valuePassesFilter (
+  key: any,
+  filterMap: MapFilter|null,
+): boolean {
+  return !filterMap || (key && filterMap[key])
 }
 </script>
 

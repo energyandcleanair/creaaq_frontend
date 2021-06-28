@@ -174,7 +174,6 @@ export default class ViewViolations extends Vue {
         cities: existingCities.map(i => i.id)
       }
     } else if (cities[0]) {
-      // this.queryForm.cities = [this.cities[0]]
       this.urlQuery = {
         ...this.urlQuery,
         cities: [cities[0].id]

@@ -1,49 +1,21 @@
 <template>
-<v-navigation-drawer
-  class="measurements-right-drawer"
-  :value="open"
-  app
-  clipped
-  right
-  width="230"
-  mobile-breakpoint="960"
+<PageDrawer
+  :open="open"
   @input="toggle($event)"
 >
-
-  <template v-slot:prepend>
-    <v-btn
-      class="drawer-handler"
-      :title="$t('display_parameters')"
-      :style="{'margin-top': $vuetify.application.top + 'px'}"
-      color="primary"
-      icon
-      @click="toggle(!open)"
-    >
-      <v-icon>{{ mdiTune }}</v-icon>
-    </v-btn>
-
-    <v-toolbar height="40" flat>
-      <v-spacer/>
-
-      <v-btn icon small @click="toggle(!open)">
-        <v-icon small>{{ mdiClose }}</v-icon>
-      </v-btn>
-    </v-toolbar>
-  </template>
-
-  <v-form class="drawer__form px-3">
+  <v-form>
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('display_mode') }}</v-col>
 
       <v-col class="d-flex justify-center" cols="12">
         <v-select
           class="mt-0 pt-2"
-          :value="formData.displayMode"
+          :value="displayMode"
           :items="DISPLAY_MODES"
           item-text="label"
           item-value="value"
           hide-details
-          @change="onChangeForm('displayMode', $event)"
+          @change="onChangeForm('display_mode', $event)"
         />
       </v-col>
     </v-row>
@@ -53,11 +25,11 @@
 
       <v-col class="d-flex justify-center mt-2" cols="12">
         <v-btn-toggle
-          :value="formData.runningAverage"
+          :value="runningAverage"
           color="primary"
           tile
           group
-          @change="onChangeForm('runningAverage', $event)"
+          @change="onChangeForm('running_average', $event)"
         >
           <v-btn
             class="px-1"
@@ -77,7 +49,7 @@
 
       <v-col class="d-flex justify-center mt-2" cols="12">
         <v-slider
-          :value="CHART_SIZE_LABELS.indexOf(formData.chartColumnSize)"
+          :value="chartCols"
           color="primary"
           :min="CHART_SIZE_VALUES.min"
           :max="CHART_SIZE_VALUES.max"
@@ -87,7 +59,7 @@
           hide-details
           thumb-label
           :thumb-size="18"
-          @change="onChangeForm('chartColumnSize', CHART_SIZE_LABELS[$event])"
+          @change="onChangeForm('chart_cols', CHART_SIZE_LABELS[$event])"
         >
           <template v-slot:thumb-label="{ value }">
             {{ CHART_SIZE_LABELS[value] }}
@@ -99,15 +71,15 @@
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('sources') }}</v-col>
 
-      <v-col v-if="formData.sources.length" class="d-flex pl-1" cols="12">
+      <v-col v-if="chartData.sources.length" class="d-flex pl-1" cols="12">
         <v-radio-group
-          :value="formData.visibleSources && formData.visibleSources[0]"
+          :value="queryParams.sources && queryParams.sources[0]"
           color="primary"
           hide-details
-          @change="onChangeForm('visibleSources', [$event])"
+          @change="onChangeForm('sources', [$event])"
         >
             <v-radio
-              v-for="item of formData.sources"
+              v-for="item of chartData.sources"
               :key="item.id"
               :label="item.label"
               :value="item.id"
@@ -119,19 +91,19 @@
     <v-row no-gutters>
       <v-col class="subtitle-2" cols="12">{{ $t('pollutants') }}</v-col>
 
-      <v-col v-if="formData.pollutants.length" class="pl-1" cols="12">
+      <v-col v-if="chartData.pollutants.length" class="pl-1" cols="12">
         <v-checkbox
-          v-for="item of formData.pollutants"
-          :input-value="formData.visiblePollutants"
+          v-for="item of chartData.pollutants"
+          :input-value="queryParams.pollutants"
           :key="item.id"
           :value="item.id"
           :label="item.label"
           color="primary"
           hide-details
-          :disabled="formData.visiblePollutants.length <= 1
-            && formData.visiblePollutants.includes(item.id)
+          :disabled="queryParams.pollutants.length <= 1
+            && queryParams.pollutants.includes(item.id)
           "
-          @change="onChangeForm('visiblePollutants', $event)"
+          @change="onChangeForm('pollutants', $event)"
         />
       </v-col>
     </v-row>
@@ -174,20 +146,22 @@
       </v-col>
     </v-row>
   </v-form>
-</v-navigation-drawer>
+</PageDrawer>
 </template>
 
 <script lang="ts">
 import _difference from 'lodash.difference'
 import { Component, Prop, Vue, Emit } from 'vue-property-decorator'
-import { mdiClose, mdiTune } from '@mdi/js'
+import PageDrawer from '@/components/PageDrawer.vue'
+import SelectBox from '@/components/SelectBox.vue'
 import Station from '@/entities/Station'
 import City from '@/entities/City'
-import PagePropertiesForm from '../types/PagePropertiesForm'
 import RunningAverageEnum from '../types/RunningAverageEnum'
 import ChartColumnSize, { CHART_COLUMN_SIZES } from '../types/ChartColumnSize'
+import URLQuery from '../types/URLQuery'
 import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
-import SelectBox from '@/components/SelectBox.vue'
+import ChartData from './MeasurementsChart/ChartData'
+import MeasurementsChart from './MeasurementsChart/MeasurementsChart.vue'
 
 interface StationsNCityGroup {
   city: City
@@ -202,44 +176,65 @@ interface StationsNCitiesMap {
 
 @Component({
   components: {
+    PageDrawer,
     SelectBox
   }
 })
 export default class MeasurementsRightDrawer extends Vue {
-  @Prop({type: Object, required: true}) formData!: PagePropertiesForm
-  @Prop({type: Boolean, default: false}) open!: boolean
-  private mdiClose = mdiClose
-  private mdiTune = mdiTune
+
+  @Prop({type: Boolean, default: false})
+  readonly open!: boolean
+
+  @Prop({type: Object, required: true})
+  readonly queryParams!: URLQuery
+
+  @Prop({type: Object, required: true})
+  readonly chartData!: ChartData
+
   private forceShowStationsSelect: boolean = false
 
+  private get displayMode (): ChartDisplayModes {
+    return this.queryParams.display_mode || ChartDisplayModes.NORMAL
+  }
+
+  private get runningAverage (): RunningAverageEnum {
+    return this.queryParams.running_average || RunningAverageEnum['1d']
+  }
+
+  private get chartCols (): number {
+    const cols: ChartColumnSize = this.queryParams.chart_cols ||
+      MeasurementsChart.getDefaultChartCols(this.$vuetify)
+    return this.CHART_SIZE_LABELS.indexOf(cols)
+  }
+
   private get _isShowStations (): boolean {
-    return this.forceShowStationsSelect || !!this.formData.visibleStations.length
+    return this.forceShowStationsSelect || !!this.queryParams.stations?.length
   }
   private set _isShowStations (value: boolean) {
     const visibleStations = value
-      ? this.formData.stations.map(i => i.id)
+      ? this.chartData.stations.map(i => i.id)
       : []
     this.forceShowStationsSelect = value
-    this.onChangeForm('visibleStations', visibleStations)
+    this.onChangeForm('stations', visibleStations)
   }
 
   private get stationsGroupedByCity (): StationsNCitiesMap {
     const map: StationsNCitiesMap = {}
 
-    for (const station of this.formData.stations) {
+    for (const station of this.chartData.stations) {
       let city: City|undefined
 
       if (map[station.cityId]) {
         city = map[station.cityId]?.city
       } else {
-        city = this.formData.cities.find(i => i.id === station.cityId)
+        city = this.chartData.cities.find(i => i.id === station.cityId)
         if (!city) continue
         map[station.cityId] = {city, stations: [], selected: [], stationsIds: []}
       }
       map[station.cityId].stations.push(station)
       map[station.cityId].stationsIds.push(station.id)
 
-      const isSelected = this.formData.visibleStations.includes(station.id)
+      const isSelected = (this.queryParams.stations || []).includes(station.id)
       if (isSelected) map[station.cityId].selected.push(station.id)
     }
 
@@ -274,7 +269,7 @@ export default class MeasurementsRightDrawer extends Vue {
   }
 
   private created () {
-    this.forceShowStationsSelect = !!this.formData?.visibleStations?.length
+    this.forceShowStationsSelect = !!this.queryParams?.stations?.length
   }
 
   @Emit('update:open')
@@ -282,7 +277,7 @@ export default class MeasurementsRightDrawer extends Vue {
 
   public onBlurStationsSelect ($event: FocusEvent) {
     const isRealBlur = !$event.relatedTarget
-    if (isRealBlur && !this.formData?.visibleStations?.length) {
+    if (isRealBlur && !this.queryParams?.stations?.length) {
       this.forceShowStationsSelect = false
     }
   }
@@ -295,71 +290,71 @@ export default class MeasurementsRightDrawer extends Vue {
     const idsToDelete = _difference(group.selected, newStationsIds)
     const idsToAdd = _difference(newStationsIds, group.selected)
 
-    const visibleStations = this.formData.visibleStations.slice()
+    const visibleStations = (this.queryParams.stations || []).slice()
       .filter(id => !idsToDelete.includes(id))
     Array.prototype.push.apply(visibleStations, idsToAdd)
 
-    this.onChangeForm('visibleStations', visibleStations)
+    this.onChangeForm('stations', visibleStations)
   }
 
-  public onChangeForm (key: keyof PagePropertiesForm, value: any) {
-    const formData = {
-      ...this.formData,
+  public onChangeForm (key: keyof URLQuery, value: any) {
+    const queryParams = {
+      ...this.queryParams,
       [key]: value
     }
-    setTimeout(() => this.$emit('update:formData', formData), 100)
+    setTimeout(() => this.$emit('update:queryParams', queryParams), 100)
   }
 }
 </script>
 
 <style lang="scss">
-.measurements-right-drawer {
-  overflow: visible;
+// .measurements-right-drawer {
+//   overflow: visible;
 
-  &.v-navigation-drawer--close {
-    visibility: visible !important;
+//   &.v-navigation-drawer--close {
+//     visibility: visible !important;
 
-    .v-navigation-drawer__content,
-    .v-navigation-drawer__border {
-      visibility: hidden !important;
-    }
-  }
+//     .v-navigation-drawer__content,
+//     .v-navigation-drawer__border {
+//       visibility: hidden !important;
+//     }
+//   }
 
-  .v-navigation-drawer__prepend {
-    position: relative;
+//   .v-navigation-drawer__prepend {
+//     position: relative;
 
-    .drawer-handler {
-      position: absolute;
-      left: -2.7rem;
-      top: .5rem;
-      width: 2.7rem;
-      height: 2rem;
-      z-index: 10;
-      border-radius: 0.2rem;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-  }
+//     .drawer-handler {
+//       position: absolute;
+//       left: -2.7rem;
+//       top: .5rem;
+//       width: 2.7rem;
+//       height: 2rem;
+//       z-index: 10;
+//       border-radius: 0.2rem;
+//       border-top-right-radius: 0;
+//       border-bottom-right-radius: 0;
+//     }
+//   }
 
-  &.v-navigation-drawer--open {
-    .drawer-handler {
-      display: none;
-    }
-  }
+//   &.v-navigation-drawer--open {
+//     .drawer-handler {
+//       display: none;
+//     }
+//   }
 
-  &:not(.v-navigation-drawer--is-mobile) {
-    .drawer-handler {
-      margin-top: 0 !important;
-    }
-  }
+//   &:not(.v-navigation-drawer--is-mobile) {
+//     .drawer-handler {
+//       margin-top: 0 !important;
+//     }
+//   }
 
-  .drawer__form {
-    overflow: auto;
-    padding-bottom: 7rem;
+//   .drawer__form {
+//     overflow: auto;
+//     padding-bottom: 7rem;
 
-    > .row {
-      margin-bottom: 2rem;
-    }
-  }
-}
+//     > .row {
+//       margin-bottom: 2rem;
+//     }
+//   }
+// }
 </style>
