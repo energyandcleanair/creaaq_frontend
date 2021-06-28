@@ -30,6 +30,7 @@ export default {
   from: 'From',
   to: 'To',
   or: 'Or',
+  year: 'Year',
   others: 'Others',
   language: 'Language',
   measurements: 'Measurements',
@@ -62,7 +63,7 @@ export default {
   chart_size: 'Chart size',
   chart_columns: 'Chart columns',
   profile: 'Profile',
-  year: 'Year',
+  help_n_support: 'Help & Support',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

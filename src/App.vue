@@ -107,7 +107,7 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
-import { mdiLogout, mdiAccountCircle, mdiAccount } from '@mdi/js'
+import { mdiLogout, mdiAccountCircle, mdiAccount, mdiHelpCircleOutline } from '@mdi/js'
 import AppDrawer from '@/components/AppDrawer.vue'
 import axios from 'axios'
 import config from '@/config'
@@ -142,6 +142,13 @@ export default class App extends Vue {
         icon: mdiAccount,
         disabled: this.$route.name === 'profile',
         action: () => this.$router.push({name: 'profile'}),
+      },
+      {
+        id: 'help-n-support',
+        label: this.$t('help_n_support'),
+        icon: mdiHelpCircleOutline,
+        disabled: this.$route.name === 'support',
+        action: () => this.$router.push({name: 'support'}),
       },
       {
         id: 'logout',

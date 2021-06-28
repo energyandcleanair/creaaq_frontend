@@ -84,6 +84,14 @@ const routes: Array<RouteConfig> = [
     }
   },
   {
+    path: '/support',
+    name: 'support',
+    component: () => import(/* webpackChunkName: "support" */ '@/views/support/Support.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
     path: '*',
     redirect: '/',
   },

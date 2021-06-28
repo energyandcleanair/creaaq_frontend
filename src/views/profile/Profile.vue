@@ -1,7 +1,7 @@
 <template>
 <v-container class="view-profile" fluid>
   <h1 class="d-block text-center my-5">
-    Profile
+    {{ $t('profile') }}
   </h1>
 
   <v-container class="mt-5">
