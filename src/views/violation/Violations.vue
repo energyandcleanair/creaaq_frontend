@@ -355,8 +355,12 @@ export default class ViewViolations extends Vue {
   }
 
   private onChangeQuery (query: URLQuery) {
+    const citiesOld = [...this.urlQuery.cities].sort().join(',')
+    const citiesNew = [...query.cities].sort().join(',')
+    const citiesChanged = citiesOld !== citiesNew
+
     const needRefresh = query.date_start !== this.urlQuery.date_start ||
-      query.cities?.join(',') !== this.urlQuery.cities?.join(',')
+      citiesChanged
 
     this.urlQuery = query
 

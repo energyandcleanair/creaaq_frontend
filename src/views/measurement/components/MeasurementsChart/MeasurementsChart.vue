@@ -92,6 +92,7 @@
 <script lang="ts">
 import _get from 'lodash.get'
 import _set from 'lodash.set'
+import _merge from 'lodash.merge'
 import _sortBy from 'lodash.sortby'
 import _groupBy from 'lodash.groupby'
 import moment from 'moment'
@@ -112,7 +113,7 @@ import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
 import ChartTrace from './ChartTrace'
 import ChartTracePoint from './ChartTracePoint'
-import { _toNumberDate } from '@/helpers'
+import { URL_DATE_FORMAT, _toNumberDate } from '@/helpers'
 import ChartData from './ChartData'
 
 const COL_ID_DIVIDER = '--'
@@ -250,6 +251,13 @@ export default class MeasurementsChart extends Vue {
           (first || cols[i - 1]?.isEmpty === true)
 
         const margin = _genChartMargins({font, showticklabelsY, showlegend})
+        const layout = this._getChartLayoutDefaults({
+          margin,
+          font,
+          colWidth: this.colWidth,
+          displayMode: this.displayMode,
+          isEmpty
+        })
 
         const col: ChartCol = {
           id: `${rowId}${COL_ID_DIVIDER}${colId}`,
@@ -257,64 +265,12 @@ export default class MeasurementsChart extends Vue {
           data,
           isEmpty,
           rangeBox: chartTraces.rangeBox,
-          layout: {
+          layout: _merge(layout, {
             showlegend: showlegend,
-            legendfont: {
-              size: font,
-              color: '#212121',
-            },
-            plot_bgcolor: '#fcfcfc',
-            paper_bgcolor: '#fff',
-            hovermode: 'closest',
-            dragmode: 'pan',
-            autosize: true,
-            width: this.colWidth,
-            height: Math.max(this.colWidth, margin.b * 2),
-            margin,
-            xaxis: {
-              visible: !isEmpty,
-              linecolor: '#eee',
-              linewidth: 1,
-              mirror: true,
-              tickfont: {
-                size: font,
-                color: '#212121',
-              },
-              tickformat: this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
-                ? '%d %b'
-                : '%d %b %Y',
-            },
             yaxis: {
-              visible: !isEmpty,
-
-              // TODO: do we need that?
-              // title: first ? pollutant.unit : undefined,
-              // titlefont: {
-              //   size: font,
-              //   color: '#bbb',
-              // },
-              tickfont: {
-                size: font,
-                color: '#212121',
-              },
               showticklabels: showticklabelsY,
-              linecolor: '#eee',
-              linewidth: 1,
-              mirror: true,
-            },
-            ...(!isEmpty ? {} : {
-              annotations: [{
-                text: this.$t('msg.no_data'),
-                xref: 'paper',
-                yref: 'paper',
-                showarrow: false,
-                font: {
-                  size: font * 1.5,
-                  color: '#bbb',
-                }
-              }]
-            })
-          },
+            }
+          }),
         }
         cols.push(col)
       }
@@ -331,9 +287,13 @@ export default class MeasurementsChart extends Vue {
       // align the charts margins and legends
       for (const i in row.cols) {
         const col = row.cols[i]
+        const colNext = row.cols[+i + 1]
         const showticklabelsY = col.layout.yaxis.showticklabels
         let showlegend = col.layout.showlegend
-        if (!showlegend && row.cols[+i + 1]?.isEmpty) {
+        if (!showlegend &&
+          this.displayMode !== ChartDisplayModes.NORMAL &&
+          (!colNext || colNext.isEmpty)
+        ) {
           showlegend = true
           const margin = _genChartMargins({font, showticklabelsY, showlegend})
           col.layout.showlegend = showlegend
@@ -342,18 +302,15 @@ export default class MeasurementsChart extends Vue {
       }
 
       // set one grid range to all charts in row
-      const MARGIN = 3
-      const dateStart: number = _toNumberDate(this.queryParams.date_start || '') || 0
-      const dateEnd: number = _toNumberDate(this.queryParams.date_end || '') || 0
-      const generalRangeX = [
-        dateStart || row.rangeBox.x0 - MARGIN,
-        dateEnd || row.rangeBox.x1 + MARGIN,
-      ]
-      const generalRangeY = [row.rangeBox.y0 - MARGIN, row.rangeBox.y1 + MARGIN]
-      for (const col of row.cols) {
-        _set(col, 'layout.xaxis.range', generalRangeX.slice())
-        _set(col, 'layout.yaxis.range', generalRangeY.slice())
-      }
+      row.cols = _alignColsGridRange(
+        row.cols,
+        row.rangeBox,
+        this.displayMode,
+        {
+          dateStart: this.queryParams.date_start,
+          dateEnd: this.queryParams.date_end,
+        }
+      )
 
       rows.push(row)
     }
@@ -468,7 +425,6 @@ export default class MeasurementsChart extends Vue {
 
       for (const key in pointsGroupMap) {
         const pointsGroup = pointsGroupMap[key]
-
         let hovertemplate = `%{y:.0f} ${pollutant.unit || ''}<br>%{x}`
 
         if (isMainLine) {
@@ -601,6 +557,121 @@ export default class MeasurementsChart extends Vue {
     const visible = this.filterPollutants.includes(pollutantId)
     return visible
   }
+
+  private _getChartLayoutDefaults (
+    opts: {
+      margin: {[key: string]: number},
+      font: number,
+      displayMode: ChartDisplayModes,
+      colWidth: number,
+      isEmpty: boolean,
+    }
+  ): ChartCol['layout'] {
+    const {
+      margin,
+      font,
+      displayMode,
+      colWidth,
+      isEmpty,
+    } = opts
+
+    return {
+      showlegend: false,
+      legendfont: {
+        size: font,
+        color: '#212121',
+      },
+      plot_bgcolor: '#fcfcfc',
+      paper_bgcolor: '#fff',
+      hovermode: 'closest',
+      dragmode: 'pan',
+      autosize: true,
+      width: colWidth,
+      height: Math.max(colWidth, margin.b * 2),
+      margin,
+      xaxis: {
+        visible: !isEmpty,
+        linecolor: '#eee',
+        linewidth: 1,
+        mirror: true,
+        tickfont: {
+          size: font,
+          color: '#212121',
+        },
+        tickformat: displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
+          ? '%d %b'
+          : '%d %b %Y',
+      },
+      yaxis: {
+        visible: !isEmpty,
+
+        // TODO: do we need that?
+        // title: first ? pollutant.unit : undefined,
+        // titlefont: {
+        //   size: font,
+        //   color: '#bbb',
+        // },
+        tickfont: {
+          size: font,
+          color: '#212121',
+        },
+        showticklabels: true,
+        linecolor: '#eee',
+        linewidth: 1,
+        mirror: true,
+      },
+      ...(!isEmpty ? {} : {
+        annotations: [{
+          text: this.$t('msg.no_data'),
+          xref: 'paper',
+          yref: 'paper',
+          showarrow: false,
+          font: {
+            size: font * 1.5,
+            color: '#bbb',
+          }
+        }]
+      })
+    }
+  }
+}
+
+function _alignColsGridRange (
+  cols: ChartCol[],
+  rangeBox: RangeBox,
+  displayMode: ChartDisplayModes,
+  dates: {
+    dateStart: string|undefined
+    dateEnd: string|undefined
+  }
+): ChartCol[] {
+  const newCols = cols.slice()
+  const MARGIN = 3
+
+  let dateStart: number
+  let dateEnd: number
+
+  if (displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
+    const $dateStart = moment(dates.dateStart, URL_DATE_FORMAT)
+    dateStart = +$dateStart.month(0).date(1)
+    dateEnd = +moment(dates.dateEnd).year($dateStart.year()).month(11).date(31)
+  } else {
+    dateStart = _toNumberDate(dates.dateStart || '') || 0
+    dateEnd = _toNumberDate(dates.dateEnd || '') || 0
+  }
+
+  const generalRangeX = [
+    dateStart || rangeBox.x0 - MARGIN,
+    dateEnd || rangeBox.x1 + MARGIN,
+  ]
+  const generalRangeY = [rangeBox.y0 - MARGIN, rangeBox.y1 + MARGIN]
+
+  for (const col of newCols) {
+    _set(col, 'layout.xaxis.range', generalRangeX.slice())
+    _set(col, 'layout.yaxis.range', generalRangeY.slice())
+  }
+
+  return newCols
 }
 
 function _genChartMargins (

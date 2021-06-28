@@ -53,6 +53,7 @@
       :queryParams="urlQuery"
       :chartData="chartData"
       :open.sync="isRightPanelOpen"
+      :loading="isChartLoading"
       @update:queryParams="onChangeQuery"
     />
 
@@ -92,10 +93,10 @@ import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInp
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
+import ChartData from './components/MeasurementsChart/ChartData'
 import ChartColumnSize from './types/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
-import URLQuery from './types/URLQuery'
-import ChartData from './components/MeasurementsChart/ChartData'
+import URLQuery, { URLQueryStations } from './types/URLQuery'
 
 const today: string = _toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
@@ -198,7 +199,6 @@ export default class ViewMeasurements extends Vue {
   private get chartCols (): ChartColumnSize|0 {
     return this.urlQuery.chart_cols || 0
   }
-
   private set chartCols (cols: ChartColumnSize|0) {
     this.urlQuery = {
       ...this.urlQuery,
@@ -317,26 +317,31 @@ export default class ViewMeasurements extends Vue {
       dateStart = +_date.year(_date.year() - 1)
     }
 
-    const promise_measurementsByCities = this.fetchMeasurements({
-      city: this.urlQuery.cities,
-      date_from: _toURLStringDate(dateStart),
-      date_to: this.urlQuery.date_end || '',
-      process: MeasurementProcesses.city_day_mad,
-      sort_by: 'asc(pollutant),asc(date)',
-    })
+    const promises = []
 
-    const promise_measurementsByStations = this.fetchMeasurements({
-      city: this.urlQuery.cities,
-      date_from: _toURLStringDate(dateStart),
-      date_to: this.urlQuery.date_end || '',
-      process: MeasurementProcesses.station_day_mad,
-      sort_by: 'asc(pollutant),asc(date)',
-    })
+    promises.push(
+      this.fetchMeasurements({
+        city: this.urlQuery.cities,
+        date_from: _toURLStringDate(dateStart),
+        date_to: this.urlQuery.date_end || '',
+        process: MeasurementProcesses.city_day_mad,
+        sort_by: 'asc(pollutant),asc(date)',
+      })
+    )
 
-    const [err, arrays] = await to<Measurement[][]>(Promise.all([
-      promise_measurementsByCities,
-      promise_measurementsByStations,
-    ]))
+    if (this.filterStations.length) {
+      promises.push(
+        this.fetchMeasurements({
+          city: this.urlQuery.cities,
+          date_from: _toURLStringDate(dateStart),
+          date_to: this.urlQuery.date_end || '',
+          process: MeasurementProcesses.station_day_mad,
+          sort_by: 'asc(pollutant),asc(date)',
+        })
+      )
+    }
+
+    const [err, arrays = []] = await to<Measurement[][]>(Promise.all(promises))
 
     if (err) {
       this.$dialog.notify.error(
@@ -345,8 +350,8 @@ export default class ViewMeasurements extends Vue {
       throw err
     }
 
-    const measurementsByCities = arrays?.[0] || []
-    const measurementsByStations = arrays?.[1] || []
+    const measurementsByCities = arrays[0] || []
+    const measurementsByStations = arrays[1] || []
     const measurements = measurementsByCities.concat(measurementsByStations)
 
     const pollutantsMap = measurementsByCities
@@ -430,7 +435,9 @@ export default class ViewMeasurements extends Vue {
     const allStations = chartData.stations
     let visibleStations = (this.urlQuery.stations || [])
       .filter(id => allStations.find((p) => p.id === id))
-    // if (!visibleStations.length) visibleStations = allStations.map(i => i.id)
+    if (this.urlQuery.stations?.[0] === URLQueryStations.all) {
+      visibleStations = allStations.map(i => i.id)
+    }
 
     this.chartData = chartData
     this.urlQuery = {
@@ -465,18 +472,17 @@ export default class ViewMeasurements extends Vue {
   }
 
   private onChangeQuery (query: URLQuery) {
-    const oldIds = [...this.urlQuery.cities]
-      .sort((a, b) => a.localeCompare(b))
-      .join(',')
-    const newIds = [...query.cities]
-      .sort((a, b) => a.localeCompare(b))
-      .join(',')
-    const citiesChanged = oldIds !== newIds
+    const citiesOld = [...this.urlQuery.cities].sort().join(',')
+    const citiesNew = [...query.cities].sort().join(',')
+    const citiesChanged = citiesOld !== citiesNew
     if (citiesChanged) query.sources = []
+
+    const stationsChanged = query.stations?.[0] === URLQueryStations.all
 
     const needRefresh = query.date_start !== this.urlQuery.date_start ||
       query.date_end !== this.urlQuery.date_end ||
-      citiesChanged
+      citiesChanged ||
+      stationsChanged
 
     this.urlQuery = query
 

@@ -118,6 +118,7 @@
           id="stations-switch"
           class="d-inline-flex ml-2 mt-0 pt-0"
           v-model="_isShowStations"
+          :disabled="loading"
           color="primary"
           hide-details
           dense
@@ -133,6 +134,7 @@
           :value="group.selected"
           :items="group.stations"
           :label="group.city.name"
+          :disabled="loading"
           item-text="label"
           item-value="id"
           has-select-all
@@ -158,7 +160,7 @@ import Station from '@/entities/Station'
 import City from '@/entities/City'
 import RunningAverageEnum from '../types/RunningAverageEnum'
 import ChartColumnSize, { CHART_COLUMN_SIZES } from '../types/ChartColumnSize'
-import URLQuery from '../types/URLQuery'
+import URLQuery, { URLQueryStations } from '../types/URLQuery'
 import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
 import ChartData from './MeasurementsChart/ChartData'
 import MeasurementsChart from './MeasurementsChart/MeasurementsChart.vue'
@@ -191,6 +193,9 @@ export default class MeasurementsRightDrawer extends Vue {
   @Prop({type: Object, required: true})
   readonly chartData!: ChartData
 
+  @Prop({type: Boolean, default: false})
+  readonly loading!: boolean
+
   private forceShowStationsSelect: boolean = false
 
   private get displayMode (): ChartDisplayModes {
@@ -211,9 +216,18 @@ export default class MeasurementsRightDrawer extends Vue {
     return this.forceShowStationsSelect || !!this.queryParams.stations?.length
   }
   private set _isShowStations (value: boolean) {
-    const visibleStations = value
-      ? this.chartData.stations.map(i => i.id)
-      : []
+    let visibleStations: Station['id'][]
+
+    if (value) {
+      if (this.chartData.stations?.length) {
+        visibleStations = this.chartData.stations.map(i => i.id)
+      } else {
+        visibleStations = [URLQueryStations.all]
+      }
+    } else {
+      visibleStations = []
+    }
+
     this.forceShowStationsSelect = value
     this.onChangeForm('stations', visibleStations)
   }
@@ -240,7 +254,6 @@ export default class MeasurementsRightDrawer extends Vue {
 
     return map
   }
-
 
   private get CHART_SIZE_VALUES (): {min: number, max: number} {
     return {
