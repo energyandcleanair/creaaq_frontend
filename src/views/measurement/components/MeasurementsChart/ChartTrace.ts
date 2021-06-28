@@ -1,6 +1,6 @@
 export default interface ChartTrace {
   x: (number|Date)[]
-  y: number[]
+  y: (number|null)[]
   type: string
   name: string
 

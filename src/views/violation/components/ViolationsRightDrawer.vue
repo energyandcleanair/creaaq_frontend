@@ -90,7 +90,7 @@
 import _difference from 'lodash.difference'
 import moment from 'moment'
 import { Component, Prop, Vue, Emit } from 'vue-property-decorator'
-import { _toURLStringDate, _toNumberDate } from '@/helpers'
+import { toURLStringDate, toNumberDate } from '@/utils'
 import PageDrawer from '@/components/PageDrawer.vue'
 import Pollutant from '@/entities/Pollutant'
 import Organization from '@/entities/Organization'
@@ -122,7 +122,7 @@ export default class ViolationsRightDrawer extends Vue {
       const date = moment(0).year(year)
       years.push({
         label: date.year().toString(),
-        value: _toURLStringDate(+date),
+        value: toURLStringDate(+date),
       })
       year--
     }

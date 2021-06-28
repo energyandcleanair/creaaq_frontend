@@ -66,7 +66,7 @@ import CityAPI from '@/api/CityAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import { _toURLStringDate, _toNumberDate, _toQueryString, URL_DATE_FORMAT } from '@/helpers'
+import { toURLStringDate, toNumberDate, toQueryString, URL_DATE_FORMAT } from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
@@ -101,7 +101,7 @@ export default class ViewViolations extends Vue {
     const targets = Array.isArray(q.targets) ? q.targets : [q.targets]
     const organizations = Array.isArray(q.organizations) ? q.organizations : [q.organizations]
     const date_start = q.date_start
-      ? _toURLStringDate(q.date_start as string)
+      ? toURLStringDate(q.date_start as string)
       : ''
 
     return {
@@ -190,7 +190,7 @@ export default class ViewViolations extends Vue {
     const urlQuery = {...this.urlQuery}
 
     if (!urlQuery.date_start) {
-      urlQuery.date_start = _toURLStringDate(JAN_1)
+      urlQuery.date_start = toURLStringDate(JAN_1)
     }
 
     Object.assign(this.urlQuery, urlQuery)
@@ -331,7 +331,7 @@ export default class ViewViolations extends Vue {
       date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT)
     }
 
-    const [err, items] = await to(ViolationAPI.findAll(_toQueryString(q)))
+    const [err, items] = await to(ViolationAPI.findAll(toQueryString(q)))
     if (err) {
       this.$dialog.notify.error(
         err?.message || ''+this.$t('msg.something_went_wrong')

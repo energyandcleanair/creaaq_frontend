@@ -113,7 +113,7 @@ import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
 import ChartTrace from './ChartTrace'
 import ChartTracePoint from './ChartTracePoint'
-import { URL_DATE_FORMAT, _toNumberDate } from '@/helpers'
+import { URL_DATE_FORMAT, toNumberDate, computeMovingAverage } from '@/utils'
 import ChartData from './ChartData'
 
 const COL_ID_DIVIDER = '--'
@@ -139,7 +139,7 @@ export default class MeasurementsChart extends Vue {
   public readonly cols?: ChartColumnSize
 
   @Prop({default: ChartDisplayModes.NORMAL})
-  public readonly displayMode!: ChartDisplayModes
+  public readonly chartDisplayMode!: ChartDisplayModes
 
   @Prop({type: String})
   public readonly runningAverage?: RunningAverageEnum
@@ -181,6 +181,10 @@ export default class MeasurementsChart extends Vue {
       this.displayMode !== ChartDisplayModes.SUPERIMPOSED_YEARS
   }
 
+  private get displayMode (): ChartDisplayModes {
+    return this.chartDisplayMode || ChartDisplayModes.NORMAL
+  }
+
   private get _cols (): number {
     const columns = !this.cols
       ? MeasurementsChart.getDefaultChartCols(this.$vuetify)
@@ -200,6 +204,7 @@ export default class MeasurementsChart extends Vue {
   }
 
   // TODO: to improve the performance we can separate the data and display opts
+  // TODO: add chaching of traces that were not updated
   private get chartsRows (): ChartRow[] {
     if (this.loading) return []
 
@@ -344,9 +349,9 @@ export default class MeasurementsChart extends Vue {
 
     const cityId: City['id'] = city.id
     const pollutantId = pollutant.id
-    const dateStart: number = _toNumberDate(this.queryParams.date_start || '') || 0
+    const dateStart: number = toNumberDate(this.queryParams.date_start || '') || 0
     const dateStartYear: number = moment(dateStart).year()
-    const dateEnd: number = _toNumberDate(this.queryParams.date_end || '') || 0
+    const dateEnd: number = toNumberDate(this.queryParams.date_end || '') || 0
     const rangeBox: RangeBox = {
       x0: -Infinity,
       y0: -Infinity,
@@ -453,13 +458,14 @@ export default class MeasurementsChart extends Vue {
           trace.y.push(point.y)
         }
 
-        if (this.runningAverage
-          && RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1
-          && pointsGroup.length
+        if (this.runningAverage &&
+          RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
+          pointsGroup.length
         ) {
           const days = RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] || 1
-          trace.x = _stretchArray(trace.x, days)
-          trace.y = _computeMovingAverage(trace.y, days)
+          const avg = computeMovingAverage(trace.x, trace.y, days)
+          trace.x = avg.dates
+          trace.y = avg.values
         }
 
         // cut the dates over the frame [dateStart, dateEnd]
@@ -656,8 +662,8 @@ function _alignColsGridRange (
     dateStart = +$dateStart.month(0).date(1)
     dateEnd = +moment(dates.dateEnd).year($dateStart.year()).month(11).date(31)
   } else {
-    dateStart = _toNumberDate(dates.dateStart || '') || 0
-    dateEnd = _toNumberDate(dates.dateEnd || '') || 0
+    dateStart = toNumberDate(dates.dateStart || '') || 0
+    dateEnd = toNumberDate(dates.dateEnd || '') || 0
   }
 
   const generalRangeX = [
@@ -688,41 +694,6 @@ function _genChartMargins (
     t: 10,
     pad: 0,
   }
-}
-
-function _getAverage (arr: any[]): number {
-  return arr.reduce((acc, val) => acc + val, 0) / arr.length
-}
-
-function _computeMovingAverage (arr: any[], period: number): number[] {
-  const movingAverages = []
-
-  // if the period is greater than the length of the dataset
-  // then return the average of the whole dataset
-  if (period > arr.length) {
-    return [_getAverage(arr)]
-  }
-  for (let x = 0; x + period - 1 < arr.length; x += 1) {
-    movingAverages.push(_getAverage(arr.slice(x, x + period)))
-  }
-  return movingAverages
-}
-
-function _stretchArray (arr: any[], period: number): number[] {
-  const newArr = []
-
-  const first = arr[0]
-  const last = arr[arr.length - 1]
-  const newLength = arr.length - period
-  const average = (last - first) / newLength
-  newArr.push(first)
-
-  for (let i = 1; i < newLength; i++) {
-    newArr.push(first + (i * average))
-  }
-
-  newArr.push(last)
-  return newArr
 }
 
 function _genRangeBox (items: any): RangeBox {

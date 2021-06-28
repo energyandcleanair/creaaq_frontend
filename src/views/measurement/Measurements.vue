@@ -14,14 +14,14 @@
 
       <v-col cols="12" sm="6" md="4">
         <DatesIntervalInput
-          :dateStart="_toNumberDate(urlQuery.date_start)"
-          :dateEnd="_toNumberDate(urlQuery.date_end)"
+          :dateStart="toNumberDate(urlQuery.date_start)"
+          :dateEnd="toNumberDate(urlQuery.date_end)"
           format="YYYY-MM-DD"
           :disabled="isLoading"
           @input="onChangeQuery({
             ...urlQuery,
-            date_start: _toURLStringDate($event.dateStart),
-            date_end: _toURLStringDate($event.dateEnd),
+            date_start: toURLStringDate($event.dateStart),
+            date_end: toURLStringDate($event.dateEnd),
           })"
         />
       </v-col>
@@ -61,7 +61,7 @@
       :queryParams="urlQuery"
       :chartData="chartData"
       :cols.sync="chartCols"
-      :displayMode="displayMode"
+      :chartDisplayMode="displayMode"
       :runningAverage="runningAverage"
       :displayStations="true"
       :filterSources="filterSources"
@@ -78,7 +78,7 @@ import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
 import { Component, Vue } from 'vue-property-decorator'
-import { URL_DATE_FORMAT, _toURLStringDate, _toNumberDate, _toQueryString } from '@/helpers'
+import { URL_DATE_FORMAT, toURLStringDate, toNumberDate, toQueryString } from '@/utils'
 import { ModuleState } from '@/store'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
@@ -98,7 +98,7 @@ import ChartColumnSize from './types/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
 import URLQuery, { URLQueryStations } from './types/URLQuery'
 
-const today: string = _toURLStringDate(moment().format(URL_DATE_FORMAT))
+const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
 
 @Component({
@@ -129,10 +129,10 @@ export default class ViewMeasurements extends Vue {
     const pollutants = Array.isArray(q.pollutants) ? q.pollutants : [q.pollutants]
     const stations = Array.isArray(q.stations) ? q.stations : [q.stations]
     const date_start = q.date_start
-      ? _toURLStringDate(q.date_start as string)
+      ? toURLStringDate(q.date_start as string)
       : ''
     const date_end = q.date_end
-      ? _toURLStringDate(q.date_end as string)
+      ? toURLStringDate(q.date_end as string)
       : ''
 
     return {
@@ -155,10 +155,10 @@ export default class ViewMeasurements extends Vue {
       ...queryForm,
     }
     const date_start = queryForm.date_start
-      ? _toURLStringDate(queryForm.date_start)
+      ? toURLStringDate(queryForm.date_start)
       : ''
     const date_end = queryForm.date_end
-      ? _toURLStringDate(queryForm.date_end)
+      ? toURLStringDate(queryForm.date_end)
       : ''
 
     if (date_start) query.date_start = date_start
@@ -275,11 +275,11 @@ export default class ViewMeasurements extends Vue {
     }
 
     if (!urlQuery.date_start) {
-      urlQuery.date_start = _toURLStringDate(JAN_1__THREE_YEARS_AGO)
+      urlQuery.date_start = toURLStringDate(JAN_1__THREE_YEARS_AGO)
     }
 
     if (!urlQuery.date_end) {
-      urlQuery.date_end = _toURLStringDate(today)
+      urlQuery.date_end = toURLStringDate(today)
     }
 
     Object.assign(this.urlQuery, urlQuery)
@@ -308,7 +308,7 @@ export default class ViewMeasurements extends Vue {
       }
     }
 
-    let dateStart = _toNumberDate(this.urlQuery.date_start || '0')
+    let dateStart = toNumberDate(this.urlQuery.date_start || '0')
 
     // shift the queried 'from' date by 1 year ago
     // so the running average display well
@@ -322,7 +322,7 @@ export default class ViewMeasurements extends Vue {
     promises.push(
       this.fetchMeasurements({
         city: this.urlQuery.cities,
-        date_from: _toURLStringDate(dateStart),
+        date_from: toURLStringDate(dateStart),
         date_to: this.urlQuery.date_end || '',
         process: MeasurementProcesses.city_day_mad,
         sort_by: 'asc(pollutant),asc(date)',
@@ -333,7 +333,7 @@ export default class ViewMeasurements extends Vue {
       promises.push(
         this.fetchMeasurements({
           city: this.urlQuery.cities,
-          date_from: _toURLStringDate(dateStart),
+          date_from: toURLStringDate(dateStart),
           date_to: this.urlQuery.date_end || '',
           process: MeasurementProcesses.station_day_mad,
           sort_by: 'asc(pollutant),asc(date)',
@@ -460,7 +460,7 @@ export default class ViewMeasurements extends Vue {
     }
   ): Promise<Measurement[]> {
 
-    const [err, items] = await to(MeasurementAPI.findAll(_toQueryString(query)))
+    const [err, items] = await to(MeasurementAPI.findAll(toQueryString(query)))
     if (err) {
       this.$dialog.notify.error(
         err?.message || ''+this.$t('msg.something_went_wrong')
@@ -500,11 +500,11 @@ export default class ViewMeasurements extends Vue {
     return _sources[0]
   }
 
-  private _toURLStringDate (d: number): string {
-    return _toURLStringDate(d)
+  private toURLStringDate (d: number): string {
+    return toURLStringDate(d)
   }
-  private _toNumberDate (d: string): number {
-    return _toNumberDate(d)
+  private toNumberDate (d: string): number {
+    return toNumberDate(d)
   }
 }
 </script>
