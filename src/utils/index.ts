@@ -8,12 +8,12 @@ export {
 }
 
 export const toURLStringDate = (d: string|number): string => typeof d === 'string'
-  ? d === '0' ? '0' : moment(d, URL_DATE_FORMAT).format(URL_DATE_FORMAT)
-  : d === 0 ? '0' : moment(+d).format(URL_DATE_FORMAT)
+  ? d === '0' ? '0' : moment.utc(d, URL_DATE_FORMAT).format(URL_DATE_FORMAT)
+  : d === 0 ? '0' : moment.utc(+d).format(URL_DATE_FORMAT)
 
 export const toNumberDate = (d: string): number => d === '0'
   ? 0
-  : moment(d, URL_DATE_FORMAT).valueOf()
+  : moment.utc(d, URL_DATE_FORMAT).valueOf()
 
 export const toQueryString = (obj: {[key: string]: any}): string => {
   const searchParams = new URLSearchParams()

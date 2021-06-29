@@ -1,6 +1,3 @@
-// import moment from 'moment'
-// import { shallowMount, Wrapper } from '@vue/test-utils'
-// import DatesRangeInput from './DatesIntervalInput.vue'
 import moment from 'moment'
 import { getAverage } from '../index'
 import computeMovingAverage, { fillGapsInDatesArray } from './computeMovingAverage'

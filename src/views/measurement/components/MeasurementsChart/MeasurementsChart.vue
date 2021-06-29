@@ -117,6 +117,8 @@ import { URL_DATE_FORMAT, toNumberDate, computeMovingAverage } from '@/utils'
 import ChartData from './ChartData'
 
 const COL_ID_DIVIDER = '--'
+const PRIMARY_LINE_STYLE = {color: '#35426c', width: 2}
+const SECONDARY_LINE_STYLE = {color: '#ddd', width: 1}
 
 interface MapFilter {
   [id: string]: number
@@ -373,10 +375,8 @@ export default class MeasurementsChart extends Vue {
         }
         case MeasurementProcesses.station_day_mad: {
           if (!this._isDisplayStations) continue
-
           const stationId = measurement.location_id
           if (!filterStations.includes(stationId)) continue
-
           traceId = stationId
           break
         }
@@ -394,15 +394,7 @@ export default class MeasurementsChart extends Vue {
 
       if (!matchCity || !matchPollutant || !matchSource) continue
 
-      const $origDate = moment(measurement.date)
-      const $date = moment(measurement.date)
-
-      if (this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
-        if (+$date < dateStart) continue
-        $date.year(dateStartYear)
-      }
-
-      const x = $date.valueOf()
+      const x = +new Date(measurement.date)
       const y = measurement.value
 
       if (rangeBox.x0 === -Infinity || x < rangeBox.x0) rangeBox.x0 = x
@@ -411,71 +403,86 @@ export default class MeasurementsChart extends Vue {
       if (rangeBox.y1 === Infinity || y > rangeBox.y1) rangeBox.y1 = y
 
       if (!tracesMap[traceId]) tracesMap[traceId] = []
-      tracesMap[traceId].push({x, y, $date, $origDate})
+      tracesMap[traceId].push({x, y})
     }
 
-    let primaryColorUsed = false
     const traces: ChartTrace[] = []
 
     for (const traceId in tracesMap) {
-      const points = tracesMap[traceId]
+      const tracePoints = tracesMap[traceId]
       const isMainLine = traceId === cityId
+      const hovertemplate = `%{y:.0f} ${pollutant.unit || ''}<br>%{x}` + (isMainLine
+        ? `<br><b>${this.$t('city')}:</b> ${city.name}`
+        : `<br><b>${this.$t('station')}:</b> ${traceId}`
+      )
 
-      // draw multiple lines for SUPERIMPOSED_YEARS mode
-      const pointsGroupMap: {
-        [index: string]: ChartTracePoint[]
-      } = this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS
-        ? _groupBy(points, point => point.$origDate.year())
-        : {'0': points}
+      const trace: ChartTrace = {
+        x: [],
+        y: [],
+        zIndex: isMainLine ? 1000 : 1,
+        type: 'scatter',
+        mode: 'lines',
+        name: '',
+        line: isMainLine ? PRIMARY_LINE_STYLE : SECONDARY_LINE_STYLE,
+        hovertemplate,
+      }
 
-      for (const key in pointsGroupMap) {
-        const pointsGroup = pointsGroupMap[key]
-        let hovertemplate = `%{y:.0f} ${pollutant.unit || ''}<br>%{x}`
+      for (const point of tracePoints) {
+        trace.x.push(point.x)
+        trace.y.push(point.y)
+      }
 
-        if (isMainLine) {
-          hovertemplate += `<br><b>${this.$t('city')}:</b> ${city.name}`
-        } else {
-          hovertemplate += `<br><b>${this.$t('station')}:</b> ${traceId}`
+      if (this.runningAverage &&
+        RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
+        tracePoints.length
+      ) {
+        const days = RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] || 1
+        const avg = computeMovingAverage(trace.x, trace.y, days)
+        trace.x = avg.dates
+        trace.y = avg.values
+      }
+
+      // cut the dates over the frame [dateStart, dateEnd]
+      let indexStart: number = trace.x.findIndex(x => x > dateStart)
+      if (indexStart < 0) indexStart = 0
+      let indexEnd: number|undefined = trace.x.findIndex(x => x >= dateEnd)
+      if (indexEnd === -1) indexEnd = undefined
+      trace.x = trace.x.slice(indexStart, indexEnd)
+      trace.y = trace.y.slice(indexStart, indexEnd)
+
+      // cut the trace into traces by year and overlap each other
+      if (this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
+        const tracesMapByYear: {[year: number]: ChartTrace} = {}
+        let primaryColorUsed = false
+
+        for (const _i in trace.x) {
+          const i = +_i
+          const x = trace.x[i]
+          const y = trace.y[i]
+          const $date = new Date((x as number) - 1)
+          const year = $date.getUTCFullYear()
+
+          if (!tracesMapByYear[year]) {
+            tracesMapByYear[year] = {
+              ...trace,
+              x: [],
+              y: [],
+              name: year,
+              line: isMainLine
+                ? primaryColorUsed ? undefined : PRIMARY_LINE_STYLE
+                : SECONDARY_LINE_STYLE,
+            }
+
+            if (isMainLine && !primaryColorUsed) primaryColorUsed = true
+          }
+
+          const new_x = +$date.setUTCFullYear(dateStartYear)
+          tracesMapByYear[year].x.push(new_x)
+          tracesMapByYear[year].y.push(y)
         }
 
-        let trace: ChartTrace = {
-          x: [],
-          y: [],
-          zIndex: isMainLine ? 1000 : 1,
-          type: 'scatter',
-          mode: 'lines',
-          name: pointsGroup[0]?.$origDate.format('YYYY'),
-          line: isMainLine
-            ? primaryColorUsed ? undefined : {color: '#35426c'}
-            : {color: '#ddd', width: 1},
-          hovertemplate,
-        }
-
-        if (isMainLine && !primaryColorUsed) primaryColorUsed = true
-
-        for (const point of pointsGroup) {
-          trace.x.push(point.x)
-          trace.y.push(point.y)
-        }
-
-        if (this.runningAverage &&
-          RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
-          pointsGroup.length
-        ) {
-          const days = RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] || 1
-          const avg = computeMovingAverage(trace.x, trace.y, days)
-          trace.x = avg.dates
-          trace.y = avg.values
-        }
-
-        // cut the dates over the frame [dateStart, dateEnd]
-        let indexStart: number = trace.x.findIndex(x => x > dateStart) - 1
-        if (indexStart < 0) indexStart = 0
-        let indexEnd: number|undefined = trace.x.findIndex(x => x > dateEnd)
-        if (indexEnd === -1) indexEnd = undefined
-        trace.x = trace.x.slice(indexStart, indexEnd)
-        trace.y = trace.y.slice(indexStart, indexEnd)
-
+        traces.push(...Object.values(tracesMapByYear))
+      } else {
         traces.push(trace)
       }
     }
@@ -610,13 +617,6 @@ export default class MeasurementsChart extends Vue {
       },
       yaxis: {
         visible: !isEmpty,
-
-        // TODO: do we need that?
-        // title: first ? pollutant.unit : undefined,
-        // titlefont: {
-        //   size: font,
-        //   color: '#bbb',
-        // },
         tickfont: {
           size: font,
           color: '#212121',
