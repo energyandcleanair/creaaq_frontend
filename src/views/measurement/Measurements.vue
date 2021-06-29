@@ -317,22 +317,26 @@ export default class ViewMeasurements extends Vue {
       }
     }
 
-    let dateStart = toNumberDate(this.urlQuery.date_start || '0')
+    let _dateStart: number = toNumberDate(this.urlQuery.date_start || '0')
 
     // shift the queried 'from' date by 1 year ago
     // so the running average display well
-    if ((dateStart || 0) > 0) {
-      const _date = moment(dateStart)
-      dateStart = +_date.year(_date.year() - 1)
+    if ((_dateStart || 0) > 0) {
+      const _date = moment(_dateStart)
+      _dateStart = +_date.year(_date.year() - 1)
     }
+    const dateStart = _dateStart ? toURLStringDate(_dateStart) : undefined
+    const dateEnd = this.urlQuery.date_end === '0'
+      ? undefined
+      : this.urlQuery.date_end
 
     const promises = []
 
     promises.push(
       this.fetchMeasurements({
         city: this.urlQuery.cities,
-        date_from: toURLStringDate(dateStart),
-        date_to: this.urlQuery.date_end || '',
+        date_from: dateStart,
+        date_to: dateEnd,
         process: MeasurementProcesses.city_day_mad,
         sort_by: 'asc(pollutant),asc(date)',
       })
@@ -342,8 +346,8 @@ export default class ViewMeasurements extends Vue {
       promises.push(
         this.fetchMeasurements({
           city: this.urlQuery.cities,
-          date_from: toURLStringDate(dateStart),
-          date_to: this.urlQuery.date_end || '',
+          date_from: dateStart,
+          date_to: dateEnd,
           process: MeasurementProcesses.station_day_mad,
           sort_by: 'asc(pollutant),asc(date)',
         })

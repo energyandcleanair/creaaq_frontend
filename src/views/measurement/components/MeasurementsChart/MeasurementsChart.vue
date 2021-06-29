@@ -347,7 +347,7 @@ export default class MeasurementsChart extends Vue {
     const cityId: City['id'] = city.id
     const pollutantId = pollutant.id
     const dateStart: number = toNumberDate(this.queryParams.date_start || '') || 0
-    const dateStartYear: number = moment(dateStart).year()
+    const dateStartYear: number = dateStart ? moment(dateStart).year() : 0
     const dateEnd: number = toNumberDate(this.queryParams.date_end || '') || 0
     let rangeBox: RangeBox = {
       x0: -Infinity,
@@ -435,15 +435,11 @@ export default class MeasurementsChart extends Vue {
         trace.y = avg.values
       }
 
-      // cut the dates over the frame [dateStart, dateEnd]
-      let indexStart: number = trace.x.findIndex(x => x > dateStart)
-      if (indexStart < 0) indexStart = 0
-      let indexEnd: number|undefined = trace.x.findIndex(x => x >= dateEnd)
-      if (indexEnd === -1) indexEnd = undefined
-      trace.x = trace.x.slice(indexStart, indexEnd)
-      trace.y = trace.y.slice(indexStart, indexEnd)
+      const cutTrace = _cutTracePointsOverDatesFrame(trace, dateStart, dateEnd)
+      trace.x = cutTrace.x
+      trace.y = cutTrace.y
 
-      // cut the trace into traces by year and overlap each other
+      // split the trace into traces by year and overlap each other
       if (this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
         const tracesMapByYear: {[year: number]: ChartTrace} = {}
         let primaryColorUsed = false
@@ -654,7 +650,8 @@ function _alignColsGridRange (
   if (displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
     const $dateStart = moment(dates.dateStart, URL_DATE_FORMAT)
     dateStart = +$dateStart.month(0).date(1)
-    dateEnd = +moment(dates.dateEnd).year($dateStart.year()).month(11).date(31)
+    dateEnd = +moment(dates.dateEnd, URL_DATE_FORMAT)
+      .year($dateStart.year()).month(11).date(31)
   } else {
     dateStart = toNumberDate(dates.dateStart || '') || 0
     dateEnd = toNumberDate(dates.dateEnd || '') || 0
@@ -672,6 +669,30 @@ function _alignColsGridRange (
   }
 
   return newCols
+}
+
+function _cutTracePointsOverDatesFrame (
+  trace: ChartTrace,
+  dateStart: number,
+  dateEnd: number
+): ChartTrace {
+
+  let indexStart: number|undefined = dateStart
+    ? trace.x.findIndex(x => x > dateStart)
+    : undefined
+  if (typeof indexStart === 'number' && indexStart < 0) indexStart = 0
+
+  let indexEnd: number|undefined = dateEnd
+    ? trace.x.findIndex(x => x >= dateEnd)
+    : undefined
+  if (indexEnd === -1) indexEnd = undefined
+
+  if (indexStart === undefined && indexEnd === undefined) return trace
+
+  const newTrace: ChartTrace = {...trace, x: [], y: []}
+  newTrace.x = trace.x.slice(indexStart, indexEnd)
+  newTrace.y = trace.y.slice(indexStart, indexEnd)
+  return newTrace
 }
 
 function _genChartMargins (
