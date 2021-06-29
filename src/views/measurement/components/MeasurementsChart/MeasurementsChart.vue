@@ -178,11 +178,6 @@ export default class MeasurementsChart extends Vue {
     return this.queryParams.cities?.length === 1
   }
 
-  private get _isDisplayStations (): boolean {
-    return this.displayStations &&
-      this.displayMode !== ChartDisplayModes.SUPERIMPOSED_YEARS
-  }
-
   private get displayMode (): ChartDisplayModes {
     return this.chartDisplayMode || ChartDisplayModes.NORMAL
   }
@@ -288,7 +283,7 @@ export default class MeasurementsChart extends Vue {
         title: pollutant.label,
         subtitle: pollutant.unit,
         cols,
-        rangeBox: _genRangeBox(cols),
+        rangeBox: _mergeItemsRangeBoxes(cols, 'rangeBox'),
       }
 
       // align the charts margins and legends
@@ -354,7 +349,7 @@ export default class MeasurementsChart extends Vue {
     const dateStart: number = toNumberDate(this.queryParams.date_start || '') || 0
     const dateStartYear: number = moment(dateStart).year()
     const dateEnd: number = toNumberDate(this.queryParams.date_end || '') || 0
-    const rangeBox: RangeBox = {
+    let rangeBox: RangeBox = {
       x0: -Infinity,
       y0: -Infinity,
       x1: Infinity,
@@ -374,7 +369,7 @@ export default class MeasurementsChart extends Vue {
           break
         }
         case MeasurementProcesses.station_day_mad: {
-          if (!this._isDisplayStations) continue
+          if (!this.displayStations) continue
           const stationId = measurement.location_id
           if (!filterStations.includes(stationId)) continue
           traceId = stationId
@@ -397,11 +392,6 @@ export default class MeasurementsChart extends Vue {
       const x = +new Date(measurement.date)
       const y = measurement.value
 
-      if (rangeBox.x0 === -Infinity || x < rangeBox.x0) rangeBox.x0 = x
-      if (rangeBox.x1 === Infinity || x > rangeBox.x1) rangeBox.x1 = x
-      if (rangeBox.y0 === -Infinity || y < rangeBox.y0) rangeBox.y0 = y
-      if (rangeBox.y1 === Infinity || y > rangeBox.y1) rangeBox.y1 = y
-
       if (!tracesMap[traceId]) tracesMap[traceId] = []
       tracesMap[traceId].push({x, y})
     }
@@ -411,6 +401,9 @@ export default class MeasurementsChart extends Vue {
     for (const traceId in tracesMap) {
       const tracePoints = tracesMap[traceId]
       const isMainLine = traceId === cityId
+      const isCalcRunningAverage = this.runningAverage &&
+        RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
+        tracePoints.length
       const hovertemplate = `%{y:.0f} ${pollutant.unit || ''}<br>%{x}` + (isMainLine
         ? `<br><b>${this.$t('city')}:</b> ${city.name}`
         : `<br><b>${this.$t('station')}:</b> ${traceId}`
@@ -428,15 +421,15 @@ export default class MeasurementsChart extends Vue {
       }
 
       for (const point of tracePoints) {
+        rangeBox = _extendRangeBox(rangeBox, point.x, point.y)
         trace.x.push(point.x)
         trace.y.push(point.y)
       }
 
-      if (this.runningAverage &&
-        RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
-        tracePoints.length
-      ) {
-        const days = RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] || 1
+      if (isCalcRunningAverage) {
+        const days = RUNNING_AVERAGE_DAYS_MAP[
+          this.runningAverage || RunningAverageEnum['1d']
+        ] || 1
         const avg = computeMovingAverage(trace.x, trace.y, days)
         trace.x = avg.dates
         trace.y = avg.values
@@ -463,13 +456,14 @@ export default class MeasurementsChart extends Vue {
           const year = $date.getUTCFullYear()
 
           if (!tracesMapByYear[year]) {
+            const mainLineColor = primaryColorUsed ? '' : PRIMARY_LINE_STYLE.color
             tracesMapByYear[year] = {
               ...trace,
               x: [],
               y: [],
               name: year,
               line: isMainLine
-                ? primaryColorUsed ? undefined : PRIMARY_LINE_STYLE
+                ? {...PRIMARY_LINE_STYLE, color: mainLineColor}
                 : SECONDARY_LINE_STYLE,
             }
 
@@ -696,7 +690,11 @@ function _genChartMargins (
   }
 }
 
-function _genRangeBox (items: any): RangeBox {
+function _mergeItemsRangeBoxes (
+  items: any,
+  propName: string = 'rangeBox'
+): RangeBox {
+
   const rangeBox: RangeBox = {
     x0: -Infinity,
     y0: -Infinity,
@@ -705,10 +703,10 @@ function _genRangeBox (items: any): RangeBox {
   }
 
   for (const item of items) {
-    const x0 = _get(item, 'rangeBox.x0')
-    const y0 = _get(item, 'rangeBox.y0')
-    const x1 = _get(item, 'rangeBox.x1')
-    const y1 = _get(item, 'rangeBox.y1')
+    const x0 = _get(item, `${propName}.x0`)
+    const y0 = _get(item, `${propName}.y0`)
+    const x1 = _get(item, `${propName}.x1`)
+    const y1 = _get(item, `${propName}.y1`)
 
     if (rangeBox.x0 === -Infinity || x0 < rangeBox.x0) rangeBox.x0 = x0
     if (rangeBox.x1 === Infinity || x1 > rangeBox.x1) rangeBox.x1 = x1
@@ -717,6 +715,17 @@ function _genRangeBox (items: any): RangeBox {
   }
 
   return rangeBox
+}
+
+function _extendRangeBox (rangeBox: RangeBox, x: number, y: number): RangeBox {
+  const _rangeBox = {...rangeBox}
+
+  if (_rangeBox.x0 === -Infinity || x < _rangeBox.x0) _rangeBox.x0 = x
+  if (_rangeBox.x1 === Infinity || x > _rangeBox.x1) _rangeBox.x1 = x
+  if (_rangeBox.y0 === -Infinity || y < _rangeBox.y0) _rangeBox.y0 = y
+  if (_rangeBox.y1 === Infinity || y > _rangeBox.y1) _rangeBox.y1 = y
+
+  return _rangeBox
 }
 
 function _valuePassesFilter (

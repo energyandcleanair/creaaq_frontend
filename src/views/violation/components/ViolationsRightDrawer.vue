@@ -90,7 +90,7 @@
 import _difference from 'lodash.difference'
 import moment from 'moment'
 import { Component, Prop, Vue, Emit } from 'vue-property-decorator'
-import { toURLStringDate, toNumberDate } from '@/utils'
+import { toURLStringDate } from '@/utils'
 import PageDrawer from '@/components/PageDrawer.vue'
 import Pollutant from '@/entities/Pollutant'
 import Organization from '@/entities/Organization'

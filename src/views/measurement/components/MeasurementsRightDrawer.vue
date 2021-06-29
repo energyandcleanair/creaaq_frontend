@@ -110,7 +110,11 @@
 
     <v-row no-gutters>
       <v-col class="subtitle-2 d-flex align-center" cols="12">
-        <label class="d-inline-flex" for="stations-switch">
+        <label
+          class="d-inline-flex"
+          :class="{'text-decoration-line-through': disabledStations}"
+          for="stations-switch"
+        >
           {{ $t('stations') }}
         </label>
 
@@ -118,7 +122,7 @@
           id="stations-switch"
           class="d-inline-flex ml-2 mt-0 pt-0"
           v-model="_isShowStations"
-          :disabled="loading"
+          :disabled="disabledStations || loading"
           color="primary"
           hide-details
           dense
@@ -134,7 +138,7 @@
           :value="group.selected"
           :items="group.stations"
           :label="group.city.name"
-          :disabled="loading"
+          :disabled="disabledStations || loading"
           item-text="label"
           item-value="id"
           has-select-all
@@ -196,6 +200,9 @@ export default class MeasurementsRightDrawer extends Vue {
   @Prop({type: Boolean, default: false})
   readonly loading!: boolean
 
+  @Prop({type: Boolean, default: false})
+  readonly disabledStations!: boolean
+
   private forceShowStationsSelect: boolean = false
 
   private get displayMode (): ChartDisplayModes {
@@ -213,6 +220,9 @@ export default class MeasurementsRightDrawer extends Vue {
   }
 
   private get _isShowStations (): boolean {
+    if (this.queryParams.display_mode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
+      return false
+    }
     return this.forceShowStationsSelect || !!this.queryParams.stations?.length
   }
   private set _isShowStations (value: boolean) {

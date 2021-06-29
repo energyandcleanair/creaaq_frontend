@@ -54,6 +54,7 @@
       :chartData="chartData"
       :open.sync="isRightPanelOpen"
       :loading="isChartLoading"
+      :disabledStations="false"
       @update:queryParams="onChangeQuery"
     />
 
@@ -63,7 +64,7 @@
       :cols.sync="chartCols"
       :chartDisplayMode="displayMode"
       :runningAverage="runningAverage"
-      :displayStations="true"
+      :displayStations="allowDisplayStations"
       :filterSources="filterSources"
       :filterPollutants="filterPollutants"
       :filterStations="filterStations"
@@ -196,6 +197,10 @@ export default class ViewMeasurements extends Vue {
     return this.urlQuery.running_average || null
   }
 
+  private get allowDisplayStations (): boolean {
+    return this.displayMode !== ChartDisplayModes.SUPERIMPOSED_YEARS
+  }
+
   private get chartCols (): ChartColumnSize|0 {
     return this.urlQuery.chart_cols || 0
   }
@@ -280,6 +285,10 @@ export default class ViewMeasurements extends Vue {
 
     if (!urlQuery.date_end) {
       urlQuery.date_end = toURLStringDate(today)
+    }
+
+    if (urlQuery.stations?.length) {
+      urlQuery.display_mode = ChartDisplayModes.NORMAL
     }
 
     Object.assign(this.urlQuery, urlQuery)
@@ -478,11 +487,19 @@ export default class ViewMeasurements extends Vue {
     if (citiesChanged) query.sources = []
 
     const stationsChanged = query.stations?.[0] === URLQueryStations.all
+    const displayModeChanged = query.display_mode !== this.urlQuery.display_mode
 
     const needRefresh = query.date_start !== this.urlQuery.date_start ||
       query.date_end !== this.urlQuery.date_end ||
       citiesChanged ||
       stationsChanged
+
+    if (displayModeChanged &&
+      query.display_mode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
+      query.stations = []
+    } else if (query.stations?.length) {
+      query.display_mode = ChartDisplayModes.NORMAL
+    }
 
     this.urlQuery = query
 
