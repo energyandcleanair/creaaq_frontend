@@ -94,10 +94,10 @@ import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _merge from 'lodash.merge'
 import _sortBy from 'lodash.sortby'
-import _groupBy from 'lodash.groupby'
+import _debounce from 'lodash.debounce'
 import moment from 'moment'
 import { Framework } from 'vuetify'
-import { Component, Vue, Prop } from 'vue-property-decorator'
+import { Component, Vue, Prop, Watch } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
 import Measurement, { MeasurementProcesses } from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
@@ -483,9 +483,10 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private onResize () {
-    this.resize()
-  }
+  @Watch('cols')
+  @Watch('runningAverage')
+  @Watch('chartDisplayMode')
+  private onResize = _debounce(() => this.resize(), 100)
 
   public resize () {
     for (const refId in this.$refs) {
