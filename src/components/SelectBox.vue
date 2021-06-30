@@ -11,13 +11,18 @@
 >
   <template v-slot:selection="{ item, index }">
     <v-chip v-if="index <= 0">
-      <span
-        v-html="typeof $props.itemText === 'function'
-          ? $props.itemText(item)
-          : item[$props.itemText || 'name']"
-      />
-      <span class="pl-1" v-if="$scopedSlots['item-subtext']">
-        <slot name="item-subtext" v-bind:item="item"/>
+      <span>
+        <slot name="item-title" v-bind:item="item">
+          <span
+            v-html="typeof $props.itemText === 'function'
+              ? $props.itemText(item)
+              : item[$props.itemText || 'name']"
+          />
+        </slot>
+      </span>
+
+      <span class="pl-1" v-if="$scopedSlots['item-subtitle']">
+        <slot name="item-subtitle" v-bind:item="item"/>
       </span>
     </v-chip>
     <span
@@ -53,13 +58,17 @@
       </v-list-item-action>
 
       <v-list-item-content>
-        <v-list-item-title
-          v-html="typeof $props.itemText === 'function'
-            ? $props.itemText(item)
-            : item[$props.itemText || 'name']"
-        />
-        <v-list-item-subtitle v-if="$scopedSlots['item-subtext']">
-          <slot name="item-subtext" v-bind:item="item"/>
+        <v-list-item-title>
+          <slot name="item-title" v-bind:item="item">
+            <span
+              v-html="typeof $props.itemText === 'function'
+                ? $props.itemText(item)
+                : item[$props.itemText || 'name']"
+            />
+          </slot>
+        </v-list-item-title>
+        <v-list-item-subtitle v-if="$scopedSlots['item-subtitle']">
+          <slot name="item-subtitle" v-bind:item="item"/>
         </v-list-item-subtitle>
       </v-list-item-content>
     </v-list-item>

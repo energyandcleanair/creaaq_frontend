@@ -66,7 +66,7 @@ import CityAPI from '@/api/CityAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import { toURLStringDate, toNumberDate, toQueryString, URL_DATE_FORMAT } from '@/utils'
+import { toURLStringDate, toQueryString, URL_DATE_FORMAT } from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
@@ -151,7 +151,7 @@ export default class ViewViolations extends Vue {
     const cities = await this.fetchCities()
     this.chartData.cities = cities
 
-    // set from cahce
+    // set from cache
     if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
       this.urlQuery = {
         ...this.urlQuery,
@@ -159,14 +159,14 @@ export default class ViewViolations extends Vue {
       }
     }
 
-    // filter only existing cities
     if (this.urlQuery.cities.length) {
+
+      // filter only existing cities
       const idsMap = this.urlQuery.cities
         .reduce((memo: {[id: string]: number}, id: City['id']) => {
           memo[id] = 1
           return memo
         }, {})
-
       const existingCities = cities.filter(city => idsMap[city.id])
 
       this.urlQuery = {
@@ -209,15 +209,15 @@ export default class ViewViolations extends Vue {
   }
 
   private async fetchChartData (): Promise<ChartData> {
-    if (!this.urlQuery?.cities.length) {
-      return {
+    const newChartData: ChartData = {
         cities: this.chartData.cities,
         violations: [],
         pollutants: [],
         organizations: [],
         targets: [],
       }
-    }
+
+    if (!this.urlQuery?.cities.length) return newChartData
 
     const promise = this.fetchViolations({
       city: this.urlQuery.cities,
@@ -284,14 +284,11 @@ export default class ViewViolations extends Vue {
       }, {})
     const organizations = _orderBy(Object.values(organizationsMap), 'id')
 
-    const chartData: ChartData = {
-      cities: this.chartData.cities,
-      violations,
-      pollutants,
-      organizations,
-      targets,
-    }
-    return chartData
+    newChartData.violations = violations
+    newChartData.pollutants = pollutants
+    newChartData.organizations = organizations
+    newChartData.targets = targets
+    return newChartData
   }
 
   private async refreshChartData (): Promise<void> {

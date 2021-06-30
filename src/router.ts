@@ -76,6 +76,14 @@ const routes: Array<RouteConfig> = [
     }
   },
   {
+    path: '/stations',
+    name: 'stations',
+    component: () => import(/* webpackChunkName: "stations" */ '@/views/station/Stations.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
     path: '/profile',
     name: 'profile',
     component: () => import(/* webpackChunkName: "profile" */ '@/views/profile/Profile.vue'),

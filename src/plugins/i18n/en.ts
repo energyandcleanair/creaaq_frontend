@@ -12,6 +12,7 @@ export default {
   code: 'Code',
   confirm: 'Confirm',
   id: 'ID',
+  type: 'Type',
   ok: 'Ok',
   yes: 'Yes',
   no: 'No',
@@ -55,6 +56,7 @@ export default {
   deselect_all: 'Deselect all',
   display_mode: 'Display mode',
   normal: 'Normal',
+  last_updated: 'Last updated',
   superimposed_years: 'Superimposed years',
   clear_cache: 'Clear cache',
   refresh: 'Refresh',
@@ -64,6 +66,8 @@ export default {
   chart_columns: 'Chart columns',
   profile: 'Profile',
   help_n_support: 'Help & Support',
+  attribution: 'Attribution',
+  export_to_csv: 'Export to CSV',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

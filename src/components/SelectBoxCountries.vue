@@ -8,13 +8,13 @@
   v-bind="$props"
   v-on="$listeners"
 >
-  <template v-slot:item-subtitle="{item}">
+  <template v-slot:item-title="{item}">
     <CountryFlag
-      :country="(item.country_id || '').toLowerCase()"
+      :country="(item.id || '').toLowerCase()"
       size="small"
     />
-    <span class="grey--text text--base">
-      &nbsp;&nbsp;{{ item.country_name }}
+    <span>
+      &nbsp;&nbsp;{{ item.name }}
     </span>
   </template>
 </SelectBox>
@@ -23,7 +23,7 @@
 <script lang="ts">
 import CountryFlag from 'vue-country-flag'
 import { Vue, Component, Model, Prop } from 'vue-property-decorator'
-import City from '@/entities/City'
+import Country from '@/entities/Country'
 import SelectBox from './SelectBox.vue'
 
 @Component({
@@ -32,12 +32,12 @@ import SelectBox from './SelectBox.vue'
     CountryFlag,
   }
 })
-export default class SelectBoxCities extends Vue {
+export default class SelectBoxCountries extends Vue {
   @Model('input', {type: Array})
   readonly value!: any[]
 
   @Prop()
-  readonly items!: City[]
+  readonly items!: Country[]
 
   @Prop({type: String})
   readonly label?: string
@@ -47,8 +47,7 @@ export default class SelectBoxCities extends Vue {
 
   private inputFilter (item: any, queryText: string, itemText: string): boolean {
     const _query = queryText.toLocaleLowerCase()
-    return itemText.toLocaleLowerCase().indexOf(_query) > -1 ||
-      (item.country_name || '').toLocaleLowerCase().indexOf(_query) > -1
+    return itemText.toLocaleLowerCase().indexOf(_query) > -1
   }
 }
 </script>

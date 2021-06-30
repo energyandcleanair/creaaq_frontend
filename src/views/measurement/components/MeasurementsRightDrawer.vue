@@ -139,7 +139,7 @@
           :items="group.stations"
           :label="group.city.name"
           :disabled="disabledStations || loading"
-          item-text="label"
+          item-text="name"
           item-value="id"
           has-select-all
           has-deselect-all
@@ -248,18 +248,18 @@ export default class MeasurementsRightDrawer extends Vue {
     for (const station of this.chartData.stations) {
       let city: City|undefined
 
-      if (map[station.cityId]) {
-        city = map[station.cityId]?.city
+      if (map[station.city_id]) {
+        city = map[station.city_id]?.city
       } else {
-        city = this.chartData.cities.find(i => i.id === station.cityId)
+        city = this.chartData.cities.find(i => i.id === station.city_id)
         if (!city) continue
-        map[station.cityId] = {city, stations: [], selected: [], stationsIds: []}
+        map[station.city_id] = {city, stations: [], selected: [], stationsIds: []}
       }
-      map[station.cityId].stations.push(station)
-      map[station.cityId].stationsIds.push(station.id)
+      map[station.city_id].stations.push(station)
+      map[station.city_id].stationsIds.push(station.id)
 
       const isSelected = (this.queryParams.stations || []).includes(station.id)
-      if (isSelected) map[station.cityId].selected.push(station.id)
+      if (isSelected) map[station.city_id].selected.push(station.id)
     }
 
     return map

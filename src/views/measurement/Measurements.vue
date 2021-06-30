@@ -237,7 +237,7 @@ export default class ViewMeasurements extends Vue {
     const cities = await this.fetchCities()
     this.chartData.cities = cities
 
-    // set from cahce
+    // set from cache
     if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
       this.urlQuery = {
         ...this.urlQuery,
@@ -245,14 +245,14 @@ export default class ViewMeasurements extends Vue {
       }
     }
 
-    // filter only existing cities
     if (this.urlQuery.cities.length) {
+
+      // filter only existing cities
       const idsMap = this.urlQuery.cities
         .reduce((memo: {[id: string]: number}, id: City['id']) => {
           memo[id] = 1
           return memo
         }, {})
-
       const existingCities = cities.filter(city => idsMap[city.id])
 
       this.urlQuery = {
@@ -307,15 +307,15 @@ export default class ViewMeasurements extends Vue {
   }
 
   private async fetchChartData (): Promise<ChartData> {
-    if (!this.urlQuery?.cities.length) {
-      return {
-        cities: this.chartData.cities,
-        measurements: [],
-        pollutants: [],
-        sources: [],
-        stations: [],
-      }
+    const newChartData: ChartData = {
+      cities: this.chartData.cities,
+      measurements: [],
+      pollutants: [],
+      sources: [],
+      stations: [],
     }
+
+    if (!this.urlQuery?.cities.length) return newChartData
 
     let _dateStart: number = toNumberDate(this.urlQuery.date_start || '0')
 
@@ -407,8 +407,9 @@ export default class ViewMeasurements extends Vue {
         } else {
           memo[meas.location_id] = {
             id: meas.location_id,
-            label: meas.location_id,
-            cityId: meas.city_id,
+            name: meas.location_id,
+            city_id: meas.city_id,
+            country_id: meas.country_id,
             _measurementsNumber: 0,
           }
         }
@@ -416,14 +417,11 @@ export default class ViewMeasurements extends Vue {
       }, {})
     const stations = _orderBy(Object.values(stationsMap), 'id')
 
-    const chartData = {
-      cities: this.chartData.cities,
-      measurements: measurements,
-      pollutants: pollutants,
-      sources: sources,
-      stations: stations,
-    }
-    return chartData
+    newChartData.measurements = measurements
+    newChartData.pollutants = pollutants
+    newChartData.sources = sources
+    newChartData.stations = stations
+    return newChartData
   }
 
   private async refreshChartData (): Promise<void> {

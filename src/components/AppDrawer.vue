@@ -42,24 +42,19 @@ export default class AppDrawer extends Vue {
         label: this.$t('measurements').toString(),
         icon: mdiScaleBalance,
         to: {name: 'measurements'},
-        disabled: false
+        disabled: false,
       },
       {
         label: this.$t('violations').toString(),
         icon: mdiCalendarMonth,
         to: {name: 'violations'},
-      },
-      {
-        label: this.$t('trajectories').toString(),
-        icon: mdiMapMarkerPath,
-        // to: {name: 'trajectories'},
-        disabled: true
+        disabled: false,
       },
       {
         label: this.$t('stations').toString(),
         icon: mdiHomeAssistant,
-        // to: {name: 'stations'},
-        disabled: true
+        to: {name: 'stations'},
+        disabled: false,
       },
     ]
   }
