@@ -588,7 +588,7 @@ export default class MeasurementsChart extends Vue {
       plot_bgcolor: '#fcfcfc',
       paper_bgcolor: '#fff',
       hovermode: 'closest',
-      dragmode: 'pan',
+      dragmode: 'zoom',
       autosize: true,
       width: colWidth,
       height: Math.max(colWidth, margin.b * 2),
