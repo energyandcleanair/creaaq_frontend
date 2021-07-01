@@ -591,7 +591,7 @@ export default class MeasurementsChart extends Vue {
       dragmode: 'zoom',
       autosize: true,
       width: colWidth,
-      height: Math.max(colWidth, margin.b * 2),
+      height: Math.max(colWidth * 1.5, margin.b * 2),
       margin,
       xaxis: {
         visible: !isEmpty,
