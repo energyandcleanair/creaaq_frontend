@@ -2,20 +2,11 @@
 <div class="view-stations fill-height" style="overflow: auto;">
   <v-container class="toolbar pt-10 pt-md-4 px-8" fluid>
     <v-row>
-      <v-col cols="12" sm="4" md="3">
-        <SelectBoxCountries
-          :value="usedCountiriesIds"
-          :label="$t('countries')"
-          :items="chartData.countries"
-          @input="onChangeCountries($event)"
-        />
-      </v-col>
-
       <v-col cols="12" sm="8" md="6">
         <SelectBoxCities
           :value="urlQuery.cities"
           :label="$t('cities')"
-          :items="selectedCountriesCities"
+          :items="chartData.cities"
           :disabled="isLoading"
           @input="onChangeQuery({...urlQuery, cities: $event})"
         />
@@ -24,8 +15,8 @@
       <v-col
         class="d-flex justify-end align-center"
         cols="12"
-        sm="12"
-        md="3"
+        sm="4"
+        md="6"
       >
         <v-btn
           class="ml-2"
@@ -60,11 +51,9 @@ import _difference from 'lodash.difference'
 import { Component, Vue } from 'vue-property-decorator'
 import { ModuleState } from '@/store'
 import City from '@/entities/City'
-import Country from '@/entities/Country'
 import Station from '@/entities/Station'
 import CityAPI from '@/api/CityAPI'
 import StationAPI from '@/api/StationAPI'
-import SelectBoxCountries from '@/components/SelectBoxCountries.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import { toQueryString } from '@/utils'
 import StationsChart from './components/StationsChart/StationsChart.vue'
@@ -73,7 +62,6 @@ import URLQuery from './types/URLQuery'
 
 @Component({
   components: {
-    SelectBoxCountries,
     SelectBoxCities,
     StationsChart,
   }
@@ -83,7 +71,6 @@ export default class ViewStations extends Vue {
   private isChartLoading: boolean = false
 
   private chartData: ChartData = {
-    countries: [],
     cities: [],
     stations: [],
   }
@@ -111,33 +98,6 @@ export default class ViewStations extends Vue {
     if (this.$route.fullPath !== newPath) this.$router.replace(newPath)
   }
 
-  private get usedCountiriesMap (): {[countryId: string]: 1} {
-    const map: {[id: string]: 1} = {}
-
-    for (const cityId of this.urlQuery.cities) {
-      const city = this.chartData.cities.find(itm => itm.id === cityId)
-      const countryId = city?.country_id
-      if (!countryId) continue
-      map[countryId] = 1
-    }
-
-    return map
-  }
-
-  private get usedCountiriesIds (): Country['id'][] {
-    return Object.keys(this.usedCountiriesMap)
-  }
-
-  private get selectedCountriesCities (): City[] {
-    const cities: City[] = []
-    for (const countryId in this.usedCountiriesMap) {
-      const country = this.chartData.countries.find(itm => itm.id === countryId)
-      if (!country) continue
-      cities.push(...country._cities || [])
-    }
-    return _orderBy(cities, 'name')
-  }
-
   private get selectedCities (): City[] {
     if (!this.urlQuery.cities?.length) return []
     return this.chartData.cities
@@ -161,25 +121,6 @@ export default class ViewStations extends Vue {
     const cities = await this.fetchCities()
     this.chartData.cities = cities
 
-    const countries: Country[] = Object.values(cities.reduce(
-      (memo: {[countryId: string]: Country}, city: City) => {
-        let country = memo[city.country_id]
-
-        if (!country) {
-          country = memo[city.country_id] = {
-            id: city.country_id,
-            name: city.country_name,
-            _cities: [],
-          }
-        }
-
-        country._cities?.push(city)
-        return memo
-      },
-      {}
-    ))
-    this.chartData.countries = _orderBy(countries, 'name')
-
     // set from cache
     if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
       this.urlQuery = {
@@ -202,10 +143,11 @@ export default class ViewStations extends Vue {
         ...this.urlQuery,
         cities: existingCities.map(i => i.id)
       }
-    } else if (this.chartData.countries[0]) {
-      this.onChangeCountries([
-        this.chartData.countries[0].id
-      ])
+    } else if (cities[0]) {
+      this.urlQuery = {
+        ...this.urlQuery,
+        cities: [cities[0].id]
+      }
     }
 
     await this.refreshChartData()
@@ -242,7 +184,6 @@ export default class ViewStations extends Vue {
 
   private async fetchChartData (): Promise<ChartData> {
     const newChartData: ChartData = {
-      countries: this.chartData.countries,
       cities: this.chartData.cities,
       stations: [],
     }
@@ -274,31 +215,13 @@ export default class ViewStations extends Vue {
   private async fetchStations (query: {
     city: string[]
   }): Promise<Station[]> {
-    const _query: {
-      city?: string[]
-      country?: string[]
-    } = {...query}
-
-    // if request is too large we will go with the countries IDs
-    // instead of the Cities IDs
-    const isRequestCountries = (_query.city?.join('%2C')?.length || 0) > 3800
-
-    if (isRequestCountries) {
-      _query.country = this.usedCountiriesIds
-      delete _query.city
-    }
-
-    let [err, items = []] = await to(StationAPI.findAll(toQueryString(_query)))
+    let [err, items = []] = await to(StationAPI.findAll(toQueryString(query)))
     if (err) {
       this.$dialog.notify.error(
         err?.message || ''+this.$t('msg.something_went_wrong')
       )
       console.error(err)
       return []
-    }
-
-    if (isRequestCountries) {
-      items = items.filter(item => this.usedCountiriesMap[item.country_id])
     }
 
     return items || []
@@ -312,33 +235,6 @@ export default class ViewStations extends Vue {
     this.urlQuery = query
 
     if (citiesChanged) this.onClickRefresh()
-  }
-
-  private async onChangeCountries (countriesIds: Country['id'][]) {
-    const newIds = _difference(countriesIds, this.usedCountiriesIds)
-    const removedIds = _difference(this.usedCountiriesIds, countriesIds)
-
-    const citiesIds: {[id: string]: 1} = this.selectedCities
-      .reduce((memo: any, city) => (memo[city.id] = 1) && memo, {})
-
-    // delete cities
-    for (const countryId of removedIds) {
-      for (const city of this.selectedCities) {
-        if (city.country_id === countryId) delete citiesIds[city.id]
-      }
-    }
-
-    // add all cities from new countries
-    for (const countryId of newIds) {
-      const country = this.chartData.countries.find(itm => itm.id === countryId)
-      if (!country) continue
-      country._cities?.forEach(city => citiesIds[city.id] = 1)
-    }
-
-    this.onChangeQuery({
-      ...this.urlQuery,
-      cities: Object.keys(citiesIds)
-    })
   }
 
   private async onClickRefresh () {
