@@ -287,6 +287,10 @@ export default class ViewMeasurements extends Vue {
       urlQuery.date_end = toURLStringDate(today)
     }
 
+    if (!urlQuery.running_average) {
+      urlQuery.running_average = RunningAverageEnum['1m']
+    }
+
     if (urlQuery.stations?.length) {
       urlQuery.display_mode = ChartDisplayModes.NORMAL
     }

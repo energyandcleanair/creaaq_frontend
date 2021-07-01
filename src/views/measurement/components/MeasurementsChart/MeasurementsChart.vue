@@ -333,7 +333,7 @@ export default class MeasurementsChart extends Vue {
       case 'md': return 2
       case 'lg': return 4
       case 'xl': return 6
-      default: return 1
+      default: return 2
     }
   }
 
