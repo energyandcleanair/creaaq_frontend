@@ -133,7 +133,7 @@ import { Vue, Component, Prop, Watch } from 'vue-property-decorator'
 import DatesIntervals from './DatesIntervals'
 
 @Component
-export default class DatesRangeInput extends Vue {
+export default class DatesIntervalInput extends Vue {
 
   @Prop({type: String, required: false})
   readonly interval!: DatesIntervals
@@ -229,6 +229,7 @@ export default class DatesRangeInput extends Vue {
   private get formattedValue (): string {
     if (!this.privateInterval) return ''
 
+    console.log('this.privateInterval: ', this.privateInterval)
     if (this.privateInterval === DatesIntervals.custom) {
       const _today = moment().format(this.format)
       const dateStart = this.dateStart
@@ -247,6 +248,7 @@ export default class DatesRangeInput extends Vue {
 
   private mounted () {
     this.privateInterval = this.determineInterval(this.dateStart, this.dateEnd)
+    console.log('mounted this.privateInterval: ', this.privateInterval)
   }
 
   @Watch('interval')
@@ -285,10 +287,10 @@ export default class DatesRangeInput extends Vue {
 
     let interval = DatesIntervals.custom
 
-    const _today = today ? moment(today) : moment()
+    const _today = today ? moment.utc(today) : moment.utc()
     const _todayY = _today.year()
-    const start = dateStart && moment(dateStart)
-    const end = dateEnd && moment(dateEnd)
+    const start = dateStart && moment.utc(dateStart)
+    const end = dateEnd && moment.utc(dateEnd)
 
     if (!start && !end) return DatesIntervals.all
 
@@ -328,13 +330,13 @@ export default class DatesRangeInput extends Vue {
     }
 
     const regYear = /^year:(.+)/
-    const _today = today ? moment(today) : moment()
+    const _today = today ? moment.utc(today) : moment.utc()
     _today.hours(0).minutes(0).seconds(0).milliseconds(0)
 
     if (regYear.test(interval)) {
       const res = regYear.exec(interval)
       const diff: number = Math.abs(Number(res?.[1] || 0))
-      result.dateStart = +moment(_today).year(_today.year() - diff).month(0).date(1)
+      result.dateStart = +moment.utc(_today).year(_today.year() - diff).month(0).date(1)
       result.dateEnd = +_today
     }
 
