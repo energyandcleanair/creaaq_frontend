@@ -22,7 +22,7 @@
 
 <script lang="ts">
 import { Component, Vue, Prop } from 'vue-property-decorator'
-import { mdiScaleBalance, mdiMapMarkerPath, mdiHomeAssistant, mdiCalendarMonth } from '@mdi/js'
+import { mdiChartLine, mdiMapMarkerRadius, mdiCalendarMonth } from '@mdi/js'
 import { Location } from 'vue-router'
 
 interface MenuItem {
@@ -40,7 +40,7 @@ export default class AppDrawer extends Vue {
     return [
       {
         label: this.$t('measurements').toString(),
-        icon: mdiScaleBalance,
+        icon: mdiChartLine,
         to: {name: 'measurements'},
         disabled: false,
       },
@@ -52,7 +52,7 @@ export default class AppDrawer extends Vue {
       },
       {
         label: this.$t('stations').toString(),
-        icon: mdiHomeAssistant,
+        icon: mdiMapMarkerRadius,
         to: {name: 'stations'},
         disabled: false,
       },
