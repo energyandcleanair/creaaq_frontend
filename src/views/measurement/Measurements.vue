@@ -40,7 +40,6 @@
           :loading="isLoading || isChartLoading"
           @click="onClickRefresh"
           color="primary"
-          small
         >
           {{ $t('refresh') }}
         </v-btn>
