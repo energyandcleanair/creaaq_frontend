@@ -57,14 +57,13 @@
         <l-map
           ref="map"
           class="elevation-1"
-          :zoom="3"
-          :center="mapInitialCenter"
           :options="mapOptions"
           @ready="onMapInitialized"
         >
           <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
 
           <l-marker
+            :ref="`marker--${marker.id}`"
             v-for="marker of mapMarkers"
             :key="marker.id"
             :lat-lng="marker.coordinates"
@@ -74,7 +73,7 @@
             <l-tooltip
               :class="{'tooltip--selected': selectedStationsIds.includes(marker.stationId)}"
               :options="{
-                permanent: true,
+                permanent: permanentTooltipOnSelected,
                 interactive: false,
                 direction: 'top',
                 offset: {x: 0, y: -41}
@@ -166,6 +165,9 @@ export default class StationsChart extends Vue {
 
   @Prop({type: Boolean, default: false})
   public readonly loading!: boolean
+
+  @Prop({type: Boolean, default: false})
+  public readonly permanentTooltipOnSelected!: boolean
 
   private mdiFileDownloadOutline = mdiFileDownloadOutline
   private iconPrimary = iconPrimary
@@ -266,15 +268,17 @@ export default class StationsChart extends Vue {
     })
   }
 
-  private get mapOptions (): any {
+  private get mapOptions (): Leaflet.MapOptions {
+    const firstMarker = this.mapMarkers[0]
     return {
+      zoom: 1000,
       closePopupOnClick: false,
       doubleClickZoom: 'center',
+      center: new Leaflet.LatLng(
+        firstMarker?.coordinates?.[0] || 0,
+        firstMarker?.coordinates?.[1] || 0,
+      )
     }
-  }
-
-  private get mapInitialCenter (): number[] {
-    return this.mapMarkers[0]?.coordinates || [0, 0]
   }
 
   private get mapMarkers (): MapMarker[] {
@@ -295,8 +299,26 @@ export default class StationsChart extends Vue {
     }).filter(i => i)
   }
 
+  private mounted () {
+    // see this.onMapInitialized()
+  }
+
+  private onMapInitialized () {
+    this.closeAllMapMarkerTooltips()
+
+    // move to the selected station if exists
+    if (this.selectedStationsIds.length) {
+      this.tableMoveToStation(this.selectedStationsIds[0])
+      this.mapMoveToStation(this.selectedStationsIds[0])
+      this.selectStation(this.selectedStationsIds[0])
+    }
+  }
+
   private selectStation (stationId: Station['id']) {
     this.selectedStationsIds = stationId ? [stationId] : []
+
+    this.closeAllMapMarkerTooltips()
+    this.openMapMarkerTooltip(stationId)
   }
 
   private mapMoveToStation (stationId: Station['id']) {
@@ -311,6 +333,25 @@ export default class StationsChart extends Vue {
 
     this.$map?.mapObject?.panTo(coords)
     this.$map?.mapObject?.fitBounds(bounds)
+  }
+
+  private openMapMarkerTooltip (stationId: Station['id']) {
+    if (!stationId) return
+    if (!this.$map?.mapObject) return
+
+    const $refs = this.$refs[`marker--${stationId}`] as LMarker[]
+    const $marker = $refs?.[0]?.mapObject
+    if (!$marker) return
+
+    $marker.openTooltip()
+  }
+
+  private closeAllMapMarkerTooltips () {
+    this.$map?.mapObject?.eachLayer((layer: Leaflet.Layer) => {
+      if ((layer as any).options.pane === 'tooltipPane' && this.$map?.mapObject) {
+        layer.removeFrom(this.$map.mapObject)
+      }
+    })
   }
 
   private tableMoveToStation (stationId: Station['id']) {
@@ -365,18 +406,10 @@ export default class StationsChart extends Vue {
     }
   }
 
-  private onMapInitialized () {
-
-    // move to the selected station if exists
-    if (this.selectedStationsIds.length) {
-      this.mapMoveToStation(this.selectedStationsIds[0])
-      this.tableMoveToStation(this.selectedStationsIds[0])
-    }
-  }
-
   private onClickMapMarker (stationId: Station['id']) {
     this.selectStation(stationId)
     this.tableMoveToStation(stationId)
+    this.openMapMarkerTooltip(stationId)
   }
 
   private onClickTableRow (station: Station) {
