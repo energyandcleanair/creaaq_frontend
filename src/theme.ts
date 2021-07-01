@@ -1,6 +1,7 @@
 export const colors = {
   darkBlue: {
     base: '#35416C',
+    darken1: '#35426c',
   },
   blue: {
     base: '#8cc9D0',

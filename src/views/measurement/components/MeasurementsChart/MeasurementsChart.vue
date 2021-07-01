@@ -90,20 +90,23 @@
 </template>
 
 <script lang="ts">
+import moment from 'moment'
+import chroma from 'chroma-js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _merge from 'lodash.merge'
-import _sortBy from 'lodash.sortby'
+import _orderBy from 'lodash.orderby'
 import _debounce from 'lodash.debounce'
-import moment from 'moment'
 import { Framework } from 'vuetify'
 import { Component, Vue, Prop, Watch } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
+import { URL_DATE_FORMAT, toNumberDate, computeMovingAverage } from '@/utils'
 import Measurement, { MeasurementProcesses } from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
 import Station from '@/entities/Station'
+import theme from '@/theme'
 import RunningAverageEnum, { RUNNING_AVERAGE_DAYS_MAP } from '../../types/RunningAverageEnum'
 import ChartColumnSize from '../../types/ChartColumnSize'
 import URLQuery from '../../types/URLQuery'
@@ -111,14 +114,26 @@ import ChartDisplayModes from './ChartDisplayModes'
 import RangeBox from './RangeBox'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
-import ChartTrace from './ChartTrace'
+import ChartTrace, { ChartTraceLevels } from './ChartTrace'
 import ChartTracePoint from './ChartTracePoint'
-import { URL_DATE_FORMAT, toNumberDate, computeMovingAverage } from '@/utils'
 import ChartData from './ChartData'
 
 const COL_ID_DIVIDER = '--'
-const PRIMARY_LINE_STYLE = {color: '#35426c', width: 2}
+const PRIMARY_LINE_STYLE = {
+  color: theme.colors.darkBlue.darken1,
+  width: 2,
+  minWidth: 1.5,
+  maxWidth: 3.5,
+  widthStep: 0.3
+}
 const SECONDARY_LINE_STYLE = {color: '#ddd', width: 1}
+
+// TODO: do we need this scale?
+// const PRIMARY_TRACE_COLOR_SCALE = chroma.scale('Spectral')
+const PRIMARY_TRACE_COLOR_SCALE = chroma.scale([
+  theme.colors.darkBlue.darken1,
+  theme.colors.blue.base,
+])
 
 interface MapFilter {
   [id: string]: number
@@ -396,27 +411,30 @@ export default class MeasurementsChart extends Vue {
       tracesMap[traceId].push({x, y})
     }
 
-    const traces: ChartTrace[] = []
+    let traces: ChartTrace[] = []
 
     for (const traceId in tracesMap) {
       const tracePoints = tracesMap[traceId]
-      const isMainLine = traceId === cityId
+      const level = traceId === cityId
+        ? ChartTraceLevels.CITY
+        : ChartTraceLevels.STATION
       const isCalcRunningAverage = this.runningAverage &&
         RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
         tracePoints.length
-      const hovertemplate = `%{y:.0f} ${pollutant.unit || ''}<br>%{x}` + (isMainLine
-        ? `<br><b>${this.$t('city')}:</b> ${city.name}`
-        : `<br><b>${this.$t('station')}:</b> ${traceId}`
+      const hovertemplate = `%{y:.0f} ${pollutant.unit || ''}<br>%{x}` + (
+        level === ChartTraceLevels.CITY
+          ? `<br><b>${this.$t('city')}:</b> ${city.name}`
+          : `<br><b>${this.$t('station')}:</b> ${traceId}`
       )
 
       const trace: ChartTrace = {
         x: [],
         y: [],
-        zIndex: isMainLine ? 1000 : 1,
+        level: level,
+        zIndex: traces.length + (level === ChartTraceLevels.CITY ? 1000 : 0),
         type: 'scatter',
         mode: 'lines',
         name: '',
-        line: isMainLine ? PRIMARY_LINE_STYLE : SECONDARY_LINE_STYLE,
         hovertemplate,
       }
 
@@ -442,7 +460,6 @@ export default class MeasurementsChart extends Vue {
       // split the trace into traces by year and overlap each other
       if (this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
         const tracesMapByYear: {[year: number]: ChartTrace} = {}
-        let primaryColorUsed = false
 
         for (const _i in trace.x) {
           const i = +_i
@@ -452,18 +469,13 @@ export default class MeasurementsChart extends Vue {
           const year = $date.getUTCFullYear()
 
           if (!tracesMapByYear[year]) {
-            const mainLineColor = primaryColorUsed ? '' : PRIMARY_LINE_STYLE.color
             tracesMapByYear[year] = {
               ...trace,
+              zIndex: (trace.zIndex || 0) + Object.keys(tracesMapByYear).length,
               x: [],
               y: [],
               name: year,
-              line: isMainLine
-                ? {...PRIMARY_LINE_STYLE, color: mainLineColor}
-                : SECONDARY_LINE_STYLE,
             }
-
-            if (isMainLine && !primaryColorUsed) primaryColorUsed = true
           }
 
           const new_x = +$date.setUTCFullYear(dateStartYear)
@@ -477,8 +489,12 @@ export default class MeasurementsChart extends Vue {
       }
     }
 
+    traces = _orderBy(traces, ['level', 'zIndex'], ['desc', 'asc'])
+
+    _setLineStylesToChartTraces(traces)
+
     return {
-      traces: _sortBy(traces, 'zIndex'),
+      traces,
       rangeBox,
     }
   }
@@ -631,6 +647,39 @@ export default class MeasurementsChart extends Vue {
       })
     }
   }
+}
+
+function _setLineStylesToChartTraces (traces: ChartTrace[]): ChartTrace[] {
+  const citiesTracesNumber: number = traces
+    .reduce((acc, trace) => acc += (trace.level === ChartTraceLevels.CITY ? 1 : 0), 0)
+
+  const PALETTE_COLORS = PRIMARY_TRACE_COLOR_SCALE
+    .mode('lab')
+    .colors(citiesTracesNumber)
+
+  let counterCitiesTraces = 0
+  const widthStep = PRIMARY_LINE_STYLE.widthStep
+  const widthMin = PRIMARY_LINE_STYLE.minWidth
+  const widthMax = PRIMARY_LINE_STYLE.maxWidth
+  const _lineWidthMax = widthMin + ((citiesTracesNumber - 1) * widthStep)
+
+  for (let i = traces.length - 1; i >=0; i--) {
+    const trace = traces[i]
+
+    if (trace.level === ChartTraceLevels.CITY) {
+      const width = _lineWidthMax - (counterCitiesTraces * widthStep)
+      trace.line = {
+        ...PRIMARY_LINE_STYLE,
+        color: PALETTE_COLORS[counterCitiesTraces],
+        width: Math.min(width, widthMax)
+      }
+      counterCitiesTraces++
+    } else {
+      trace.line = SECONDARY_LINE_STYLE
+    }
+  }
+
+  return traces
 }
 
 function _alignColsGridRange (

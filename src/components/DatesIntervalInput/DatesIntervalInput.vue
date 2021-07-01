@@ -229,7 +229,6 @@ export default class DatesIntervalInput extends Vue {
   private get formattedValue (): string {
     if (!this.privateInterval) return ''
 
-    console.log('this.privateInterval: ', this.privateInterval)
     if (this.privateInterval === DatesIntervals.custom) {
       const _today = moment().format(this.format)
       const dateStart = this.dateStart
@@ -248,7 +247,6 @@ export default class DatesIntervalInput extends Vue {
 
   private mounted () {
     this.privateInterval = this.determineInterval(this.dateStart, this.dateEnd)
-    console.log('mounted this.privateInterval: ', this.privateInterval)
   }
 
   @Watch('interval')
