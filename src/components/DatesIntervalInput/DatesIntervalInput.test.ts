@@ -20,6 +20,8 @@ describe('DatesIntervalInput.vue', () => {
         'v-row',
         'v-col',
         'v-menu',
+        'v-list',
+        'v-list-item',
         'v-card',
         'v-card-title',
         'v-card-text',
