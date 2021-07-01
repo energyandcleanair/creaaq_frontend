@@ -1,6 +1,8 @@
 <template>
 <SelectBox
   :filter="inputFilter"
+  :visible-chips="3"
+  :show-subtitle-in-chip="false"
   item-text="name"
   item-value="id"
   hide-details

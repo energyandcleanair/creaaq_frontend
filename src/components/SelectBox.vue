@@ -10,7 +10,7 @@
   v-on="$listeners"
 >
   <template v-slot:selection="{ item, index }">
-    <v-chip v-if="index <= 0">
+    <v-chip v-if="index + 1 <= visibleChips">
       <span>
         <slot name="item-title" v-bind:item="item">
           <span
@@ -21,15 +21,15 @@
         </slot>
       </span>
 
-      <span class="pl-1" v-if="$scopedSlots['item-subtitle']">
+      <span v-if="showSubtitleInChip && $scopedSlots['item-subtitle']" class="pl-1">
         <slot name="item-subtitle" v-bind:item="item"/>
       </span>
     </v-chip>
     <span
-      v-if="index === 1"
+      v-if="index === visibleChips"
       class="grey--text text-caption"
     >
-      (+{{ value.length - 1 }})
+      (+{{ value.length - visibleChips }})
     </span>
   </template>
 
@@ -96,6 +96,8 @@ export default class SelectBox extends VSelect {
   @Prop() readonly items!: any[]
   @Prop({type: Boolean, default: false}) readonly hasSelectAll!: boolean
   @Prop({type: Boolean, default: false}) readonly hasDeselectAll!: boolean
+  @Prop({type: Boolean, default: false}) readonly showSubtitleInChip!: boolean
+  @Prop({type: Number, default: 1}) readonly visibleChips!: number
   @Prop({type: String}) readonly tagName?: 'v-autocomplete'|'v-select'
   @Prop({type: Function, default: defaultFilter}) filter: any
 
