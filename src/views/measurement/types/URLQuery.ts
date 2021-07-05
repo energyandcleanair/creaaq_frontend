@@ -3,7 +3,7 @@ import Pollutant from '@/entities/Pollutant'
 import Source from '@/entities/Source'
 import Station from '@/entities/Station'
 import ChartDisplayModes from '../components/MeasurementsChart/ChartDisplayModes'
-import ChartColumnSize from './ChartColumnSize'
+import ChartColumnSize from '../components/MeasurementsChart/ChartColumnSize'
 import RunningAverageEnum from './RunningAverageEnum'
 
 enum URLQueryStations {

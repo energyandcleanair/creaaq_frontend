@@ -108,7 +108,7 @@ import Source from '@/entities/Source'
 import Station from '@/entities/Station'
 import theme from '@/theme'
 import RunningAverageEnum, { RUNNING_AVERAGE_DAYS_MAP } from '../../types/RunningAverageEnum'
-import ChartColumnSize from '../../types/ChartColumnSize'
+import ChartColumnSize from './ChartColumnSize'
 import URLQuery from '../../types/URLQuery'
 import ChartDisplayModes from './ChartDisplayModes'
 import RangeBox from './RangeBox'
@@ -197,11 +197,13 @@ export default class MeasurementsChart extends Vue {
     return this.chartDisplayMode || ChartDisplayModes.NORMAL
   }
 
-  private get _cols (): number {
-    const columns = !this.cols
-      ? MeasurementsChart.getDefaultChartCols(this.$vuetify)
-      : this.cols
-    return columns
+  private get _cols (): ChartColumnSize {
+    const maxChartCols = MeasurementsChart.getMaxChartCols(
+      this.$vuetify,
+      this.queryParams.cities.length,
+      this.queryParams.pollutants.length,
+    )
+    return Math.min(this.cols || 0, maxChartCols) as ChartColumnSize
   }
 
   private get vCols (): number /* Vuetify <v-col> size: [1, 12] */ {
@@ -212,7 +214,7 @@ export default class MeasurementsChart extends Vue {
     let w = this.$el?.clientWidth || 300
     const PADDING = 10
     w -= PADDING * 2
-    return (w / (this.cols || 1)) || w
+    return (w / (this._cols || 1)) || w
   }
 
   // TODO: to improve the performance we can separate the data and display opts
@@ -337,19 +339,42 @@ export default class MeasurementsChart extends Vue {
 
   private mounted () {
     if (!this.cols) {
-      this.$emit('update:cols', MeasurementsChart.getDefaultChartCols(this.$vuetify))
+      this.$emit(
+        'update:cols',
+        MeasurementsChart.getMaxChartCols(
+          this.$vuetify,
+          this.queryParams.cities.length,
+          this.queryParams.pollutants.length,
+        )
+      )
     }
   }
 
-  static getDefaultChartCols ($vuetify: Framework): ChartColumnSize {
+  static getDefaultChartColsBasedOnWindow ($vuetify: Framework): ChartColumnSize {
     switch ($vuetify.breakpoint.name) {
       case 'xs': return 1
       case 'sm': return 1
       case 'md': return 2
-      case 'lg': return 4
-      case 'xl': return 6
+      case 'lg': return 3
+      case 'xl': return 4
       default: return 2
     }
+  }
+
+  static getMaxChartCols (
+    $vuetify: Framework,
+    citiesLength: number = 0,
+    pollutantsLength: number = 0,
+  ): ChartColumnSize {
+    const rowItemsLength = citiesLength === 1 ? pollutantsLength : citiesLength
+    const defaultChartCols = MeasurementsChart.getDefaultChartColsBasedOnWindow($vuetify)
+    let _defaultCols: number = rowItemsLength ? rowItemsLength : defaultChartCols
+
+    if (_defaultCols > 4 && _defaultCols < 6) _defaultCols = 5
+    if (_defaultCols > 6 && _defaultCols < 12) _defaultCols = 6
+    if (_defaultCols > 12) _defaultCols = 12
+
+    return _defaultCols as ChartColumnSize
   }
 
   private genChartTraces (
@@ -607,7 +632,7 @@ export default class MeasurementsChart extends Vue {
       dragmode: 'zoom',
       autosize: true,
       width: colWidth,
-      height: Math.max(colWidth * 1.5, margin.b * 2),
+      height: Math.max(colWidth * (2/3), margin.b * 2),
       margin,
       xaxis: {
         visible: !isEmpty,

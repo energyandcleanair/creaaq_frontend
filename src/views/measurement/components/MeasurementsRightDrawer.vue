@@ -52,7 +52,8 @@
           :value="chartCols"
           color="primary"
           :min="CHART_SIZE_VALUES.min"
-          :max="CHART_SIZE_VALUES.max"
+          :max="CHART_SIZE_VALUES.max || 1"
+          :disabled="CHART_SIZE_VALUES.max === 0"
           step="1"
           ticks="always"
           tick-size="2"
@@ -163,7 +164,7 @@ import SelectBox from '@/components/SelectBox.vue'
 import Station from '@/entities/Station'
 import City from '@/entities/City'
 import RunningAverageEnum from '../types/RunningAverageEnum'
-import ChartColumnSize, { CHART_COLUMN_SIZES } from '../types/ChartColumnSize'
+import ChartColumnSize, { CHART_COLUMN_SIZES } from './MeasurementsChart/ChartColumnSize'
 import URLQuery, { URLQueryStations } from '../types/URLQuery'
 import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
 import ChartData from './MeasurementsChart/ChartData'
@@ -215,7 +216,11 @@ export default class MeasurementsRightDrawer extends Vue {
 
   private get chartCols (): number {
     const cols: ChartColumnSize = this.queryParams.chart_cols ||
-      MeasurementsChart.getDefaultChartCols(this.$vuetify)
+      MeasurementsChart.getMaxChartCols(
+        this.$vuetify,
+        this.queryParams.cities.length,
+        this.queryParams.pollutants.length,
+      )
     return this.CHART_SIZE_LABELS.indexOf(cols)
   }
 
@@ -266,9 +271,15 @@ export default class MeasurementsRightDrawer extends Vue {
   }
 
   private get CHART_SIZE_VALUES (): {min: number, max: number} {
+    const maxChartCols = MeasurementsChart.getMaxChartCols(
+      this.$vuetify,
+      this.queryParams.cities.length,
+      this.queryParams.pollutants.length,
+    )
+    const maxIndex = CHART_COLUMN_SIZES.indexOf(maxChartCols)
     return {
       min: 0,
-      max: CHART_COLUMN_SIZES.length - 1,
+      max: maxIndex,
     }
   }
 

@@ -94,7 +94,7 @@ import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 import ChartData from './components/MeasurementsChart/ChartData'
-import ChartColumnSize from './types/ChartColumnSize'
+import ChartColumnSize from './components/MeasurementsChart/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
 import URLQuery, { URLQueryStations } from './types/URLQuery'
 
@@ -275,7 +275,11 @@ export default class ViewMeasurements extends Vue {
     const urlQuery = {...this.urlQuery}
 
     if (!urlQuery.chart_cols) {
-      urlQuery.chart_cols = MeasurementsChart.getDefaultChartCols(this.$vuetify)
+      urlQuery.chart_cols = MeasurementsChart.getMaxChartCols(
+        this.$vuetify,
+        this.urlQuery.cities.length,
+        this.urlQuery.pollutants.length,
+      )
     }
 
     if (!urlQuery.date_start) {
