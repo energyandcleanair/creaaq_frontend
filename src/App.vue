@@ -11,14 +11,16 @@
   >
     <div class="d-flex align-center">
       <RouterLink to="/">
-        <v-img
-          alt="Vuetify Logo"
-          class="shrink mr-2"
-          contain
-          src="/img/logo.svg"
-          transition="scale-transition"
-          width="130"
-        />
+        <v-badge class="logo-badge" bottom content="beta">
+          <v-img
+            alt="Vuetify Logo"
+            class="shrink mr-2"
+            contain
+            src="/img/logo.svg"
+            transition="scale-transition"
+            width="130"
+          />
+        </v-badge>
       </RouterLink>
     </div>
 
@@ -192,3 +194,20 @@ export default class App extends Vue {
   }
 }
 </script>
+
+<style lang="scss">
+.logo-badge {
+  .v-badge__wrapper {
+    .v-badge__badge {
+      margin-top: -10px;
+      margin-left: -3px;
+      padding: 2px 5px !important;
+      height: auto !important;
+      font-size: 0.6em !important;
+      line-height: 1.1em !important;
+      background: #75b44c !important;
+      border-radius: 4px !important;
+    }
+  }
+}
+</style>
