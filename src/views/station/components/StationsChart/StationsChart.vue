@@ -371,7 +371,7 @@ export default class StationsChart extends Vue {
   private exportToCSV (stations: Station[]) {
     this.$loader.on()
 
-    const filename = `stations.${moment().format('YYYY-MM-DD HH:mm')}.csv`
+    const filename = `stations.${moment().format('YYYY-MM-DD HH.mm.ss')}.csv`
     const fields = [
       'id',
       'name',
@@ -420,7 +420,6 @@ export default class StationsChart extends Vue {
   private onClickExportToCSV () {
     this.exportToCSV(this.stations)
   }
-
 }
 </script>
 

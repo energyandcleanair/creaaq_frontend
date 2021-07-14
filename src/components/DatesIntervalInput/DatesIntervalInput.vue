@@ -133,6 +133,7 @@
 import { mdiCalendar } from '@mdi/js'
 import moment from 'moment'
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator'
+import i18n from '@/plugins/i18n'
 import DatesIntervals from './DatesIntervals'
 import DateInterval from './DateInterval'
 
@@ -155,7 +156,7 @@ export default class DatesIntervalInput extends Vue {
   readonly loading!: boolean
 
   @Prop({type: String, default: 'YYYY-MM-DD'})
-  readonly format!: any
+  readonly format!: string
 
   private mdiCalendar = mdiCalendar
   private privateInterval: DatesIntervals|null = null
@@ -191,55 +192,17 @@ export default class DatesIntervalInput extends Vue {
   }
 
   private get DATES_RANGES (): DateInterval[] {
-    return [
-      {
-        value: DatesIntervals['year:0'],
-        label: ''+this.$t('dates_interval.this_year'),
-      },
-      {
-        value: DatesIntervals['year:-1'],
-        label: ''+this.$t('dates_interval.last_n_years', {n: 2}),
-      },
-      {
-        value: DatesIntervals['year:-2'],
-        label: ''+this.$t('dates_interval.last_n_years', {n: 3}),
-      },
-      {
-        value: DatesIntervals['year:-3'],
-        label: ''+this.$t('dates_interval.last_n_years', {n: 4}),
-      },
-      {
-        value: DatesIntervals['year:-4'],
-        label: ''+this.$t('dates_interval.last_n_years', {n: 5}),
-      },
-      {
-        value: DatesIntervals['all'],
-        label: ''+this.$t('dates_interval.all'),
-      },
-      {
-        value: DatesIntervals['custom'],
-        label: ''+this.$t('dates_interval.custom'),
-      },
-    ]
+    return DatesIntervalInput.DATES_RANGES
   }
 
   private get formattedValue (): string {
     if (!this.privateInterval) return ''
-
-    if (this.privateInterval === DatesIntervals.custom) {
-      const _today = moment().format(this.format)
-      const dateStart = this.dateStart
-        ? moment(this.dateStart).format(this.format)
-        : _today
-      const endDate = this.dateEnd
-        ? moment(this.dateEnd).format(this.format)
-        : _today
-
-      return ''+this.$t('dates_interval.from_x_to_y', {x: dateStart, y: endDate})
-    }
-
-    const opts = this.DATES_RANGES.find(i => i.value === this.privateInterval)
-    return opts?.label || ''
+    return DatesIntervalInput.formatValue(
+      this.privateInterval,
+      this.dateStart,
+      this.dateEnd,
+      this.format,
+    )
   }
 
   private mounted () {
@@ -280,6 +243,102 @@ export default class DatesIntervalInput extends Vue {
     dateEnd: number,
     today?: number
   ): DatesIntervals {
+    return DatesIntervalInput.determineInterval(
+      dateStart,
+      dateEnd,
+      today,
+    )
+  }
+
+  public determineDates (
+    interval: DatesIntervals,
+    today?: number
+  ): {dateStart: number, dateEnd: number} {
+
+    const result = {
+      dateStart: 0,
+      dateEnd: 0
+    }
+
+    if ([DatesIntervals.all, DatesIntervals.custom].includes(interval)) {
+      return result
+    }
+
+    const regYear = /^year:(.+)/
+    const _today = today ? moment.utc(today) : moment.utc()
+    _today.hours(0).minutes(0).seconds(0).milliseconds(0)
+
+    if (regYear.test(interval)) {
+      const res = regYear.exec(interval)
+      const diff: number = Math.abs(Number(res?.[1] || 0))
+      result.dateStart = +moment.utc(_today).year(_today.year() - diff).month(0).date(1)
+      result.dateEnd = +_today
+    }
+
+    return result
+  }
+
+  static DATES_RANGES = [
+    {
+      value: DatesIntervals['year:0'],
+      label: ''+i18n.t('dates_interval.this_year'),
+    },
+    {
+      value: DatesIntervals['year:-1'],
+      label: ''+i18n.t('dates_interval.last_n_years', {n: 2}),
+    },
+    {
+      value: DatesIntervals['year:-2'],
+      label: ''+i18n.t('dates_interval.last_n_years', {n: 3}),
+    },
+    {
+      value: DatesIntervals['year:-3'],
+      label: ''+i18n.t('dates_interval.last_n_years', {n: 4}),
+    },
+    {
+      value: DatesIntervals['year:-4'],
+      label: ''+i18n.t('dates_interval.last_n_years', {n: 5}),
+    },
+    {
+      value: DatesIntervals['all'],
+      label: ''+i18n.t('dates_interval.all'),
+    },
+    {
+      value: DatesIntervals['custom'],
+      label: ''+i18n.t('dates_interval.custom'),
+    },
+  ]
+
+  static formatValue (
+    privateInterval: DatesIntervals,
+    dateStart: number,
+    dateEnd: number,
+    format: string,
+  ): string {
+    if (!privateInterval) return ''
+
+    if (privateInterval === DatesIntervals.custom) {
+      const _today = moment().format(format)
+      const _dateStart = dateStart
+        ? moment(dateStart).format(format)
+        : _today
+      const _endDate = dateEnd
+        ? moment(dateEnd).format(format)
+        : _today
+
+      return ''+i18n.t('dates_interval.from_x_to_y', {x: _dateStart, y: _endDate})
+    }
+
+    const opts = DatesIntervalInput.DATES_RANGES
+      .find(i => i.value === privateInterval)
+    return opts?.label || ''
+  }
+
+  static determineInterval (
+    dateStart: number,
+    dateEnd: number,
+    today?: number
+  ): DatesIntervals {
 
     let interval = DatesIntervals.custom
 
@@ -309,34 +368,6 @@ export default class DatesIntervalInput extends Vue {
     }
 
     return interval
-  }
-
-  public determineDates (
-    interval: DatesIntervals,
-    today?: number
-  ): {dateStart: number, dateEnd: number} {
-
-    const result = {
-      dateStart: 0,
-      dateEnd: 0
-    }
-
-    if ([DatesIntervals.all, DatesIntervals.custom].includes(interval)) {
-      return result
-    }
-
-    const regYear = /^year:(.+)/
-    const _today = today ? moment.utc(today) : moment.utc()
-    _today.hours(0).minutes(0).seconds(0).milliseconds(0)
-
-    if (regYear.test(interval)) {
-      const res = regYear.exec(interval)
-      const diff: number = Math.abs(Number(res?.[1] || 0))
-      result.dateStart = +moment.utc(_today).year(_today.year() - diff).month(0).date(1)
-      result.dateEnd = +_today
-    }
-
-    return result
   }
 }
 </script>

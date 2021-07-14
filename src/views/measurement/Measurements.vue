@@ -12,7 +12,7 @@
         />
       </v-col>
 
-      <v-col cols="12" sm="6" md="4">
+      <v-col>
         <DatesIntervalInput
           :dateStart="toNumberDate(urlQuery.date_start)"
           :dateEnd="toNumberDate(urlQuery.date_end)"
@@ -26,14 +26,26 @@
         />
       </v-col>
 
-      <v-col
-        class="d-flex justify-end justify-md-start align-center"
-        cols="12"
-        sm="6"
-        md="2"
-        offset-md="1"
-        offset-lg="0"
-      >
+      <v-spacer/>
+
+      <v-col class="d-flex justify-end align-center">
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn
+              icon
+              v-bind="attrs"
+              v-on="on"
+              :disabled="isLoading || !chartData.measurements.length"
+              :loading="isLoading || isChartLoading"
+              @click="onClickExportToCSV"
+            >
+              <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
+            </v-btn>
+          </template>
+
+          <span>{{ $t('export_to_csv') }}</span>
+        </v-tooltip>
+
         <v-btn
           class="ml-3"
           :disabled="isLoading"
@@ -77,6 +89,8 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
+import json2csv from 'json2csv'
+import { saveAs } from 'file-saver'
 import { Component, Vue } from 'vue-property-decorator'
 import { URL_DATE_FORMAT, toURLStringDate, toNumberDate, toQueryString } from '@/utils'
 import { ModuleState } from '@/store'
@@ -97,6 +111,7 @@ import ChartData from './components/MeasurementsChart/ChartData'
 import ChartColumnSize from './components/MeasurementsChart/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
 import URLQuery, { URLQueryStations } from './types/URLQuery'
+import { mdiFileDownloadOutline } from '@mdi/js'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
@@ -112,6 +127,7 @@ const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
 export default class ViewMeasurements extends Vue {
   private isLoading: boolean = false
   private isChartLoading: boolean = false
+  private mdiFileDownloadOutline = mdiFileDownloadOutline
 
   private chartData: ChartData = {
     cities: [],
@@ -519,6 +535,87 @@ export default class ViewMeasurements extends Vue {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()
+  }
+
+  private onClickExportToCSV () {
+    const citiesNames: string[] = this.urlQuery.cities
+      .map(cityId => this.chartData.cities.find(city => city.id === cityId)?.name)
+      .filter(i => i) as string[]
+
+    this.exportToCSV(citiesNames, this.chartData.measurements)
+  }
+
+  private exportToCSV (locationsNames: string[], measurements: Measurement[]) {
+    this.$loader.on()
+
+    let items: Measurement[] = [];
+
+    if (this.urlQuery.stations?.length) {
+      items = measurements
+        .filter(item => item.process_id === MeasurementProcesses.station_day_mad)
+    } else {
+      items = measurements
+        .filter(item => item.process_id === MeasurementProcesses.city_day_mad)
+    }
+
+    const dateStart = toNumberDate(this.urlQuery.date_start || '0')
+    const dateEnd = toNumberDate(this.urlQuery.date_end || '0')
+    const interval = DatesIntervalInput.determineInterval(dateStart, dateEnd)
+    const dates = DatesIntervalInput.formatValue(
+      interval,
+      dateStart,
+      dateEnd,
+      'YYYY-MM-DD',
+    )
+      .toLowerCase()
+      .replace(/<.+?>/g, '')
+      .replace(/\s/g, '_')
+
+    const filename = `measurements.${locationsNames.join('+')}.${dates}.csv`
+      .replace(/\s/g, '')
+
+    const fields: string[] = Object.keys({
+      ...(items[0] || {}),
+      id: 1,
+      name: 1,
+      country_id: 1,
+      location_id: 1,
+      city_id: 1,
+      source: 1,
+      date: 1,
+      level: 1,
+      value: 1,
+      unit: 1,
+      pollutant: 1,
+      names: 1,
+      gpw: 1,
+      timezone: 1,
+      process_id: 1,
+      gadm1_id: 1,
+      name_local: 1,
+      geometry: 1,
+    })
+
+    const opts = {
+      fields,
+      header: true,
+      quote: '"',
+      delimiter: ',',
+    }
+
+    try {
+      const csv = json2csv.parse(items, opts)
+      const blob = new Blob([csv], {type: 'application/csvcharset=utf-8'})
+      saveAs(blob, filename)
+      this.$loader.off()
+    } catch (err) {
+      this.$loader.off()
+      console.error(err)
+      this.$dialog.notify.error(
+        err?.message || err || ''+this.$t('msg.something_went_wrong')
+      )
+      throw err
+    }
   }
 
   private chooseDefaultSource (sources: Source[] = []): Source|undefined {
