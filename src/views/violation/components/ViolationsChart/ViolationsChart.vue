@@ -82,9 +82,10 @@
 
 <script lang="ts">
 import chroma from 'chroma-js'
-import tippy, { hideAll } from 'tippy.js'
+import tippy from 'tippy.js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
+import _orderBy from 'lodash.orderby'
 import moment from 'moment'
 import { Component, Vue, Prop, Ref } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
@@ -272,25 +273,40 @@ export default class ViolationsChart extends Vue {
   private mounted () {
     document.body.addEventListener('click', () => {
       this.closeAllTooltips()
-      console.log('click: ')
     }, false)
   }
 
   private onClickDate (date: string, $event: MouseEvent) {
-    console.log('onClickDate: ')
     $event.stopPropagation()
     const $target: HTMLElement|null = $event.target as HTMLElement|null
     const $btn: HTMLElement|undefined|null = $target?.closest('.v-btn')
 
     if (!$btn) return this.closeAllTooltips()
     const violations = this.chartData.violations.filter(itm => itm.date === date)
+    let numRedViolations = 0
+
+    const tableItems = violations.map(item => {
+      const target = this.chartData.targets.find(i => i.id === item.target_id)
+      const value = Math.round(item.value || 0)
+      const target_value = Math.round(item.target_value || 0)
+      const exceeded = value > target_value
+      if (exceeded) numRedViolations++
+      return {
+        exceeded,
+        class: exceeded ? 'red--text' : 'green--text',
+        title: target?.short_name || item.organization || item.pollutant || '?',
+        pollutant: item.pollutant || '?',
+        value: value,
+        target_value: target_value,
+      }
+    })
 
     const tooltipParams: TooltipParams = {
       visible: true,
       activator: $btn,
-      title: (violations.length +
+      title: (numRedViolations +
         ' ' +
-        (violations.length <= 1 ? this.$t('violation') : this.$t('violations'))
+        (numRedViolations <= 1 ? this.$t('violation') : this.$t('violations'))
       ).toLowerCase(),
       subtitle: moment(date, 'YYYY-MM-DD').format('D MMMM YYYY'),
       tableHeaders: [
@@ -315,18 +331,7 @@ export default class ViolationsChart extends Vue {
           align: 'center',
         },
       ],
-      tableItems: violations.map(item => {
-        const target = this.chartData.targets.find(i => i.id === item.target_id)
-        const value = Math.round(item.value || 0)
-        const target_value = Math.round(item.target_value || 0)
-        return {
-          class: value > target_value ? 'red--text' : 'green--text',
-          title: target?.short_name || item.organization || item.pollutant || '?',
-          pollutant: item.pollutant || '?',
-          value: value,
-          target_value: target_value,
-        }
-      }),
+      tableItems: _orderBy(tableItems, 'exceeded', 'desc'),
     }
     this.openDateTooltip($btn, tooltipParams, $event)
   }
@@ -368,11 +373,13 @@ const VIOLATIONS_SCALE = chroma.scale([
   theme.colors.orange.base,
   theme.colors.darkRed.base,
 ])
-const PALETTE_COLORS = VIOLATIONS_SCALE.mode('lch').colors(VIOLATIONS_PALETTE_SIZE)
+const PALETTE_COLORS = VIOLATIONS_SCALE.mode('lch').colors(VIOLATIONS_PALETTE_SIZE + 1)
 function _getViolationsColor (num: number): string {
   if (num === 0) return theme.colors.lightGray.base
   const percentage = num / (VIOLATIONS_HIGHEST_AMOUNT / 100)
-  const scaleVal = Math.min(1, percentage / 100)
+  const scaleVal = num >= VIOLATIONS_HIGHEST_AMOUNT
+    ? 1
+    : Math.min(1, percentage / 100)
   return PALETTE_COLORS[Math.round(VIOLATIONS_PALETTE_SIZE * scaleVal)]
 }
 
