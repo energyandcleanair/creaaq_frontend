@@ -186,10 +186,8 @@ export default class ViolationsChart extends Vue {
     return 12
   }
 
-  private get chartRows (): ChartRow[] {
-    if (this.loading) return []
-    if (!this.queryParams.cities?.length) return []
-
+  private get filteredViolations (): Violation[] {
+    const violations: Violation[] = []
     const filterCities: MapFilter = this.queryParams.cities
       .reduce((memo: MapFilter, id: City['id']) => (memo[id] = 1) && memo, {})
 
@@ -205,9 +203,6 @@ export default class ViolationsChart extends Vue {
       .reduce((memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo, {})
     if (!Object.keys(filterTargets).length) filterTargets = null
 
-    const citiesCalendars: {[cityId: string]: ViolationsCalendar} = {}
-
-    // gen violations calendar for each city
     for (const violation of this.violations) {
       const cityId = violation.location_id
 
@@ -217,6 +212,44 @@ export default class ViolationsChart extends Vue {
         !_valuePassesFilter(violation.target_id, filterTargets)) {
         continue
       }
+
+      violations.push(violation)
+    }
+
+    return violations
+  }
+
+  private get chartRows (): ChartRow[] {
+    if (this.loading) return []
+    if (!this.queryParams.cities?.length) return []
+
+    // const filterCities: MapFilter = this.queryParams.cities
+    //   .reduce((memo: MapFilter, id: City['id']) => (memo[id] = 1) && memo, {})
+
+    // let filterPollutants: MapFilter|null = this.queryParams.pollutants
+    //   .reduce((memo: MapFilter, id: Pollutant['id']) => (memo[id] = 1) && memo, {})
+    // if (!Object.keys(filterPollutants).length) filterPollutants = null
+
+    // let filterOrganizations: MapFilter|null = this.queryParams.organizations
+    //   .reduce((memo: MapFilter, id: Organization['id']) => (memo[id] = 1) && memo, {})
+    // if (!Object.keys(filterOrganizations).length) filterOrganizations = null
+
+    // let filterTargets: MapFilter|null = this.queryParams.targets
+    //   .reduce((memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo, {})
+    // if (!Object.keys(filterTargets).length) filterTargets = null
+
+    const citiesCalendars: {[cityId: string]: ViolationsCalendar} = {}
+
+    // gen violations calendar for each city
+    for (const violation of this.filteredViolations) {
+      const cityId = violation.location_id
+
+      // if (!_valuePassesFilter(cityId, filterCities) ||
+      //   !_valuePassesFilter(violation.pollutant, filterPollutants) ||
+      //   !_valuePassesFilter(violation.organization, filterOrganizations) ||
+      //   !_valuePassesFilter(violation.target_id, filterTargets)) {
+      //   continue
+      // }
 
       if (!citiesCalendars[cityId]) citiesCalendars[cityId] = {}
       const violationsCalendar: ViolationsCalendar = citiesCalendars[cityId]
@@ -282,7 +315,7 @@ export default class ViolationsChart extends Vue {
     const $btn: HTMLElement|undefined|null = $target?.closest('.v-btn')
 
     if (!$btn) return this.closeAllTooltips()
-    const violations = this.chartData.violations.filter(itm => itm.date === date)
+    const violations = this.filteredViolations.filter(itm => itm.date === date)
     let numRedViolations = 0
 
     const tableItems = violations.map(item => {
