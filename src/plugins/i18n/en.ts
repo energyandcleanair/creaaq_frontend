@@ -42,6 +42,8 @@ export default {
   stations: 'Stations',
   country: 'County',
   countries: 'Countries',
+  value: 'Value',
+  values: 'Values',
   city: 'City',
   cities: 'Cities',
   source: 'Source',

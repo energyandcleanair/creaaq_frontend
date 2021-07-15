@@ -28,6 +28,7 @@ export default class Violation {
   public level!: MeasurementLevels
   public value!: number
 
+  public target_value?: number
   public unit?: string
   public organization?: Organization['id']
   public names?: string[]|null

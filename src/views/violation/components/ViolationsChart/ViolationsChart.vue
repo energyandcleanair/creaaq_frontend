@@ -62,21 +62,31 @@
           first-day-of-week="1"
           no-title
           readonly
+          @click:date="onClickDate"
         />
       </v-col>
     </v-row>
   </template>
+
+  <ChartTooltip
+    ref="calendarTooltip"
+    v-model="tooltip.visible"
+    :activator="tooltip.activator"
+    :title="tooltip.title"
+    :subtitle="tooltip.subtitle"
+    :table-headers="tooltip.tableHeaders"
+    :table-items="tooltip.tableItems"
+  />
 </v-container>
 </template>
 
 <script lang="ts">
 import chroma from 'chroma-js'
+import tippy, { hideAll } from 'tippy.js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
-import _sortBy from 'lodash.sortby'
-import _groupBy from 'lodash.groupby'
 import moment from 'moment'
-import { Component, Vue, Prop } from 'vue-property-decorator'
+import { Component, Vue, Prop, Ref } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
 import { URL_DATE_FORMAT } from '@/utils'
 import theme from '@/theme'
@@ -86,6 +96,7 @@ import Organization from '@/entities/Organization'
 import Violation from '@/entities/Violation'
 import Target from '@/entities/Target'
 import URLQuery from '../../types/URLQuery'
+import ChartTooltip from './ChartTooltip.vue'
 import ChartData from './ChartData'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
@@ -104,12 +115,34 @@ interface MapFilter {
   [id: string]: number
 }
 
+interface TooltipParams {
+  visible: boolean
+  activator: any
+  title: string
+  subtitle: string
+  tableHeaders: any[]
+  tableItems: any[]
+}
+
+const TOOLTIP_DEFAULTS = {
+  visible: false,
+  activator: null,
+  title: '',
+  subtitle: '',
+  tableHeaders: [],
+  tableItems: [],
+}
+
 @Component({
   components: {
     Plotly,
+    ChartTooltip,
   }
 })
 export default class ViolationsChart extends Vue {
+
+  @Ref('calendarTooltip')
+  readonly $calendarTooltip!: any
 
   @Prop({type: Object, required: true})
   readonly queryParams!: URLQuery
@@ -119,6 +152,9 @@ export default class ViolationsChart extends Vue {
 
   @Prop({type: Boolean, default: false})
   public readonly loading!: boolean
+
+  private tooltip: TooltipParams = TOOLTIP_DEFAULTS
+  private tooltips: any[] = []
 
   private get cities (): City[] {
     return this.chartData.cities || []
@@ -232,6 +268,98 @@ export default class ViolationsChart extends Vue {
 
     return rows
   }
+
+  private mounted () {
+    document.body.addEventListener('click', () => {
+      this.closeAllTooltips()
+      console.log('click: ')
+    }, false)
+  }
+
+  private onClickDate (date: string, $event: MouseEvent) {
+    console.log('onClickDate: ')
+    $event.stopPropagation()
+    const $target: HTMLElement|null = $event.target as HTMLElement|null
+    const $btn: HTMLElement|undefined|null = $target?.closest('.v-btn')
+
+    if (!$btn) return this.closeAllTooltips()
+    const violations = this.chartData.violations.filter(itm => itm.date === date)
+
+    const tooltipParams: TooltipParams = {
+      visible: true,
+      activator: $btn,
+      title: (violations.length +
+        ' ' +
+        (violations.length <= 1 ? this.$t('violation') : this.$t('violations'))
+      ).toLowerCase(),
+      subtitle: moment(date, 'YYYY-MM-DD').format('D MMMM YYYY'),
+      tableHeaders: [
+        {
+          text: '',
+          value: 'title',
+          align: 'start',
+        },
+        {
+          text: this.$t('pollutant'),
+          value: 'pollutant',
+          align: 'center',
+        },
+        {
+          text: this.$t('value'),
+          value: 'value',
+          align: 'center',
+        },
+        {
+          text: this.$t('target'),
+          value: 'target_value',
+          align: 'center',
+        },
+      ],
+      tableItems: violations.map(item => {
+        const target = this.chartData.targets.find(i => i.id === item.target_id)
+        const value = Math.round(item.value || 0)
+        const target_value = Math.round(item.target_value || 0)
+        return {
+          class: value > target_value ? 'red--text' : 'green--text',
+          title: target?.short_name || item.organization || item.pollutant || '?',
+          pollutant: item.pollutant || '?',
+          value: value,
+          target_value: target_value,
+        }
+      }),
+    }
+    this.openDateTooltip($btn, tooltipParams, $event)
+  }
+
+  private openDateTooltip (
+    $el: HTMLElement,
+    tooltipParams: TooltipParams,
+    $event: MouseEvent
+  ) {
+    this.tooltip = Object.assign(
+      {
+        ...TOOLTIP_DEFAULTS,
+        visible: true,
+      },
+      tooltipParams
+    )
+
+    const inst = tippy($el, {
+      trigger: 'click',
+      showOnCreate: true,
+      interactive: true,
+      appendTo: this.$el,
+      render: (ins: any) => ({
+        popper: this.$calendarTooltip.$el,
+      })
+    })
+    this.tooltips.push(inst)
+  }
+
+  private closeAllTooltips () {
+    this.tooltips.forEach(inst => inst?.destroy())
+    this.tooltips = []
+  }
 }
 
 const VIOLATIONS_HIGHEST_AMOUNT = 10
@@ -273,7 +401,7 @@ $violations-chart__picker--min-height: 170px;
       padding: 0 1rem;
       position: sticky;
       top: 0;
-      z-index: 2;
+      z-index: 10;
       border-radius: 3px;
       min-height: auto;
 
@@ -288,10 +416,12 @@ $violations-chart__picker--min-height: 170px;
 
     .chart-col {
       padding: 0.5rem 0.3rem;
-      overflow: hidden;
+      overflow: visible;
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative;
+      z-index: 1;
 
       &__title {
         min-height: auto;
@@ -315,6 +445,7 @@ $violations-chart__picker--min-height: 170px;
 
         .v-picker__body {
           width: $violations-chart__picker--width !important;
+          overflow: visible;
         }
 
         .v-date-picker-header {
@@ -361,6 +492,23 @@ $violations-chart__picker--min-height: 170px;
                 }
               }
 
+              &:hover::before,
+              &:focus::before {
+                opacity: 0.08 !important;
+              }
+
+              &:focus,
+              &:hover {
+                &:before  {
+                  background: var(--v-primary-lighten1);
+
+                }
+                .v-date-picker-table__events > div {
+                  border-color: rgb(41, 41, 41) !important;
+                  opacity: 0.8 !important;
+                }
+              }
+
               .v-btn__content {
                 z-index: 5;
                 font-size: 0.9em;
@@ -382,6 +530,7 @@ $violations-chart__picker--min-height: 170px;
                   height: 100%;
                   margin: 0;
                   border-radius: inherit;
+                  border: solid transparent 1px;
                 }
               }
             }
