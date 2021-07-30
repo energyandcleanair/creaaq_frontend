@@ -731,7 +731,10 @@ function _alignColsGridRange (
     dateStart || rangeBox.x0 - MARGIN,
     dateEnd || rangeBox.x1 + MARGIN,
   ]
-  const generalRangeY = [rangeBox.y0 - MARGIN, rangeBox.y1 + MARGIN]
+  const generalRangeY = [
+    -1, // always start from 0
+    rangeBox.y1 + MARGIN
+  ]
 
   for (const col of newCols) {
     _set(col, 'layout.xaxis.range', generalRangeX.slice())
