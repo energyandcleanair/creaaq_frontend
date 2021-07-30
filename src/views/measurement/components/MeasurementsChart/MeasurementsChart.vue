@@ -459,7 +459,6 @@ export default class MeasurementsChart extends Vue {
       }
 
       for (const point of tracePoints) {
-        rangeBox = _extendRangeBox(rangeBox, point.x, point.y)
         trace.x.push(point.x)
         trace.y.push(point.y)
       }
@@ -476,6 +475,10 @@ export default class MeasurementsChart extends Vue {
       const cutTrace = _cutTracePointsOverDatesFrame(trace, dateStart, dateEnd)
       trace.x = cutTrace.x
       trace.y = cutTrace.y
+
+      for (const i in trace.x) {
+        rangeBox = _extendRangeBox(rangeBox, +trace.x[+i], trace.y[+i] || 0)
+      }
 
       // split the trace into traces by year and overlap each other
       if (this.displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
