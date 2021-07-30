@@ -67,11 +67,11 @@
             v-for="marker of mapMarkers"
             :key="marker.id"
             :lat-lng="marker.coordinates"
-            :icon="selectedStationsIds.includes(marker.stationId) ? iconSelected : iconPrimary"
-            @click="onClickMapMarker(marker.stationId)"
+            :icon="selectedStationsIds.includes(marker.station.id) ? iconSelected : iconPrimary"
+            @click="onClickMapMarker(marker.station.id)"
           >
             <l-tooltip
-              :class="{'tooltip--selected': selectedStationsIds.includes(marker.stationId)}"
+              :class="{'tooltip--selected': selectedStationsIds.includes(marker.station.id)}"
               :options="{
                 permanent: permanentTooltipOnSelected,
                 interactive: false,
@@ -79,7 +79,19 @@
                 offset: {x: 0, y: -41}
               }"
             >
-              {{ marker.stationName }}
+              <div class="pb-2">
+                <b class="text-body-1 font-weight-bold">
+                  {{ marker.station.name }}
+                </b>
+              </div>
+
+              <div
+                v-for="header of tooltipInfoHeaders"
+                :key="header.value"
+              >
+                <b>{{header.text}}:</b> {{ marker.station[header.value] }}
+              </div>
+
             </l-tooltip>
           </l-marker>
 
@@ -147,8 +159,7 @@ const iconSelected = new Leaflet.Icon({
 
 interface MapMarker {
   id: string
-  stationId: Station['id']
-  stationName: string
+  station: Station
   coordinates: number[]
 }
 
@@ -258,6 +269,10 @@ export default class StationsChart extends Vue {
     ].filter(i => i)
   }
 
+  private get tooltipInfoHeaders (): any[] {
+    return this.tableHeaders.filter(header => header.value !== 'name')
+  }
+
   private get tableItems (): Station[] {
     const EMPTY = '—'
     return this.chartData.stations.map(_station => {
@@ -294,21 +309,19 @@ export default class StationsChart extends Vue {
   }
 
   private get mapMarkers (): MapMarker[] {
-    return this.chartData.stations.map(station => {
+    return this.tableItems.map(station => {
       if (!station.coordinates) return null
 
-      const marker: any = {}
-
-      marker.id = station.id
-      marker.stationId = station.id
-      marker.stationName = station.name
-      marker.coordinates = [
-        station.coordinates.latitude,
-        station.coordinates.longitude,
-      ]
-
+      const marker: MapMarker = {
+        id: station.id,
+        station: station,
+        coordinates: [
+          station.coordinates.latitude,
+          station.coordinates.longitude,
+        ]
+      }
       return marker
-    }).filter(i => i)
+    }).filter(i => i) as MapMarker[]
   }
 
   private mounted () {
@@ -345,7 +358,7 @@ export default class StationsChart extends Vue {
   }
 
   private mapMoveToStation (stationId: Station['id']) {
-    const marker = this.mapMarkers.find(m => m.stationId === stationId)
+    const marker = this.mapMarkers.find(m => m.station.id === stationId)
     if (!marker) return
 
     const coords = new Leaflet.LatLng(
