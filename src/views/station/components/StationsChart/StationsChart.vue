@@ -82,6 +82,17 @@
               {{ marker.stationName }}
             </l-tooltip>
           </l-marker>
+
+          <div class="leaflet-bottom leaflet-left">
+            <v-btn
+              class="leaflet-control"
+              icon
+              :rounded="false"
+              @click="fitAllMarkers()"
+            >
+              <v-icon>{{ mdiArrowExpandAll }}</v-icon>
+            </v-btn>
+          </div>
         </l-map>
       </v-col>
     </v-row>
@@ -99,7 +110,7 @@ import { saveAs } from 'file-saver'
 import Leaflet, { Icon } from 'leaflet'
 import { Component, Vue, Prop, Ref } from 'vue-property-decorator'
 import { LMap, LTileLayer, LMarker, LTooltip } from 'vue2-leaflet'
-import { mdiFileDownloadOutline } from '@mdi/js'
+import { mdiArrowExpandAll, mdiFileDownloadOutline } from '@mdi/js'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import URLQuery from '../../types/URLQuery'
@@ -170,6 +181,7 @@ export default class StationsChart extends Vue {
   public readonly permanentTooltipOnSelected!: boolean
 
   private mdiFileDownloadOutline = mdiFileDownloadOutline
+  private mdiArrowExpandAll = mdiArrowExpandAll
   private iconPrimary = iconPrimary
   private iconSelected = iconSelected
   private tableOptions = {
@@ -319,6 +331,17 @@ export default class StationsChart extends Vue {
 
     this.closeAllMapMarkerTooltips()
     this.openMapMarkerTooltip(stationId)
+  }
+
+  public fitAllMarkers () {
+    const markers = this.mapMarkers
+      .map((marker) => Leaflet.marker([
+        marker.coordinates[0],
+        marker.coordinates[1],
+      ]))
+
+    const group = Leaflet.featureGroup(markers)
+    this.$map?.fitBounds(group.getBounds())
   }
 
   private mapMoveToStation (stationId: Station['id']) {

@@ -47,7 +47,7 @@
 import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
 import _difference from 'lodash.difference'
-import { Component, Vue } from 'vue-property-decorator'
+import { Component, Ref, Vue } from 'vue-property-decorator'
 import { ModuleState } from '@/store'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
@@ -66,6 +66,12 @@ import URLQuery from './types/URLQuery'
   }
 })
 export default class ViewStations extends Vue {
+
+  @Ref('stationsChart')
+  readonly $stationsChart!: StationsChart
+
+  private isMounted: boolean = false
+  private isFetched: boolean = false
   private isLoading: boolean = false
   private isChartLoading: boolean = false
 
@@ -107,9 +113,28 @@ export default class ViewStations extends Vue {
     return this.$store.getters.GET('queryForm') || null
   }
 
+  private created () {
+    let cancelWatcherMounted: () => void = () => {}
+    let cancelWatcherFetched: () => void = () => {}
+
+    const check = () => this.isMounted &&
+      this.isFetched &&
+      this.mountedAfterFetch()
+
+    cancelWatcherMounted = this.$watch(() => this.isMounted, () => {
+      check()
+      cancelWatcherMounted()
+    })
+    cancelWatcherFetched = this.$watch(() => this.isFetched, () => {
+      check()
+      cancelWatcherFetched()
+    })
+  }
+
   private async beforeMount () {
     this.isLoading = true
     await this.fetch()
+    this.isFetched = true
     this.isLoading = false
   }
 
@@ -167,6 +192,16 @@ export default class ViewStations extends Vue {
 
     this.isChartLoading = false
     this.$loader.off()
+  }
+
+  private mounted () {
+    this.isMounted = true
+  }
+
+  private mountedAfterFetch () {
+    if (!this.urlQuery.stations?.length) {
+      this.$stationsChart.fitAllMarkers()
+    }
   }
 
   private async fetchCities (): Promise<City[]> {
