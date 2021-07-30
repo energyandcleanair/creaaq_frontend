@@ -107,7 +107,7 @@ const COL_ID_DIVIDER = '--'
 interface ViolationsCalendar {
   [year: string]: {
     [month: string]: {
-      [date: string]: number // number of violations
+      [date: string]: number // number of violations [-1; Infinity)
     }
   }
 }
@@ -223,40 +223,22 @@ export default class ViolationsChart extends Vue {
     if (this.loading) return []
     if (!this.queryParams.cities?.length) return []
 
-    // const filterCities: MapFilter = this.queryParams.cities
-    //   .reduce((memo: MapFilter, id: City['id']) => (memo[id] = 1) && memo, {})
-
-    // let filterPollutants: MapFilter|null = this.queryParams.pollutants
-    //   .reduce((memo: MapFilter, id: Pollutant['id']) => (memo[id] = 1) && memo, {})
-    // if (!Object.keys(filterPollutants).length) filterPollutants = null
-
-    // let filterOrganizations: MapFilter|null = this.queryParams.organizations
-    //   .reduce((memo: MapFilter, id: Organization['id']) => (memo[id] = 1) && memo, {})
-    // if (!Object.keys(filterOrganizations).length) filterOrganizations = null
-
-    // let filterTargets: MapFilter|null = this.queryParams.targets
-    //   .reduce((memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo, {})
-    // if (!Object.keys(filterTargets).length) filterTargets = null
-
     const citiesCalendars: {[cityId: string]: ViolationsCalendar} = {}
+    const _tomorrow: number = moment()
+      .set({hour: 0, minute: 0, second: 0, millisecond: 0})
+      .add(1, 'day')
+      .valueOf()
 
     // gen violations calendar for each city
     for (const violation of this.filteredViolations) {
       const cityId = violation.location_id
-
-      // if (!_valuePassesFilter(cityId, filterCities) ||
-      //   !_valuePassesFilter(violation.pollutant, filterPollutants) ||
-      //   !_valuePassesFilter(violation.organization, filterOrganizations) ||
-      //   !_valuePassesFilter(violation.target_id, filterTargets)) {
-      //   continue
-      // }
 
       if (!citiesCalendars[cityId]) citiesCalendars[cityId] = {}
       const violationsCalendar: ViolationsCalendar = citiesCalendars[cityId]
 
       const $date = moment(violation.date, URL_DATE_FORMAT)
       const calendarProp = $date.format(`YYYY.MM.DD`)
-      const violations = _get(violationsCalendar, calendarProp) as any as number || 0
+      const violations = +_get(violationsCalendar, calendarProp) || 0
       _set(violationsCalendar, calendarProp, violations + 1)
     }
 
@@ -289,8 +271,16 @@ export default class ViolationsChart extends Vue {
           for (let date = 1; date <= $firstDate.daysInMonth(); date++) {
             const dateStr = date < 10 ? `0${date}` : String(date)
             const key = `${y_m}-${dateStr}`
-            const val = _get(violationsCalendar, key.replace(/-/g, '.'), 0) as any as number
-            col.events[key] = _getViolationsColor(val)
+            const $date = moment(key, 'YYYY-MM-DD')
+            let violationsNum: number
+
+            if (+$date >= _tomorrow) {
+              violationsNum = -1
+            } else {
+              violationsNum = +_get(violationsCalendar, key.replace(/-/g, '.'), 0)
+            }
+
+            col.events[key] = _getViolationsColor(violationsNum)
           }
 
           row.cols.push(col)
@@ -408,7 +398,8 @@ const VIOLATIONS_SCALE = chroma.scale([
 ])
 const PALETTE_COLORS = VIOLATIONS_SCALE.mode('lch').colors(VIOLATIONS_PALETTE_SIZE + 1)
 function _getViolationsColor (num: number): string {
-  if (num === 0) return theme.colors.lightGray.base
+  if (num === -1) return ''
+  if (num === 0) return theme.colors.green.base
   const percentage = num / (VIOLATIONS_HIGHEST_AMOUNT / 100)
   const scaleVal = num >= VIOLATIONS_HIGHEST_AMOUNT
     ? 1
