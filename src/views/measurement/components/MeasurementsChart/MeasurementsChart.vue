@@ -127,16 +127,8 @@ const PRIMARY_LINE_STYLE = {
   widthStep: 0.3
 }
 const SECONDARY_LINE_STYLE = {color: '#ddd', width: 1}
-// const PRIMARY_TRACE_COLOR_SCALE = chroma.scale('Spectral')
 const PRIMARY_TRACE_COLOR_SCALE = chroma
   .scale([theme.colors.darkBlue.darken1, 'blue', 'purple', 'red', 'orange', 'green']);
-
-
-// const PRIMARY_TRACE_COLOR_SCALE = chroma.scale([
-//   theme.colors.darkBlue.darken1,
-//   theme.colors.blue.base,
-// ])
-
 
 interface MapFilter {
   [id: string]: number

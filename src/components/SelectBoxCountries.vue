@@ -5,6 +5,7 @@
   item-value="id"
   hide-details
   has-deselect-all
+  selected-first
   v-bind="$props"
   v-on="$listeners"
 >

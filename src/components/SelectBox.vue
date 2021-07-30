@@ -2,6 +2,7 @@
 <component
   :is="_tagName"
   :filter="filter"
+  :items="privateItems"
   chips
   multiple
   clearable
@@ -77,6 +78,7 @@
 </template>
 
 <script lang="ts">
+import _sortBy from 'lodash.sortby'
 import { mdiCloseBox, mdiMinusBox, mdiCheckboxBlankOutline } from '@mdi/js'
 import { Component, Model, Prop } from 'vue-property-decorator'
 import { VAutocomplete, VSelect } from 'vuetify/lib'
@@ -92,14 +94,50 @@ const defaultFilter = (item: any, queryText: string, itemText: string) => {
   }
 })
 export default class SelectBox extends VSelect {
-  @Model('input', {type: Array}) readonly value!: any[]
-  @Prop() readonly items!: any[]
-  @Prop({type: Boolean, default: false}) readonly hasSelectAll!: boolean
-  @Prop({type: Boolean, default: false}) readonly hasDeselectAll!: boolean
-  @Prop({type: Boolean, default: false}) readonly showSubtitleInChip!: boolean
-  @Prop({type: Number, default: 1}) readonly visibleChips!: number
-  @Prop({type: String}) readonly tagName?: 'v-autocomplete'|'v-select'
-  @Prop({type: Function, default: defaultFilter}) filter: any
+
+  @Model('input', {type: Array})
+  readonly value!: any[]
+
+  @Prop()
+  readonly items!: any[]
+
+  @Prop({type: Boolean, default: false})
+  readonly hasSelectAll!: boolean
+
+  @Prop({type: Boolean, default: false})
+  readonly hasDeselectAll!: boolean
+
+  @Prop({type: Boolean, default: false})
+  readonly showSubtitleInChip!: boolean
+
+  @Prop({type: Boolean, default: false})
+  readonly selectedFirst!: boolean
+
+  @Prop({type: Number, default: 1})
+  readonly visibleChips!: number
+
+  @Prop({type: String})
+  readonly tagName?: 'v-autocomplete'|'v-select'
+
+  @Prop({type: Function, default: defaultFilter})
+  readonly filter: any
+
+  private get privateItems (): any[] {
+    if (!this.selectedFirst) return this.items
+
+    const valueProp = this.$props.itemValue || 'value'
+    const orderArr = !this.$props.returnObject
+      ? this.value || []
+      : (this.value || []).map(item => item[valueProp])
+
+    const lastIndex = this.items.length;
+    const sortedArr = _sortBy(this.items, (item) => {
+      const i = orderArr.indexOf(item[valueProp])
+      return i !== -1 ? i : lastIndex
+    })
+
+    return sortedArr
+  }
 
   private get _tagName (): 'v-autocomplete'|'v-select' {
     if (this.tagName) return this.tagName
