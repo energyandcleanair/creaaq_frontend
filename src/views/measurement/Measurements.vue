@@ -63,6 +63,7 @@
       :filterSources="filterSources"
       :filterPollutants="filterPollutants"
       :filterStations="filterStations"
+      :maxColHeight="maxColHeight"
       :loading="isChartLoading"
     />
   </v-container>
@@ -197,6 +198,12 @@ export default class ViewMeasurements extends Vue {
 
   private get allowDisplayStations (): boolean {
     return this.displayMode !== ChartDisplayModes.SUPERIMPOSED_YEARS
+  }
+
+  private get maxColHeight (): number|undefined {
+    const h: number = this.$parent?.$el?.clientHeight
+    if (h === undefined) return h
+    return h * 0.7
   }
 
   private get chartCols (): ChartColumnSize|0 {

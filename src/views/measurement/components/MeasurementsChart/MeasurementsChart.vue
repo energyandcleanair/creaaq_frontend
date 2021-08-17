@@ -171,6 +171,9 @@ export default class MeasurementsChart extends Vue {
   @Prop({type: Array, default: () => []})
   public readonly filterStations!: Station['id'][]
 
+  @Prop({type: Number, default: 15000})
+  public readonly maxColHeight?: number
+
   private get cities (): City[] {
     return this.chartData.cities || []
   }
@@ -618,6 +621,11 @@ export default class MeasurementsChart extends Vue {
       isEmpty,
     } = opts
 
+    let height = Math.max(colWidth * (2/3), margin.b * 2)
+    if (this.maxColHeight && height > this.maxColHeight) {
+      height = this.maxColHeight
+    }
+
     return {
       showlegend: false,
       legendfont: {
@@ -630,7 +638,7 @@ export default class MeasurementsChart extends Vue {
       dragmode: 'zoom',
       autosize: true,
       width: colWidth,
-      height: Math.max(colWidth * (2/3), margin.b * 2),
+      height,
       margin,
       xaxis: {
         visible: !isEmpty,
