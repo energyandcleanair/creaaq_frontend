@@ -3,7 +3,6 @@
   class="violations-chart"
   fluid
 >
-
   <template v-if="loading">
     <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
 
@@ -52,41 +51,82 @@
           </v-list-item-content>
         </v-list-item>
 
-        <v-date-picker
-          class="chart-col__date-picker"
-          active-picker="DATE"
-          :value="col.date"
-          :events="col.events"
-          :show-current="false"
-          :show-adjacent-months="false"
-          first-day-of-week="1"
-          no-title
-          readonly
-          @click:date="onClickDate"
-        />
+        <v-calendar
+          class="chart-col__calendar"
+          type="month"
+          :value="col.firstDate"
+          :weekdays="[1, 2, 3, 4, 5, 6, 0]"
+          :weekday-format="weekdayFormatter"
+          :show-month-on-first="false"
+        >
+          <template v-slot:day-label>
+            <span>
+              <!-- empty -->
+            </span>
+          </template>
+
+          <template v-slot:day="{ day, outside, future }">
+            <template v-if="outside">
+              <!-- empty -->
+            </template>
+
+            <v-btn
+              v-else-if="future || !col.dates[day]"
+              class="not-interactive"
+              :color="'white'"
+              :ripple="false"
+              small
+              depressed
+            >
+              {{ day }}
+            </v-btn>
+
+            <v-menu
+              v-else
+              contentClass="violations-chart__calendar__day-menu"
+              top
+              offset-y
+              open-on-hover
+              allow-overflow
+              internal-activator
+              z-index="110"
+            >
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn
+                  v-if="!outside"
+                  :color="col.dates[day].color || 'white'"
+                  :ripple="false"
+                  small
+                  depressed
+                  v-bind="attrs"
+                  v-on="on"
+                >
+                  {{ day }}
+                </v-btn>
+              </template>
+
+              <ChartTooltip
+                v-if="col.dates[day].tooltip"
+                :title="col.dates[day].tooltip.title"
+                :subtitle="col.dates[day].tooltip.subtitle"
+                :table-headers="col.dates[day].tooltip.tableHeaders"
+                :table-items="col.dates[day].tooltip.tableItems"
+              />
+            </v-menu>
+          </template>
+        </v-calendar>
       </v-col>
     </v-row>
   </template>
-
-  <ChartTooltip
-    ref="calendarTooltip"
-    v-model="tooltip.visible"
-    :activator="tooltip.activator"
-    :title="tooltip.title"
-    :subtitle="tooltip.subtitle"
-    :table-headers="tooltip.tableHeaders"
-    :table-items="tooltip.tableItems"
-  />
 </v-container>
 </template>
 
 <script lang="ts">
 import chroma from 'chroma-js'
-import tippy from 'tippy.js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _orderBy from 'lodash.orderby'
-import moment from 'moment'
+import moment, { Moment } from 'moment'
 import { Component, Vue, Prop, Ref } from 'vue-property-decorator'
 import { Plotly } from 'vue-plotly'
 import { URL_DATE_FORMAT } from '@/utils'
@@ -107,7 +147,7 @@ const COL_ID_DIVIDER = '--'
 interface ViolationsCalendar {
   [year: string]: {
     [month: string]: {
-      [date: string]: number // number of violations [-1; Infinity)
+      [date: string]: Violation[]|undefined
     }
   }
 }
@@ -117,8 +157,6 @@ interface MapFilter {
 }
 
 interface TooltipParams {
-  visible: boolean
-  activator: any
   title: string
   subtitle: string
   tableHeaders: any[]
@@ -238,8 +276,20 @@ export default class ViolationsChart extends Vue {
 
       const $date = moment(violation.date, URL_DATE_FORMAT)
       const calendarProp = $date.format('YYYY.MM.DD')
-      const violations = +_get(violationsCalendar, calendarProp) || 0
-      _set(violationsCalendar, calendarProp, violations + 1)
+
+      let violations: Violation[]|undefined = _get(
+        violationsCalendar,
+        calendarProp
+      ) as any as Violation[]|undefined
+
+      if (!violations) {
+        _set<Violation[]>(violationsCalendar, calendarProp, [])
+        violations = _get(
+          violationsCalendar,
+          calendarProp
+        ) as any as Violation[]
+      }
+      violations.push(violation)
     }
 
     const rows: ChartRow[] = []
@@ -263,8 +313,8 @@ export default class ViolationsChart extends Vue {
           const col: ChartCol = {
             id: `${row.id}${COL_ID_DIVIDER}${year}${COL_ID_DIVIDER}${monthStr}`,
             title: $firstDate.format('MMMM YYYY'),
-            date: $firstDate.format('YYYY-MM-DD'),
-            events: {},
+            firstDate: $firstDate.format('YYYY-MM-DD'),
+            dates: {},
           }
 
           const y_m = $firstDate.format('YYYY-MM')
@@ -272,15 +322,24 @@ export default class ViolationsChart extends Vue {
             const dateStr = date < 10 ? `0${date}` : String(date)
             const key = `${y_m}-${dateStr}`
             const $date = moment(key, 'YYYY-MM-DD')
-            let violationsNum: number
+            const dateViolations: Violation[]|undefined = _get(
+              violationsCalendar,
+              key.replace(/-/g, '.'),
+            ) as any as Violation[]|undefined
 
-            if (+$date >= _tomorrow) {
-              violationsNum = -1
-            } else {
-              violationsNum = +_get(violationsCalendar, key.replace(/-/g, '.'), -1)
+            const violationsNum: number = +$date >= _tomorrow
+              ? -1
+              : dateViolations?.length || -1
+
+            col.dates[date] = {
+              color: _getViolationsColor(violationsNum),
+              violations: dateViolations || [],
+              tooltip: this.genDateTooltipParams(
+                $date,
+                dateViolations || [],
+                this.chartData.targets || []
+              ),
             }
-
-            col.events[key] = _getViolationsColor(violationsNum)
           }
 
           row.cols.push(col)
@@ -293,23 +352,19 @@ export default class ViolationsChart extends Vue {
     return rows
   }
 
-  private mounted () {
-    document.body.addEventListener('click', () => {
-      this.closeAllTooltips()
-    }, false)
+  private weekdayFormatter (dayProps: any) {
+    return ['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayProps.weekday]
   }
 
-  private onClickDate (date: string, $event: MouseEvent) {
-    $event.stopPropagation()
-    const $target: HTMLElement|null = $event.target as HTMLElement|null
-    const $btn: HTMLElement|undefined|null = $target?.closest('.v-btn')
-
-    if (!$btn) return this.closeAllTooltips()
-    const violations = this.filteredViolations.filter(itm => itm.date === date)
+  private genDateTooltipParams (
+    $date: Moment,
+    violations: Violation[],
+    targets: Target[],
+  ): TooltipParams {
     let numRedViolations = 0
 
     const tableItems = violations.map(item => {
-      const target = this.chartData.targets.find(i => i.id === item.target_id)
+      const target = targets.find(i => i.id === item.target_id)
       const value = Math.round(item.value || 0)
       const target_value = Math.round(item.target_value || 0)
       const exceeded = value > target_value
@@ -324,14 +379,12 @@ export default class ViolationsChart extends Vue {
       }
     })
 
-    const tooltipParams: TooltipParams = {
-      visible: true,
-      activator: $btn,
+    const tooltipParams: any = {
       title: (numRedViolations +
         ' ' +
         (numRedViolations <= 1 ? this.$t('violation') : this.$t('violations'))
       ).toLowerCase(),
-      subtitle: moment(date, 'YYYY-MM-DD').format('D MMMM YYYY'),
+      subtitle: $date.format('D MMMM YYYY'),
       tableHeaders: [
         {
           text: '',
@@ -356,37 +409,7 @@ export default class ViolationsChart extends Vue {
       ],
       tableItems: _orderBy(tableItems, 'exceeded', 'desc'),
     }
-    this.openDateTooltip($btn, tooltipParams, $event)
-  }
-
-  private openDateTooltip (
-    $el: HTMLElement,
-    tooltipParams: TooltipParams,
-    $event: MouseEvent
-  ) {
-    this.tooltip = Object.assign(
-      {
-        ...TOOLTIP_DEFAULTS,
-        visible: true,
-      },
-      tooltipParams
-    )
-
-    const inst = tippy($el, {
-      trigger: 'click',
-      showOnCreate: true,
-      interactive: true,
-      appendTo: this.$el,
-      render: (ins: any) => ({
-        popper: this.$calendarTooltip.$el,
-      })
-    })
-    this.tooltips.push(inst)
-  }
-
-  private closeAllTooltips () {
-    this.tooltips.forEach(inst => inst?.destroy())
-    this.tooltips = []
+    return tooltipParams
   }
 }
 
@@ -417,11 +440,11 @@ function _valuePassesFilter (
 
 <style lang="scss">
 
-$violations-chart__picker--width: 170px;
-$violations-chart__picker--min-height: 170px;
+$violations-chart__calendar--width: 170px;
 
 .violations-chart {
   padding: 0 0.5rem 0 0;
+  position: relative;
 
   .chart-row {
     position: relative;
@@ -446,7 +469,7 @@ $violations-chart__picker--min-height: 170px;
     }
 
     .chart-col {
-      padding: 0.5rem 0.3rem;
+      padding: 0.5rem 0.3rem 1.5rem;
       overflow: visible;
       display: flex;
       flex-direction: column;
@@ -456,10 +479,12 @@ $violations-chart__picker--min-height: 170px;
 
       &__title {
         min-height: auto;
-        width: $violations-chart__picker--width;
+        max-height: 20px;
+        width: $violations-chart__calendar--width;
         text-align: left;
         border-radius: 3px;
-        padding: 0 $violations-chart__picker--width / 20;
+        padding: 0 4px;
+        margin-bottom: 0.5rem;
 
         .v-list-item__content {
           padding: 0;
@@ -471,98 +496,54 @@ $violations-chart__picker--min-height: 170px;
         }
       }
 
-      &__date-picker {
-        display: flex;
+      &__calendar.v-calendar {
+        border: 0;
+        height: auto;
+        min-height: fit-content;
 
-        .v-picker__body {
-          width: $violations-chart__picker--width !important;
-          overflow: visible;
+        .v-calendar-weekly__head,
+        .v-calendar-weekly__week {
+          min-height: 21px + (2px * 2);
+          justify-content: center;
+
+          .v-calendar-weekly__head-weekday,
+          .v-calendar-weekly__day {
+            border: 0;
+            background: none;
+            flex: 1 0 auto;
+            padding: 0;
+            min-width: 21px;
+            max-width: 21px;
+            height: 21px;
+            margin: 2px;
+          }
         }
 
-        .v-date-picker-header {
-          display: none;
+        .v-calendar-weekly__head {
+          .v-calendar-weekly__head-weekday {
+            color: var(--v-grey-base);
+            line-height: 21px;
+          }
         }
 
-        .v-date-picker-table {
-          min-height: $violations-chart__picker--min-height;
-          height: auto;
-          padding: 0;
-
-          > table {
-            tr {
-              font-size: 0.8rem;
+        .v-calendar-weekly__week {
+          .v-calendar-weekly__day {
+            .v-calendar-weekly__day-label {
+              display: none;
+              margin: 0;
             }
 
             .v-btn {
-              position: relative;
               border-radius: 3px;
+              min-width: 21px;
               width: 21px;
               height: 21px;
-              margin: 0 !important;
+              padding: 0;
               display: flex;
 
-              // deactivate the active button
-              &.v-btn--active {
-                background: none !important;
-                color: rgb(0 0 0 / 87%) !important;
-
-                &:before {
-                  opacity: 0;
-                }
-
-                &:hover {
-                  &:before {
-                    opacity: 0.08;
-                  }
-                }
-              }
-
-              &:hover {
-                .v-date-picker-table__events {
-                  opacity: 0.95;
-                }
-              }
-
-              &:hover::before,
-              &:focus::before {
-                opacity: 0.08 !important;
-              }
-
-              &:focus,
-              &:hover {
-                &:before  {
-                  background: var(--v-primary-lighten1);
-
-                }
-                .v-date-picker-table__events > div {
-                  border-color: rgb(41, 41, 41) !important;
-                  opacity: 0.8 !important;
-                }
-              }
-
-              .v-btn__content {
-                z-index: 5;
-                font-size: 0.9em;
-              }
-
-              .v-date-picker-table__events {
-                width: 100%;
-                height: 100%;
-                position: absolute;
-                top: 0;
-                left: 0;
-                bottom: 0;
-                right: 0;
-                z-index: 1;
-                border-radius: inherit;
-
-                div {
-                  width: 100%;
-                  height: 100%;
-                  margin: 0;
-                  border-radius: inherit;
-                  border: solid transparent 1px;
-                }
+              &.not-interactive {
+                cursor: auto !important;
+                pointer-events: none;
               }
             }
           }
@@ -573,6 +554,28 @@ $violations-chart__picker--min-height: 170px;
     &--hidden {
       display: none;
     }
+  }
+}
+
+.violations-chart__calendar__day-menu {
+  contain: initial;
+  overflow: visible;
+  margin-top: -6px;
+  margin-left: -10px;
+
+  &::before {
+    position: absolute;
+    content: "";
+    width: 10px;
+    height: 14px;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 7px solid #fff;
+    bottom: -13px;
+    left: 8px;
+    z-index: 20;
+    transform-origin: center top;
+    filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.2));
   }
 }
 </style>
