@@ -8,10 +8,7 @@ const routes: Array<RouteConfig> = [
   {
     path: '/',
     name: 'home',
-    component: () => import('@/views/home/Home.vue'),
-    meta: {
-      requiresAuth: true
-    }
+    redirect: {name: 'measurements'},
   },
   {
     name: 'auth',

@@ -237,7 +237,7 @@ export default class ViolationsChart extends Vue {
       const violationsCalendar: ViolationsCalendar = citiesCalendars[cityId]
 
       const $date = moment(violation.date, URL_DATE_FORMAT)
-      const calendarProp = $date.format(`YYYY.MM.DD`)
+      const calendarProp = $date.format('YYYY.MM.DD')
       const violations = +_get(violationsCalendar, calendarProp) || 0
       _set(violationsCalendar, calendarProp, violations + 1)
     }
@@ -277,7 +277,7 @@ export default class ViolationsChart extends Vue {
             if (+$date >= _tomorrow) {
               violationsNum = -1
             } else {
-              violationsNum = +_get(violationsCalendar, key.replace(/-/g, '.'), 0)
+              violationsNum = +_get(violationsCalendar, key.replace(/-/g, '.'), -1)
             }
 
             col.events[key] = _getViolationsColor(violationsNum)
@@ -432,7 +432,7 @@ $violations-chart__picker--min-height: 170px;
       padding: 0 1rem;
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 3;
       border-radius: 3px;
       min-height: auto;
 
