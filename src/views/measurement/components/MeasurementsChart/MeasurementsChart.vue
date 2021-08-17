@@ -624,7 +624,7 @@ export default class MeasurementsChart extends Vue {
         size: font,
         color: '#212121',
       },
-      plot_bgcolor: '#fcfcfc',
+      plot_bgcolor: 'transparent',
       paper_bgcolor: '#fff',
       hovermode: 'closest',
       dragmode: 'zoom',
