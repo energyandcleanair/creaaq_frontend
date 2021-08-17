@@ -29,23 +29,6 @@
       <v-spacer/>
 
       <v-col class="d-flex justify-end align-center">
-        <v-tooltip bottom>
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn
-              icon
-              v-bind="attrs"
-              v-on="on"
-              :disabled="isLoading || !chartData.measurements.length"
-              :loading="isLoading || isChartLoading"
-              @click="onClickExportToCSV"
-            >
-              <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
-            </v-btn>
-          </template>
-
-          <span>{{ $t('export_to_csv') }}</span>
-        </v-tooltip>
-
         <v-btn
           class="ml-3"
           :disabled="isLoading"
@@ -67,6 +50,7 @@
       :loading="isChartLoading"
       :disabledStations="false"
       @update:queryParams="onChangeQuery"
+      @click:export="onClickExport"
     />
 
     <MeasurementsChart
@@ -102,6 +86,7 @@ import Measurement, { MeasurementProcesses } from '@/entities/Measurement'
 import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
+import { ExportFileType } from '@/components/ExportBtn.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
@@ -111,7 +96,6 @@ import ChartData from './components/MeasurementsChart/ChartData'
 import ChartColumnSize from './components/MeasurementsChart/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
 import URLQuery, { URLQueryStations } from './types/URLQuery'
-import { mdiFileDownloadOutline } from '@mdi/js'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
@@ -127,7 +111,6 @@ const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
 export default class ViewMeasurements extends Vue {
   private isLoading: boolean = false
   private isChartLoading: boolean = false
-  private mdiFileDownloadOutline = mdiFileDownloadOutline
 
   private chartData: ChartData = {
     cities: [],
@@ -535,6 +518,12 @@ export default class ViewMeasurements extends Vue {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()
+  }
+
+  private onClickExport (fileType: ExportFileType) {
+    if (fileType === ExportFileType.CSV) {
+      this.onClickExportToCSV()
+    }
   }
 
   private onClickExportToCSV () {

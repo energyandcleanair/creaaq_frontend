@@ -22,7 +22,7 @@
 
   <template v-else>
     <v-row class="stations-chart__content pb-14">
-      <v-col cols="12" md="7">
+      <v-col cols="12" md="7" order="2" order-md="1">
         <v-data-table
           ref="table"
           class="elevation-1"
@@ -32,28 +32,16 @@
           :items-per-page="5"
           :item-class="(item) => selectedStationsIds.includes(item.id) && 'selected-row'"
           @click:row="onClickTableRow"
-        >
-          <!-- eslint-disable-next-line vue/valid-v-slot -->
-          <template v-slot:footer.prepend>
-            <v-tooltip top>
-              <template v-slot:activator="{ on, attrs }">
-                <v-btn
-                  icon
-                  v-bind="attrs"
-                  v-on="on"
-                  @click="onClickExportToCSV"
-                >
-                  <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
-                </v-btn>
-              </template>
+        />
 
-              <span>{{ $t('export_to_csv') }}</span>
-            </v-tooltip>
-          </template>
-        </v-data-table>
+        <ExportBtn
+          class="ml-1 mt-2"
+          :value="'CSV'"
+          @click="onClickExport"
+        />
       </v-col>
 
-      <v-col cols="12" md="5">
+      <v-col cols="12" md="5" order="1" order-md="2">
         <l-map
           ref="map"
           class="elevation-1"
@@ -122,7 +110,8 @@ import { saveAs } from 'file-saver'
 import Leaflet, { Icon } from 'leaflet'
 import { Component, Vue, Prop, Ref } from 'vue-property-decorator'
 import { LMap, LTileLayer, LMarker, LTooltip } from 'vue2-leaflet'
-import { mdiArrowExpandAll, mdiFileDownloadOutline } from '@mdi/js'
+import { mdiArrowExpandAll } from '@mdi/js'
+import ExportBtn, { ExportFileType } from '@/components/ExportBtn.vue'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import URLQuery from '../../types/URLQuery'
@@ -169,6 +158,7 @@ interface MapMarker {
     LTileLayer,
     LMarker,
     LTooltip,
+    ExportBtn,
   }
 })
 export default class StationsChart extends Vue {
@@ -191,7 +181,6 @@ export default class StationsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly permanentTooltipOnSelected!: boolean
 
-  private mdiFileDownloadOutline = mdiFileDownloadOutline
   private mdiArrowExpandAll = mdiArrowExpandAll
   private iconPrimary = iconPrimary
   private iconSelected = iconSelected
@@ -453,8 +442,10 @@ export default class StationsChart extends Vue {
     this.mapMoveToStation(station.id)
   }
 
-  private onClickExportToCSV () {
-    this.exportToCSV(this.stations)
+  public onClickExport (fileType: ExportFileType, $event: MouseEvent) {
+    if (fileType === ExportFileType.CSV) {
+      this.exportToCSV(this.stations)
+    }
   }
 }
 </script>

@@ -152,6 +152,17 @@
         />
       </v-col>
     </v-row>
+
+    <v-row no-gutters>
+      <v-col class="subtitle-2" cols="12">{{ $t('export') }}</v-col>
+
+      <v-col class="d-flex justify-center" cols="12">
+        <ExportBtn
+          :value="'CSV'"
+          @click="onClickExport"
+        />
+      </v-col>
+    </v-row>
   </v-form>
 </PageDrawer>
 </template>
@@ -161,6 +172,7 @@ import _difference from 'lodash.difference'
 import { Component, Prop, Vue, Emit } from 'vue-property-decorator'
 import PageDrawer from '@/components/PageDrawer.vue'
 import SelectBox from '@/components/SelectBox.vue'
+import ExportBtn, { ExportFileType } from '@/components/ExportBtn.vue'
 import Station from '@/entities/Station'
 import City from '@/entities/City'
 import RunningAverageEnum from '../types/RunningAverageEnum'
@@ -184,7 +196,8 @@ interface StationsNCitiesMap {
 @Component({
   components: {
     PageDrawer,
-    SelectBox
+    SelectBox,
+    ExportBtn,
   }
 })
 export default class MeasurementsRightDrawer extends Vue {
@@ -308,6 +321,9 @@ export default class MeasurementsRightDrawer extends Vue {
 
   @Emit('update:open')
   public toggle (value: boolean) {}
+
+  @Emit('click:export')
+  public onClickExport (fileType: ExportFileType, $event: MouseEvent) {}
 
   public onBlurStationsSelect ($event: FocusEvent) {
     const isRealBlur = !$event.relatedTarget

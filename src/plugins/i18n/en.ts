@@ -69,6 +69,8 @@ export default {
   profile: 'Profile',
   help_n_support: 'Help & Support',
   attribution: 'Attribution',
+  format: 'Format',
+  export: 'Export',
   export_to_csv: 'Export to CSV',
 
   msg: {
