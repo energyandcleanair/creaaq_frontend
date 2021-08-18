@@ -53,7 +53,7 @@
   </template>
 
   <template v-slot:item="{ on, attrs, item }">
-    <v-list-item v-bind="attrs" v-on="on">
+    <v-list-item v-bind="attrs" v-on="on" @click="$emit('click:item', item)">
       <v-list-item-action>
         <v-simple-checkbox class="pointer-events-none" :value="attrs.inputValue"/>
       </v-list-item-action>

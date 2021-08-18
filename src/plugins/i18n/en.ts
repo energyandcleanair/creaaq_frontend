@@ -93,6 +93,8 @@ export default {
     invalid_item: 'Invalid {item}',
     passwords_dont_match: 'Passwords do not match',
     sign_up_success: 'You have successfully registered and logged in.',
+    type_to_search: 'Type to search',
+    no_results_found: 'No results found',
   },
 
   auth: {
