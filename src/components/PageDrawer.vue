@@ -1,46 +1,53 @@
 <template>
-<v-navigation-drawer
-  class="page-drawer"
-  :value="open"
-  app
-  clipped
-  right
-  width="230"
-  mobile-breakpoint="960"
-  @input="toggle($event)"
->
+  <v-navigation-drawer
+    class="page-drawer"
+    :value="open"
+    app
+    clipped
+    right
+    width="230"
+    mobile-breakpoint="960"
+    @input="toggle($event)"
+  >
 
-  <template v-slot:prepend>
-    <v-btn
-      class="drawer-handler"
-      :title="$t('display_parameters')"
-      :style="{'margin-top': $vuetify.application.top + 'px'}"
-      color="primary"
-      icon
-      @click="toggle(!open)"
-    >
-      <v-icon>{{ mdiTune }}</v-icon>
-    </v-btn>
-
-    <v-toolbar height="40" flat>
-      <v-spacer/>
-
-      <v-btn icon small @click="toggle(!open)">
-        <v-icon small>{{ mdiClose }}</v-icon>
+    <template v-slot:prepend>
+      <v-btn
+        class="drawer-handler"
+        :title="$t('display_parameters')"
+        :style="{'margin-top': $vuetify.application.top + 'px'}"
+        color="primary"
+        icon
+        @click="toggle(!open)"
+      >
+        <v-icon>{{ mdiTune }}</v-icon>
       </v-btn>
-    </v-toolbar>
-  </template>
 
-  <div class="drawer__content px-3">
-    <slot/>
-  </div>
-</v-navigation-drawer>
+      <v-toolbar
+        height="40"
+        flat
+      >
+        <v-spacer />
+
+        <v-btn
+          icon
+          small
+          @click="toggle(!open)"
+        >
+          <v-icon small>{{ mdiClose }}</v-icon>
+        </v-btn>
+      </v-toolbar>
+    </template>
+
+    <div class="drawer__content px-3">
+      <slot />
+    </div>
+  </v-navigation-drawer>
 </template>
 
 <script lang="ts">
 import _difference from 'lodash.difference'
-import { Component, Prop, Vue, Emit } from 'vue-property-decorator'
-import { mdiClose, mdiTune } from '@mdi/js'
+import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
+import {mdiClose, mdiTune} from '@mdi/js'
 
 @Component
 export default class PageDrawer extends Vue {
@@ -52,7 +59,7 @@ export default class PageDrawer extends Vue {
 
   @Emit('input')
   @Emit('update:open')
-  public toggle (value: boolean) {}
+  public toggle(value: boolean) {}
 }
 </script>
 
@@ -75,7 +82,7 @@ export default class PageDrawer extends Vue {
     .drawer-handler {
       position: absolute;
       left: -2.7rem;
-      top: .5rem;
+      top: 0.5rem;
       width: 2.7rem;
       height: 2rem;
       z-index: 10;

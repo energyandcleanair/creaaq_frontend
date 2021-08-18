@@ -23,7 +23,7 @@ export default class Violation {
   public city_id!: City['id']
   public target_id!: Target['id']
   public source!: Source['id']
-  public date!: string|Date
+  public date!: string | Date
   public pollutant!: Pollutant['id']
   public level!: MeasurementLevels
   public value!: number
@@ -31,18 +31,18 @@ export default class Violation {
   public target_value?: number
   public unit?: string
   public organization?: Organization['id']
-  public names?: string[]|null
+  public names?: string[] | null
   public gpw?: any
   public timezone?: string
   public process_id?: MeasurementProcesses
   public gadm1_id?: string
-  public name_local?: string|null
+  public name_local?: string | null
   public geometry?: {
     longitude: number
     latitude: number
   }
 
-  constructor (data: Violation) {
+  constructor(data: Violation) {
     Object.assign(this, data)
   }
 }

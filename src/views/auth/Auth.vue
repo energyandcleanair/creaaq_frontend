@@ -1,37 +1,37 @@
 <template>
-<div
-  class="view-auth fill-height"
-  :class="{
+  <div
+    class="view-auth fill-height"
+    :class="{
     'mode--mobile': $vuetify.breakpoint.xs
   }"
->
+  >
 
-  <v-container class="fill-height justify-center pa-0">
-    <v-card
-      class="page-content fill-height"
-      flat
-    >
-      <v-card-text class="px-0 fill-height">
-        <component
-          :is="formComponentName"
-          ref="form"
-          v-model="isValid"
-          :message="formMessage"
-          :formValues.sync="formValues"
-          @submit="onClickSubmit"
-          @login:google="onClickLoginGoogle"
-        />
-      </v-card-text>
-    </v-card>
-  </v-container>
-</div>
+    <v-container class="fill-height justify-center pa-0">
+      <v-card
+        class="page-content fill-height"
+        flat
+      >
+        <v-card-text class="px-0 fill-height">
+          <component
+            :is="formComponentName"
+            ref="form"
+            v-model="isValid"
+            :message="formMessage"
+            :formValues.sync="formValues"
+            @submit="onClickSubmit"
+            @login:google="onClickLoginGoogle"
+          />
+        </v-card-text>
+      </v-card>
+    </v-container>
+  </div>
 </template>
 
 <script lang="ts">
 import to from 'await-to-js'
 import _get from 'lodash.get'
-import { Component, Vue } from 'vue-property-decorator'
-import fb, { auth, refreshAccessToken } from '@/plugins/firebase'
+import {Component, Ref, Vue} from 'vue-property-decorator'
+import fb, {auth, refreshAccessToken} from '@/plugins/firebase'
 import FormSignIn from './SignIn.form.vue'
 import FormSignUp from './SignUp.form.vue'
 import FormResetPassword from './ResetPassword.form.vue'
@@ -45,9 +45,12 @@ import FormChangePassword from './ChangePassword.form.vue'
     FormResetPassword,
     FormResetPasswordMessage,
     FormChangePassword,
-  }
+  },
 })
 export default class PageAuth extends Vue {
+  @Ref('form')
+  readonly $form: any
+
   private isValid: boolean = true
 
   private formMessage: string = ''
@@ -57,35 +60,46 @@ export default class PageAuth extends Vue {
     password: '',
     newPassword: '',
     newPasswordConfirm: '',
-    code: ''
+    code: '',
   }
 
-  public get formComponentName (): string {
+  public get formComponentName(): string {
     switch (this.$route.name) {
-      case 'signIn': return 'FormSignIn'
-      case 'signUp': return 'FormSignUp'
-      case 'resetPassword': return 'FormResetPassword'
-      case 'resetPasswordMessage': return 'FormResetPasswordMessage'
-      case 'changePassword': return 'FormChangePassword'
-      default: return 'FormSignUp'
+      case 'signIn':
+        return 'FormSignIn'
+      case 'signUp':
+        return 'FormSignUp'
+      case 'resetPassword':
+        return 'FormResetPassword'
+      case 'resetPasswordMessage':
+        return 'FormResetPasswordMessage'
+      case 'changePassword':
+        return 'FormChangePassword'
+      default:
+        return 'FormSignUp'
     }
   }
 
-  private async onClickSubmit (): Promise<void> {
+  private async onClickSubmit(): Promise<void> {
     this.validate()
 
     if (!this.isValid) return
 
     switch (this.$route.name) {
-      case 'signIn': return this.signIn()
-      case 'signUp': return this.signUp()
-      case 'resetPassword': return this.sendPasswordResetEmail()
-      case 'resetPasswordMessage': return
-      case 'changePassword': return this.changePassword()
+      case 'signIn':
+        return this.signIn()
+      case 'signUp':
+        return this.signUp()
+      case 'resetPassword':
+        return this.sendPasswordResetEmail()
+      case 'resetPasswordMessage':
+        return
+      case 'changePassword':
+        return this.changePassword()
     }
   }
 
-  public async mounted (): Promise<void> {
+  public async mounted(): Promise<void> {
     this.$loader.on()
     await this.$auth.onInitialized()
     this.$loader.off()
@@ -95,27 +109,25 @@ export default class PageAuth extends Vue {
     }
   }
 
-  private validate (): void {
-    (this.$refs.form as any).validate()
+  private validate(): void {
+    this.$form?.validate()
   }
 
-  private resetValidation (): void {
-    (this.$refs.form as any).resetValidation()
+  private resetValidation(): void {
+    this.$form?.resetValidation()
   }
 
-  private async onClickLoginGoogle (): Promise<void> {
+  private async onClickLoginGoogle(): Promise<void> {
     this.$loader.on()
 
     const provider = new fb.auth.GoogleAuthProvider()
     provider.addScope('profile')
     provider.addScope('email')
     provider.setCustomParameters({
-      prompt: 'select_account'
+      prompt: 'select_account',
     })
 
-    const [err, res]: any[] = await to(
-      auth.signInWithPopup(provider)
-    )
+    const [err, res]: any[] = await to(auth.signInWithPopup(provider))
 
     if (err) {
       if (err.code === 'auth/popup-closed-by-user') {
@@ -126,7 +138,7 @@ export default class PageAuth extends Vue {
       console.error(err)
       this.$loader.off()
       return this.$dialog.notify.error(
-        err?.message || ''+this.$t('msg.something_went_wrong')
+        err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
@@ -136,24 +148,21 @@ export default class PageAuth extends Vue {
     this.$loader.off()
   }
 
-  private async sendPasswordResetEmail (): Promise<void> {
+  private async sendPasswordResetEmail(): Promise<void> {
     this.$loader.on()
 
     const [err] = await to(
-      auth.sendPasswordResetEmail(
-        this.formValues.email,
-        {
-          url: window.location.origin,
-          handleCodeInApp: true
-        }
-      )
+      auth.sendPasswordResetEmail(this.formValues.email, {
+        url: window.location.origin,
+        handleCodeInApp: true,
+      })
     )
 
     if (err) {
       console.error(err)
       this.$loader.off()
       return this.$dialog.notify.error(
-        err?.message || ''+this.$t('msg.something_went_wrong')
+        err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
@@ -161,7 +170,7 @@ export default class PageAuth extends Vue {
     this.$loader.off()
   }
 
-  private async changePassword (): Promise<void> {
+  private async changePassword(): Promise<void> {
     this.$loader.on()
 
     const email: string = _get(auth, 'currentUser.email', '')
@@ -169,31 +178,29 @@ export default class PageAuth extends Vue {
     if (!email) {
       this.$loader.off()
       return this.$dialog.notify.error(
-        ''+this.$t('auth.email_wasnt_set_for_user')
+        '' + this.$t('auth.email_wasnt_set_for_user')
       )
     }
 
-    let [err] = await to(auth
-      .signInWithEmailAndPassword(email, this.formValues.password)
+    let [err] = await to(
+      auth.signInWithEmailAndPassword(email, this.formValues.password)
     )
 
     if (err) {
       console.error(err)
       this.$loader.off()
       return this.$dialog.notify.error(
-        err?.message || ''+this.$t('msg.something_went_wrong')
+        err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
     if (!auth.currentUser) {
       console.error(err)
       this.$loader.off()
-      return this.$dialog.notify.error(
-        ''+this.$t('msg.not_authenticated')
-      )
+      return this.$dialog.notify.error('' + this.$t('msg.not_authenticated'))
     }
 
-    [err] = await to(
+    ;[err] = await to(
       auth.currentUser.updatePassword(this.formValues.newPassword)
     )
 
@@ -201,7 +208,7 @@ export default class PageAuth extends Vue {
       console.error(err)
       this.$loader.off()
       return this.$dialog.notify.error(
-        err?.message || ''+this.$t('msg.something_went_wrong')
+        err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
@@ -211,11 +218,11 @@ export default class PageAuth extends Vue {
     this.formValues.newPassword = ''
     this.formValues.newPasswordConfirm = ''
     return this.$dialog.notify.success(
-      ''+this.$t('auth.password_successfully_changed')
+      '' + this.$t('auth.password_successfully_changed')
     )
   }
 
-  private async signIn (): Promise<void> {
+  private async signIn(): Promise<void> {
     this.$loader.on()
 
     const [err, res] = await to<fb.auth.UserCredential>(
@@ -229,7 +236,7 @@ export default class PageAuth extends Vue {
       console.error(err)
       this.$loader.off()
       return this.$dialog.notify.error(
-        err?.message || ''+this.$t('msg.something_went_wrong')
+        err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
@@ -239,11 +246,10 @@ export default class PageAuth extends Vue {
     this.$loader.off()
   }
 
-  private async signUp (): Promise<void> {
+  private async signUp(): Promise<void> {
     let err
-    this.$loader.on();
-
-    [err] = await to<fb.auth.UserCredential>(
+    this.$loader.on()
+    ;[err] = await to<fb.auth.UserCredential>(
       auth.createUserWithEmailAndPassword(
         this.formValues.email,
         this.formValues.password
@@ -254,21 +260,19 @@ export default class PageAuth extends Vue {
       console.error(err)
       this.$loader.off()
       return this.$dialog.notify.error(
-        err?.message || ''+this.$t('msg.something_went_wrong')
+        err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
     if (!auth.currentUser) {
       console.error('User is not authenticated')
       this.$loader.off()
-      return this.$dialog.notify.error(
-        ''+this.$t('msg.not_authenticated')
-      )
+      return this.$dialog.notify.error('' + this.$t('msg.not_authenticated'))
     }
 
-    [err] = await to(
+    ;[err] = await to(
       auth.currentUser.updateProfile({
-        displayName: this.formValues.name
+        displayName: this.formValues.name,
       })
     )
 
@@ -276,14 +280,14 @@ export default class PageAuth extends Vue {
       console.error(err)
       this.$loader.off()
       return this.$dialog.notify.error(
-        err?.message || ''+this.$t('msg.something_went_wrong')
+        err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
     await refreshAccessToken(false)
 
     this.$loader.off()
-    this.$dialog.notify.success(''+this.$t('msg.sign_up_success'))
+    this.$dialog.notify.success('' + this.$t('msg.sign_up_success'))
     this.$router.push({name: 'dashboard'})
   }
 }

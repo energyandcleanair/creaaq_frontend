@@ -20,24 +20,24 @@ export default class Measurement {
   public location_id!: City['id']
   public city_id!: City['id']
   public source!: Source['id']
-  public date!: string|Date
+  public date!: string | Date
   public level!: MeasurementLevels
   public value!: number
 
   public unit?: string
   public pollutant?: Pollutant['id']
-  public names?: string[]|null
+  public names?: string[] | null
   public gpw?: any
   public timezone?: string
   public process_id?: MeasurementProcesses
   public gadm1_id?: string
-  public name_local?: string|null
+  public name_local?: string | null
   public geometry?: {
     longitude: number
     latitude: number
   }
 
-  constructor (data: Measurement) {
+  constructor(data: Measurement) {
     Object.assign(this, data)
   }
 }

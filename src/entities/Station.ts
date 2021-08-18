@@ -17,15 +17,15 @@ export default class Station {
   public city_name?: City['name']
   public source?: Source['id']
   public names?: string[]
-  public type?: string|null
+  public type?: string | null
   public city?: City
   public coordinates?: Coordinates
-  public attribution?: string|null
+  public attribution?: string | null
   public pollutants?: Pollutant['id'][]
-  public last_updated?: string|Date
+  public last_updated?: string | Date
   public _measurementsNumber?: number
 
-  constructor (data: Station) {
+  constructor(data: Station) {
     Object.assign(this, data)
   }
 }

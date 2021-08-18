@@ -1,103 +1,116 @@
 <template>
-<v-container
-  class="stations-chart"
-  fluid
->
-  <template v-if="loading">
-    <v-row class="px-2">
-      <v-col cols="6">
-        <v-skeleton-loader type="table-thead, table-row-divider@3, table-tfoot" />
-      </v-col>
-      <v-col cols="6">
-        <v-skeleton-loader type="image" />
-      </v-col>
-    </v-row>
-  </template>
+  <v-container
+    class="stations-chart"
+    fluid
+  >
+    <template v-if="loading">
+      <v-row class="px-2">
+        <v-col cols="6">
+          <v-skeleton-loader type="table-thead, table-row-divider@3, table-tfoot" />
+        </v-col>
+        <v-col cols="6">
+          <v-skeleton-loader type="image" />
+        </v-col>
+      </v-row>
+    </template>
 
-  <template v-else-if="!stations.length">
-    <v-alert class="text-center ma-12" color="grey lighten-3">
-      {{ $t('msg.no_data') }}
-    </v-alert>
-  </template>
+    <template v-else-if="!stations.length">
+      <v-alert
+        class="text-center ma-12"
+        color="grey lighten-3"
+      >
+        {{ $t('msg.no_data') }}
+      </v-alert>
+    </template>
 
-  <template v-else>
-    <v-row class="stations-chart__content pb-14">
-      <v-col cols="12" md="7" order="2" order-md="1">
-        <v-data-table
-          ref="table"
-          class="elevation-1"
-          :headers="tableHeaders"
-          :items="tableItems"
-          :options.sync="tableOptions"
-          :items-per-page="5"
-          :item-class="(item) => selectedStationsIds.includes(item.id) && 'selected-row'"
-          @click:row="onClickTableRow"
-        />
-
-        <ExportBtn
-          class="ml-1 mt-2"
-          :value="'CSV'"
-          @click="onClickExport"
-        />
-      </v-col>
-
-      <v-col cols="12" md="5" order="1" order-md="2">
-        <l-map
-          ref="map"
-          class="elevation-1"
-          :options="mapOptions"
-          @ready="onMapInitialized"
+    <template v-else>
+      <v-row class="stations-chart__content pb-14">
+        <v-col
+          cols="12"
+          md="7"
+          order="2"
+          order-md="1"
         >
-          <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+          <v-data-table
+            ref="table"
+            class="elevation-1"
+            :headers="tableHeaders"
+            :items="tableItems"
+            :options.sync="tableOptions"
+            :items-per-page="5"
+            :item-class="(item) => selectedStationsIds.includes(item.id) && 'selected-row'"
+            @click:row="onClickTableRow"
+          />
 
-          <l-marker
-            :ref="`marker--${marker.id}`"
-            v-for="marker of mapMarkers"
-            :key="marker.id"
-            :lat-lng="marker.coordinates"
-            :icon="selectedStationsIds.includes(marker.station.id) ? iconSelected : iconPrimary"
-            @click="onClickMapMarker(marker.station.id)"
+          <ExportBtn
+            class="ml-1 mt-2"
+            :value="'CSV'"
+            @click="onClickExport"
+          />
+        </v-col>
+
+        <v-col
+          cols="12"
+          md="5"
+          order="1"
+          order-md="2"
+        >
+          <l-map
+            ref="map"
+            class="elevation-1"
+            :options="mapOptions"
+            @ready="onMapInitialized"
           >
-            <l-tooltip
-              :class="{'tooltip--selected': selectedStationsIds.includes(marker.station.id)}"
-              :options="{
+            <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+            <l-marker
+              :ref="`marker--${marker.id}`"
+              v-for="marker of mapMarkers"
+              :key="marker.id"
+              :lat-lng="marker.coordinates"
+              :icon="selectedStationsIds.includes(marker.station.id) ? iconSelected : iconPrimary"
+              @click="onClickMapMarker(marker.station.id)"
+            >
+              <l-tooltip
+                :class="{'tooltip--selected': selectedStationsIds.includes(marker.station.id)}"
+                :options="{
                 permanent: permanentTooltipOnSelected,
                 interactive: false,
                 direction: 'top',
                 offset: {x: 0, y: -41}
               }"
-            >
-              <div class="pb-2">
-                <b class="text-body-1 font-weight-bold">
-                  {{ marker.station.name }}
-                </b>
-              </div>
-
-              <div
-                v-for="header of tooltipInfoHeaders"
-                :key="header.value"
               >
-                <b>{{header.text}}:</b> {{ marker.station[header.value] }}
-              </div>
+                <div class="pb-2">
+                  <b class="text-body-1 font-weight-bold">
+                    {{ marker.station.name }}
+                  </b>
+                </div>
 
-            </l-tooltip>
-          </l-marker>
+                <div
+                  v-for="header of tooltipInfoHeaders"
+                  :key="header.value"
+                >
+                  <b>{{header.text}}:</b> {{ marker.station[header.value] }}
+                </div>
 
-          <div class="leaflet-bottom leaflet-left">
-            <v-btn
-              class="leaflet-control"
-              icon
-              :rounded="false"
-              @click="fitAllMarkers()"
-            >
-              <v-icon>{{ mdiArrowExpandAll }}</v-icon>
-            </v-btn>
-          </div>
-        </l-map>
-      </v-col>
-    </v-row>
-  </template>
-</v-container>
+              </l-tooltip>
+            </l-marker>
+
+            <div class="leaflet-bottom leaflet-left">
+              <v-btn
+                class="leaflet-control"
+                icon
+                :rounded="false"
+                @click="fitAllMarkers()"
+              >
+                <v-icon>{{ mdiArrowExpandAll }}</v-icon>
+              </v-btn>
+            </div>
+          </l-map>
+        </v-col>
+      </v-row>
+    </template>
+  </v-container>
 </template>
 
 <script lang="ts">
@@ -106,18 +119,18 @@ import _set from 'lodash.set'
 import _orderBy from 'lodash.orderby'
 import moment from 'moment'
 import json2csv from 'json2csv'
-import { saveAs } from 'file-saver'
-import Leaflet, { Icon } from 'leaflet'
-import { Component, Vue, Prop, Ref } from 'vue-property-decorator'
-import { LMap, LTileLayer, LMarker, LTooltip } from 'vue2-leaflet'
-import { mdiArrowExpandAll } from '@mdi/js'
-import ExportBtn, { ExportFileType } from '@/components/ExportBtn.vue'
+import {saveAs} from 'file-saver'
+import Leaflet, {Icon} from 'leaflet'
+import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
+import {LMap, LTileLayer, LMarker, LTooltip} from 'vue2-leaflet'
+import {mdiArrowExpandAll} from '@mdi/js'
+import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import URLQuery from '../../types/URLQuery'
 import ChartData from './ChartData'
 
-type D = Icon.Default & {_getIconUrl?: string};
+type D = Icon.Default & {_getIconUrl?: string}
 delete (Icon.Default.prototype as D)._getIconUrl
 
 Icon.Default.mergeOptions({
@@ -128,22 +141,26 @@ Icon.Default.mergeOptions({
 
 const iconPrimary = new Leaflet.Icon({
   className: 'icon-primary',
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconUrl:
+    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
+  shadowUrl:
+    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   tooltipAnchor: [1, 0],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 })
 
 const iconSelected = new Leaflet.Icon({
   className: 'icon-selected',
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconUrl:
+    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl:
+    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   tooltipAnchor: [1, 0],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 })
 
 interface MapMarker {
@@ -159,10 +176,9 @@ interface MapMarker {
     LMarker,
     LTooltip,
     ExportBtn,
-  }
+  },
 })
 export default class StationsChart extends Vue {
-
   @Ref('map')
   readonly $map?: LMap
 
@@ -191,29 +207,29 @@ export default class StationsChart extends Vue {
     sortDesc: [false],
   }
 
-  private get selectedStationsIds (): Station['id'][] {
+  private get selectedStationsIds(): Station['id'][] {
     return this.queryParams.stations || []
   }
-  private set selectedStationsIds (stations: Station['id'][])  {
+  private set selectedStationsIds(stations: Station['id'][]) {
     this.$emit('update:queryParams', {
       ...this.queryParams,
-      stations
+      stations,
     })
   }
 
-  private get cities (): City[] {
+  private get cities(): City[] {
     return this.chartData.cities || []
   }
 
-  private get stations (): Station[] {
+  private get stations(): Station[] {
     return this.chartData.stations || []
   }
 
-  private get showCitiesCol (): boolean {
+  private get showCitiesCol(): boolean {
     return (this.queryParams.cities?.length || 0) > 1
   }
 
-  private get tableHeaders (): any[] {
+  private get tableHeaders(): any[] {
     return [
       {
         text: this.$t('id'),
@@ -255,20 +271,22 @@ export default class StationsChart extends Vue {
         sortable: false,
         value: 'pollutants',
       },
-    ].filter(i => i)
+    ].filter((i) => i)
   }
 
-  private get tooltipInfoHeaders (): any[] {
-    return this.tableHeaders.filter(header => header.value !== 'name')
+  private get tooltipInfoHeaders(): any[] {
+    return this.tableHeaders.filter((header) => header.value !== 'name')
   }
 
-  private get tableItems (): Station[] {
+  private get tableItems(): Station[] {
     const EMPTY = '—'
-    return this.chartData.stations.map(_station => {
+    return this.chartData.stations.map((_station) => {
       const station = {..._station}
 
       if (this.showCitiesCol && station.city_id) {
-        const city = this.chartData.cities.find(itm => itm.id === station.city_id)
+        const city = this.chartData.cities.find(
+          (itm) => itm.id === station.city_id
+        )
         station.city_name = city?.name || EMPTY
       }
 
@@ -284,7 +302,7 @@ export default class StationsChart extends Vue {
     })
   }
 
-  private get mapOptions (): Leaflet.MapOptions {
+  private get mapOptions(): Leaflet.MapOptions {
     const firstMarker = this.mapMarkers[0]
     return {
       zoom: 1000,
@@ -292,32 +310,34 @@ export default class StationsChart extends Vue {
       doubleClickZoom: 'center',
       center: new Leaflet.LatLng(
         firstMarker?.coordinates?.[0] || 0,
-        firstMarker?.coordinates?.[1] || 0,
-      )
+        firstMarker?.coordinates?.[1] || 0
+      ),
     }
   }
 
-  private get mapMarkers (): MapMarker[] {
-    return this.tableItems.map(station => {
-      if (!station.coordinates) return null
+  private get mapMarkers(): MapMarker[] {
+    return this.tableItems
+      .map((station) => {
+        if (!station.coordinates) return null
 
-      const marker: MapMarker = {
-        id: station.id,
-        station: station,
-        coordinates: [
-          station.coordinates.latitude,
-          station.coordinates.longitude,
-        ]
-      }
-      return marker
-    }).filter(i => i) as MapMarker[]
+        const marker: MapMarker = {
+          id: station.id,
+          station: station,
+          coordinates: [
+            station.coordinates.latitude,
+            station.coordinates.longitude,
+          ],
+        }
+        return marker
+      })
+      .filter((i) => i) as MapMarker[]
   }
 
-  private mounted () {
+  private mounted() {
     // see this.onMapInitialized()
   }
 
-  private onMapInitialized () {
+  private onMapInitialized() {
     this.closeAllMapMarkerTooltips()
 
     // move to the selected station if exists
@@ -328,31 +348,29 @@ export default class StationsChart extends Vue {
     }
   }
 
-  private selectStation (stationId: Station['id']) {
+  private selectStation(stationId: Station['id']) {
     this.selectedStationsIds = stationId ? [stationId] : []
 
     this.closeAllMapMarkerTooltips()
     this.openMapMarkerTooltip(stationId)
   }
 
-  public fitAllMarkers () {
-    const markers = this.mapMarkers
-      .map((marker) => Leaflet.marker([
-        marker.coordinates[0],
-        marker.coordinates[1],
-      ]))
+  public fitAllMarkers() {
+    const markers = this.mapMarkers.map((marker) =>
+      Leaflet.marker([marker.coordinates[0], marker.coordinates[1]])
+    )
 
     const group = Leaflet.featureGroup(markers)
     this.$map?.fitBounds(group.getBounds())
   }
 
-  private mapMoveToStation (stationId: Station['id']) {
-    const marker = this.mapMarkers.find(m => m.station.id === stationId)
+  private mapMoveToStation(stationId: Station['id']) {
+    const marker = this.mapMarkers.find((m) => m.station.id === stationId)
     if (!marker) return
 
     const coords = new Leaflet.LatLng(
       marker.coordinates?.[0] || 0,
-      marker.coordinates?.[1] || 0,
+      marker.coordinates?.[1] || 0
     )
     const bounds = coords.toBounds(1000) // metres
 
@@ -360,7 +378,7 @@ export default class StationsChart extends Vue {
     this.$map?.mapObject?.fitBounds(bounds)
   }
 
-  private openMapMarkerTooltip (stationId: Station['id']) {
+  private openMapMarkerTooltip(stationId: Station['id']) {
     if (!stationId) return
     if (!this.$map?.mapObject) return
 
@@ -371,15 +389,18 @@ export default class StationsChart extends Vue {
     $marker.openTooltip()
   }
 
-  private closeAllMapMarkerTooltips () {
+  private closeAllMapMarkerTooltips() {
     this.$map?.mapObject?.eachLayer((layer: Leaflet.Layer) => {
-      if ((layer as any).options.pane === 'tooltipPane' && this.$map?.mapObject) {
+      if (
+        (layer as any).options.pane === 'tooltipPane' &&
+        this.$map?.mapObject
+      ) {
         layer.removeFrom(this.$map.mapObject)
       }
     })
   }
 
-  private tableMoveToStation (stationId: Station['id']) {
+  private tableMoveToStation(stationId: Station['id']) {
     if (!stationId) return
 
     const items = _orderBy(
@@ -388,12 +409,12 @@ export default class StationsChart extends Vue {
       Object.values(this.tableOptions.sortDesc)
     )
 
-    const index = items.findIndex(item => item.id === stationId)
+    const index = items.findIndex((item) => item.id === stationId)
     const page = Math.ceil((index + 1) / (this.tableOptions.itemsPerPage || 1))
     if (page !== this.tableOptions.page) this.tableOptions.page = page
   }
 
-  private exportToCSV (stations: Station[]) {
+  private exportToCSV(stations: Station[]) {
     this.$loader.on()
 
     const filename = `stations.${moment().format('YYYY-MM-DD HH.mm.ss')}.csv`
@@ -425,24 +446,24 @@ export default class StationsChart extends Vue {
       this.$loader.off()
       console.error(err)
       this.$dialog.notify.error(
-        err?.message || err || ''+this.$t('msg.something_went_wrong')
+        err?.message || err || '' + this.$t('msg.something_went_wrong')
       )
       throw err
     }
   }
 
-  private onClickMapMarker (stationId: Station['id']) {
+  private onClickMapMarker(stationId: Station['id']) {
     this.selectStation(stationId)
     this.tableMoveToStation(stationId)
     this.openMapMarkerTooltip(stationId)
   }
 
-  private onClickTableRow (station: Station) {
+  private onClickTableRow(station: Station) {
     this.selectStation(station.id)
     this.mapMoveToStation(station.id)
   }
 
-  public onClickExport (fileType: ExportFileType, $event: MouseEvent) {
+  public onClickExport(fileType: ExportFileType, $event: MouseEvent) {
     if (fileType === ExportFileType.CSV) {
       this.exportToCSV(this.stations)
     }
@@ -464,7 +485,6 @@ $stations-chart__table-footer--height: 59px;
       max-height: 700px;
 
       .leaflet-tooltip {
-
         // the pseudo selector :has() isn't supported yet, but soon
         &:has(.tooltip--selected) {
           z-index: 100;
@@ -476,7 +496,9 @@ $stations-chart__table-footer--height: 59px;
       position: relative;
 
       .v-data-table__wrapper {
-        min-height: calc(#{$stations-chart__content--min-height} - #{$stations-chart__table-footer--height});
+        min-height: calc(
+          #{$stations-chart__content--min-height} - #{$stations-chart__table-footer--height}
+        );
         padding-bottom: $stations-chart__table-footer--height;
       }
 

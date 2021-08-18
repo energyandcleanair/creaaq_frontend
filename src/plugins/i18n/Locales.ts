@@ -4,9 +4,9 @@ export enum Locales {
 
 const LOCALES_CONFIG = {
   [Locales.EN]: {
-    label: 'English'
+    label: 'English',
   },
 }
 
-export { LOCALES_CONFIG }
+export {LOCALES_CONFIG}
 export default Locales

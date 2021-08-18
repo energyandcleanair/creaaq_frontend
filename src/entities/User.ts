@@ -7,7 +7,7 @@ export default class User {
   public lastName?: string
   public photoURL?: string
 
-  constructor (data: User) {
+  constructor(data: User) {
     Object.assign(this, data)
   }
 }

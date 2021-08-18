@@ -3,16 +3,14 @@ enum ChartTraceLevels {
   STATION = 'STATION',
 }
 
-export {
-  ChartTraceLevels
-}
+export {ChartTraceLevels}
 
 export default interface ChartTrace {
-  x: (number|Date)[]
-  y: (number|null)[]
+  x: (number | Date)[]
+  y: (number | null)[]
   level: ChartTraceLevels
   type: string
-  name: string|number
+  name: string | number
 
   zIndex?: number
   mode?: string

@@ -10,7 +10,7 @@ interface ConfigParams {
 }
 
 export default class ConfigProvider {
-  public static get CONFIG (): ConfigParams {
+  public static get CONFIG(): ConfigParams {
     return {
       NODE_ENV: '$NODE_ENV',
       APP_NAME: '$APP_NAME',
@@ -23,7 +23,7 @@ export default class ConfigProvider {
     }
   }
 
-  public static get (name: keyof ConfigParams): string|undefined {
+  public static get(name: keyof ConfigParams): string | undefined {
     if (!(name in this.CONFIG)) {
       return
     }

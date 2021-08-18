@@ -1,142 +1,160 @@
 <template>
-<v-app>
-  <v-app-bar
-    color="white"
-    elevation="3"
-    clipped-left
-    clipped-right
-    dark
-    app
-    style="z-index: 100;"
-  >
-    <div class="d-flex align-center">
-      <RouterLink to="/">
-        <v-badge class="logo-badge" bottom content="beta">
-          <v-img
-            alt="Vuetify Logo"
-            class="shrink mr-2"
-            contain
-            src="/img/logo.svg"
-            transition="scale-transition"
-            width="130"
-          />
-        </v-badge>
-      </RouterLink>
-    </div>
-
-    <v-spacer/>
-
-    <v-menu
-      v-if="$auth.currentUser"
-      v-model="isMenuOpen"
-      :close-on-content-click="true"
-      :max-width="250"
-      offset-x
+  <v-app>
+    <v-app-bar
+      color="white"
+      elevation="3"
+      clipped-left
+      clipped-right
+      dark
+      app
+      style="z-index: 100;"
     >
-      <template v-slot:activator="{ on, attrs }">
-        <v-list-item
-          style="max-width: fit-content;"
-          v-bind="attrs"
-          v-on="on"
-        >
-          <v-list-item-content>
-            <v-list-item-title
-              class="grey--text text--darken-2"
-              v-text="userName"
-            />
-          </v-list-item-content>
-
-          <v-list-item-avatar>
+      <div class="d-flex align-center">
+        <RouterLink to="/">
+          <v-badge
+            class="logo-badge"
+            bottom
+            content="beta"
+          >
             <v-img
-              v-if="userPhoto"
-              :alt="userName"
-              :src="userPhoto"
+              alt="Vuetify Logo"
+              class="shrink mr-2"
+              contain
+              src="/img/logo.svg"
+              transition="scale-transition"
+              width="130"
             />
-            <v-icon v-else class="grey--text text--lighten-2">
-              {{ mdiAccountCircle }}
-            </v-icon>
-          </v-list-item-avatar>
-        </v-list-item>
-      </template>
+          </v-badge>
+        </RouterLink>
+      </div>
 
-      <v-list>
-        <v-list-item>
-          <v-list-item-avatar>
-            <v-img
-              v-if="userPhoto"
-              :alt="userName"
-              :src="userPhoto"
-            />
-            <v-icon v-else class="grey--text text--lighten-2">
-              {{ mdiAccountCircle }}
-            </v-icon>
-          </v-list-item-avatar>
+      <v-spacer />
 
-          <v-list-item-content v-if="$auth.currentUser">
-            <v-list-item-title v-text="userName"/>
-            <v-list-item-subtitle v-if="userName && userEmail" v-text="userEmail"/>
-          </v-list-item-content>
-        </v-list-item>
-      </v-list>
+      <v-menu
+        v-if="$auth.currentUser"
+        v-model="isMenuOpen"
+        :close-on-content-click="true"
+        :max-width="250"
+        offset-x
+      >
+        <template v-slot:activator="{ on, attrs }">
+          <v-list-item
+            style="max-width: fit-content;"
+            v-bind="attrs"
+            v-on="on"
+          >
+            <v-list-item-content>
+              <v-list-item-title
+                class="grey--text text--darken-2"
+                v-text="userName"
+              />
+            </v-list-item-content>
 
-      <v-divider></v-divider>
+            <v-list-item-avatar>
+              <v-img
+                v-if="userPhoto"
+                :alt="userName"
+                :src="userPhoto"
+              />
+              <v-icon
+                v-else
+                class="grey--text text--lighten-2"
+              >
+                {{ mdiAccountCircle }}
+              </v-icon>
+            </v-list-item-avatar>
+          </v-list-item>
+        </template>
 
-      <v-list>
-        <v-list-item
-          v-for="item of menuItems"
-          :key="item.id"
-          :disabled="item.disabled"
-          @click="item.action"
-        >
-          <v-list-item-icon>
-            <v-icon>{{ item.icon }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>{{ item.label }}</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-menu>
-  </v-app-bar>
+        <v-list>
+          <v-list-item>
+            <v-list-item-avatar>
+              <v-img
+                v-if="userPhoto"
+                :alt="userName"
+                :src="userPhoto"
+              />
+              <v-icon
+                v-else
+                class="grey--text text--lighten-2"
+              >
+                {{ mdiAccountCircle }}
+              </v-icon>
+            </v-list-item-avatar>
 
-  <AppDrawer :open="!!$auth.currentUser"/>
+            <v-list-item-content v-if="$auth.currentUser">
+              <v-list-item-title v-text="userName" />
+              <v-list-item-subtitle
+                v-if="userName && userEmail"
+                v-text="userEmail"
+              />
+            </v-list-item-content>
+          </v-list-item>
+        </v-list>
 
-  <v-main>
-    <RouterView/>
-  </v-main>
+        <v-divider></v-divider>
 
-  <CustomLoader/>
-</v-app>
+        <v-list>
+          <v-list-item
+            v-for="item of menuItems"
+            :key="item.id"
+            :disabled="item.disabled"
+            @click="item.action"
+          >
+            <v-list-item-icon>
+              <v-icon>{{ item.icon }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>{{ item.label }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+    </v-app-bar>
+
+    <AppDrawer :open="!!$auth.currentUser" />
+
+    <v-main>
+      <RouterView />
+    </v-main>
+
+    <CustomLoader />
+  </v-app>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator'
-import { mdiLogout, mdiAccountCircle, mdiAccount, mdiHelpCircleOutline } from '@mdi/js'
+import {Component, Vue} from 'vue-property-decorator'
+import {
+  mdiLogout,
+  mdiAccountCircle,
+  mdiAccount,
+  mdiHelpCircleOutline,
+} from '@mdi/js'
 import AppDrawer from '@/components/AppDrawer.vue'
 import axios from 'axios'
 import config from '@/config'
 
 @Component({
   components: {
-    AppDrawer
-  }
+    AppDrawer,
+  },
 })
 export default class App extends Vue {
   private mdiAccount = mdiAccount
   private mdiAccountCircle = mdiAccountCircle
   private isMenuOpen: boolean = false
 
-  private get userName (): string {
+  private get userName(): string {
     return this.$auth.currentUser?.displayName || 'User'
   }
 
-  private get userEmail (): string {
+  private get userEmail(): string {
     return this.$auth.currentUser?.email || ''
   }
 
-  private get userPhoto (): string {
+  private get userPhoto(): string {
     return this.$auth.currentUser?.photoURL || ''
   }
 
-  private get menuItems (): any[] {
+  private get menuItems(): any[] {
     return [
       {
         id: 'profile',
@@ -162,19 +180,20 @@ export default class App extends Vue {
     ]
   }
 
-  private beforeMount () {
-    document.getElementsByTagName('html')[0]
+  private beforeMount() {
+    document
+      .getElementsByTagName('html')[0]
       .setAttribute('app-version', require('@/../package.json').version)
   }
 
-  private mounted () {
+  private mounted() {
     this.checkConnectionToAPI()
   }
 
-  private checkConnectionToAPI () {
+  private checkConnectionToAPI() {
     const service = axios.create({
       baseURL: config.get('API_ORIGIN'),
-      withCredentials: true
+      withCredentials: true,
     })
 
     service
@@ -184,13 +203,14 @@ export default class App extends Vue {
       })
       .catch((err: any) => {
         console.error('err: ', config.get('API_ORIGIN'), err)
-        this.$dialog.message.error('Could not connect to the API: ' + config.get('API_ORIGIN'))
+        this.$dialog.message.error(
+          'Could not connect to the API: ' + config.get('API_ORIGIN')
+        )
       })
   }
 
-  private signOut () {
-    this.$auth.logout()
-      .then(() => this.$router.push({name: 'signIn'}))
+  private signOut() {
+    this.$auth.logout().then(() => this.$router.push({name: 'signIn'}))
   }
 }
 </script>

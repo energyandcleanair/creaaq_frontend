@@ -8,17 +8,17 @@ export default class City {
   public country_name!: Country['name']
   public level!: 'city'
 
-  public names?: string[]|null
+  public names?: string[] | null
   public gpw?: any
   public timezone?: string
   public gadm1_id?: string
-  public name_local?: string|null
+  public name_local?: string | null
   public geometry?: {
     longitude: number
     latitude: number
   }
 
-  constructor (data: City) {
+  constructor(data: City) {
     Object.assign(this, data)
   }
 }

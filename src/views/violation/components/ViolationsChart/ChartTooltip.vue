@@ -1,40 +1,37 @@
 <template>
-<v-card
-  class="violations-chart-tooltip pb-2"
->
-  <v-card-title
-    v-if="title"
-    class="text-body-1 font-weight-bold text-transform-none"
-    v-text="title"
-  />
-
-  <v-card-subtitle
-    v-if="subtitle"
-    class="caption text-left text-transform-none pb-2"
-    v-text="subtitle"
-  />
-
-  <v-card-text v-if="tableItems.length">
-    <v-data-table
-      :headers="tableHeaders"
-      :items="tableItems"
-      item-class="class"
-      disable-filtering
-      disable-pagination
-      disable-sort
-      hide-default-footer
-      :items-per-page="-1"
+  <v-card class="violations-chart-tooltip pb-2">
+    <v-card-title
+      v-if="title"
+      class="text-body-1 font-weight-bold text-transform-none"
+      v-text="title"
     />
-  </v-card-text>
-</v-card>
+
+    <v-card-subtitle
+      v-if="subtitle"
+      class="caption text-left text-transform-none pb-2"
+      v-text="subtitle"
+    />
+
+    <v-card-text v-if="tableItems.length">
+      <v-data-table
+        :headers="tableHeaders"
+        :items="tableItems"
+        item-class="class"
+        disable-filtering
+        disable-pagination
+        disable-sort
+        hide-default-footer
+        :items-per-page="-1"
+      />
+    </v-card-text>
+  </v-card>
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from 'vue-property-decorator'
+import {Component, Vue, Prop} from 'vue-property-decorator'
 
 @Component
 export default class ChartTooltip extends Vue {
-
   @Prop({type: String})
   readonly title!: string
 

@@ -14,38 +14,40 @@ export default {
     rules: [
       (v: string) => !!v || i18n.t('msg.required_field'),
       (v: string) => {
-        return (v && v.length < NAME_LENGTH_MAX)
-          || i18n.t('msg.maximum_character_limit_exceeded')
-      }
-    ]
+        return (
+          (v && v.length < NAME_LENGTH_MAX) ||
+          i18n.t('msg.maximum_character_limit_exceeded')
+        )
+      },
+    ],
   },
   email: {
     label: i18n.t('email'),
     rules: [
       (v: string) => !!v || i18n.t('msg.required_field'),
-      (v: string) => EMAIL_REG.test(v) || i18n.t('msg.invalid_item', {item: i18n.t('email')})
-    ]
+      (v: string) =>
+        EMAIL_REG.test(v) ||
+        i18n.t('msg.invalid_item', {item: i18n.t('email')}),
+    ],
   },
   password: {
     label: i18n.t('password'),
     rules: [
       (v: string) => !!v || i18n.t('msg.required_field'),
       (v: string) => {
-        return (v && v.length >= PASSWORD_LENGTH_MIN)
-          || i18n.t('msg.must_have_num_chars', {num: PASSWORD_LENGTH_MIN})
-      }
-    ]
+        return (
+          (v && v.length >= PASSWORD_LENGTH_MIN) ||
+          i18n.t('msg.must_have_num_chars', {num: PASSWORD_LENGTH_MIN})
+        )
+      },
+    ],
   },
   passwordConfirm: {
     label: i18n.t('confirm_password'),
-    rules: [
-      (v: string) => !!v || i18n.t('msg.required_field')
-    ]
+    rules: [(v: string) => !!v || i18n.t('msg.required_field')],
   },
   code: {
     label: i18n.t('code'),
-    rules: [
-      (v: string) => !!v || i18n.t('msg.required_field')
-    ]
-  }
+    rules: [(v: string) => !!v || i18n.t('msg.required_field')],
+  },
 }

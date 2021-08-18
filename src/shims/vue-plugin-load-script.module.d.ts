@@ -1,1 +1,1 @@
-declare module 'vue-plugin-load-script';
+declare module 'vue-plugin-load-script'

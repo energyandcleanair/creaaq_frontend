@@ -3,7 +3,7 @@ export default class Pollutant {
   public label!: string
   public unit?: string
 
-  constructor (data: Pollutant) {
+  constructor(data: Pollutant) {
     Object.assign(this, data)
   }
 }

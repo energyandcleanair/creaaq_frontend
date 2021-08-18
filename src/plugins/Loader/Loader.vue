@@ -1,18 +1,18 @@
 <template>
-<div class="loader-container">
-  <v-progress-linear
-    v-if="isLoadingProcess"
-    v-model="progressValue"
-    :query="query"
-    :indeterminate="indeterminate"
-    :color="color"
-    :height="height"
-    :active="active"
-    :value="isLoadingProcess"
-    :style="{top}"
-  >
-  </v-progress-linear>
-</div>
+  <div class="loader-container">
+    <v-progress-linear
+      v-if="isLoadingProcess"
+      v-model="progressValue"
+      :query="query"
+      :indeterminate="indeterminate"
+      :color="color"
+      :height="height"
+      :active="active"
+      :value="isLoadingProcess"
+      :style="{top}"
+    >
+    </v-progress-linear>
+  </div>
 </template>
 
 <script>
@@ -142,8 +142,14 @@ export default {
 
 <style scoped lang="scss">
 @keyframes slide-down {
-  0% { opacity: 0; transform: translateY(-100%); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .loader-container {
@@ -157,9 +163,9 @@ export default {
   .v-progress-linear {
     margin: 0;
     -webkit-animation: slide-down 0.5s; /* Safari 4+ */
-    -moz-animation:    slide-down 0.5s; /* Fx 5+ */
-    -o-animation:      slide-down 0.5s; /* Opera 12+ */
-    animation:         slide-down 0.5s; /* IE 10+, Fx 29+ */
+    -moz-animation: slide-down 0.5s; /* Fx 5+ */
+    -o-animation: slide-down 0.5s; /* Opera 12+ */
+    animation: slide-down 0.5s; /* IE 10+, Fx 29+ */
   }
 }
 </style>

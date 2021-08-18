@@ -1,16 +1,13 @@
 import _get from 'lodash.get'
 import localForage from 'localforage'
-import { setup } from 'axios-cache-adapter'
-import { auth, refreshAccessToken, getAccessToken } from '@/plugins/firebase'
+import {setup} from 'axios-cache-adapter'
+import {auth, refreshAccessToken, getAccessToken} from '@/plugins/firebase'
 import config from '@/config'
 import router from '@/router'
 
 export const forageStore = localForage.createInstance({
-  driver: [
-    localForage.INDEXEDDB,
-    localForage.LOCALSTORAGE,
-  ],
-  name: 'crea-cache'
+  driver: [localForage.INDEXEDDB, localForage.LOCALSTORAGE],
+  name: 'crea-cache',
 })
 
 const instance = setup({
@@ -27,12 +24,12 @@ const instance = setup({
     exclude: {
       methods: ['post', 'patch', 'put', 'delete'],
       query: false, // Exclude requests with query parameters.
-    }
-  }
+    },
+  },
 })
 
 instance.interceptors.request.use(
-  config => {
+  (config) => {
     const token = getAccessToken()
     if (token) {
       // config.headers['Authorization'] = 'Bearer ' + token
@@ -41,7 +38,7 @@ instance.interceptors.request.use(
     }
     return config
   },
-  error => {
+  (error) => {
     console.error(error)
     return Promise.reject(error)
   }
@@ -54,9 +51,8 @@ instance.interceptors.response.use(
 
     let message = ''
     if (res.status >= 400) {
-      message = typeof res.data === 'string'
-        ? res.data
-        : _get(res.data, 'message', '')
+      message =
+        typeof res.data === 'string' ? res.data : _get(res.data, 'message', '')
     }
 
     if ([401, 403].includes(res.status)) {
@@ -71,11 +67,12 @@ instance.interceptors.response.use(
 
       if (res.status === 401 && auth.currentUser) {
         const from: string = router.currentRoute.fullPath
-        auth.signOut()
-          .then(() => router.push({
+        auth.signOut().then(() =>
+          router.push({
             name: 'auth',
-            query: {from}
-          }))
+            query: {from},
+          })
+        )
       }
     }
 

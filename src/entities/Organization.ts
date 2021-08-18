@@ -7,7 +7,7 @@ export default class Organization {
 
   public _violationsNumber?: number
 
-  constructor (data: Organization) {
+  constructor(data: Organization) {
     Object.assign(this, data)
   }
 }

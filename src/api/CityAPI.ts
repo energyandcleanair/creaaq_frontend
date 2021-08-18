@@ -2,7 +2,7 @@ import City from '@/entities/City'
 import CRUD from './CRUD'
 
 export class CityAPI extends CRUD<City> {
-  constructor () {
+  constructor() {
     super('/cities')
   }
 }

@@ -2,7 +2,7 @@ import Violation from '@/entities/Violation'
 import CRUD from './CRUD'
 
 export class ViolationAPI extends CRUD<Violation> {
-  constructor () {
+  constructor() {
     super('/violations')
   }
 }

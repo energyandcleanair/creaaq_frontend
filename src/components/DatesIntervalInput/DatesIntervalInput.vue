@@ -1,145 +1,150 @@
 <template>
-<div class="dates-interval-input">
-  <v-menu
-    v-model="isMenuOpen"
-    :close-on-content-click="false"
-    transition="scale-transition"
-    min-width="300"
-    max-width="300"
-    offset-y
-    right
-  >
-    <template v-slot:activator="{ on, attrs }">
-      <div class="caption grey--text text--darken-2">
-        {{ $t('dates_interval.title') }}
-      </div>
+  <div class="dates-interval-input">
+    <v-menu
+      v-model="isMenuOpen"
+      :close-on-content-click="false"
+      transition="scale-transition"
+      min-width="300"
+      max-width="300"
+      offset-y
+      right
+    >
+      <template v-slot:activator="{ on, attrs }">
+        <div class="caption grey--text text--darken-2">
+          {{ $t('dates_interval.title') }}
+        </div>
 
-      <div>
-        <v-btn
-          class="main-button"
-          v-bind="attrs"
-          v-on="on"
-          :loading="loading || !formattedValue"
-          :disabled="disabled"
-          depressed
-        >
-          <span v-html="formattedValue" />
-        </v-btn>
-      </div>
-    </template>
+        <div>
+          <v-btn
+            class="main-button"
+            v-bind="attrs"
+            v-on="on"
+            :loading="loading || !formattedValue"
+            :disabled="disabled"
+            depressed
+          >
+            <span v-html="formattedValue" />
+          </v-btn>
+        </div>
+      </template>
 
-    <v-card flat>
-      <v-list>
-        <v-list-item
-          v-for="option of DATES_RANGES"
-          :key="option.value"
-          :input-value="privateInterval === option.value"
-          active-class="primary--text"
-          @click="onClickMenuOption(option.value)"
-        >
-          <template v-if="option.value === 'custom'">
-            <v-container class="px-0 py-2">
-              <v-row no-gutters>
-                <v-col>
-                  <span class="py-3 body-1">
-                    {{ $t('dates_interval.custom') }}
-                  </span>
-                </v-col>
-              </v-row>
+      <v-card flat>
+        <v-list>
+          <v-list-item
+            v-for="option of DATES_RANGES"
+            :key="option.value"
+            :input-value="privateInterval === option.value"
+            active-class="primary--text"
+            @click="onClickMenuOption(option.value)"
+          >
+            <template v-if="option.value === 'custom'">
+              <v-container class="px-0 py-2">
+                <v-row no-gutters>
+                  <v-col>
+                    <span class="py-3 body-1">
+                      {{ $t('dates_interval.custom') }}
+                    </span>
+                  </v-col>
+                </v-row>
 
-              <v-row class="mt-0">
-                <v-col cols="12" sm="6">
-                  <v-menu
-                    v-model="isMenuDateStartOpen"
-                    :close-on-content-click="false"
-                    transition="scale-transition"
-                    min-width="auto"
-                    offset-y
-                    right
+                <v-row class="mt-0">
+                  <v-col
+                    cols="12"
+                    sm="6"
                   >
-                    <template v-slot:activator="{ on, attrs }">
-                      <v-text-field
-                        :value="privateInterval === 'all' ? '' : dateStartFormat"
-                        :label="$t('from')"
-                        :prepend-icon="mdiCalendar"
-                        :disabled="disabled"
-                        readonly
-                        hide-details
-                        v-bind="attrs"
-                        v-on="on"
-                      />
-                    </template>
+                    <v-menu
+                      v-model="isMenuDateStartOpen"
+                      :close-on-content-click="false"
+                      transition="scale-transition"
+                      min-width="auto"
+                      offset-y
+                      right
+                    >
+                      <template v-slot:activator="{ on, attrs }">
+                        <v-text-field
+                          :value="privateInterval === 'all' ? '' : dateStartFormat"
+                          :label="$t('from')"
+                          :prepend-icon="mdiCalendar"
+                          :disabled="disabled"
+                          readonly
+                          hide-details
+                          v-bind="attrs"
+                          v-on="on"
+                        />
+                      </template>
 
-                    <v-date-picker
-                      :value="dateStartFormat"
-                      :min="datePickersRules.start.min"
-                      :max="datePickersRules.start.max"
-                      @input="($e) => {
+                      <v-date-picker
+                        :value="dateStartFormat"
+                        :min="datePickersRules.start.min"
+                        :max="datePickersRules.start.max"
+                        @input="($e) => {
                         onChange({dateStart: +new Date($e), dateEnd});
                         isMenuDateStartOpen = false;
                       }"
-                    />
-                  </v-menu>
-                </v-col>
-
-                <v-col cols="12" sm="6">
-                  <v-menu
-                    v-model="isMenuDateEndOpen"
-                    :close-on-content-click="false"
-                    transition="scale-transition"
-                    min-width="auto"
-                    offset-y
-                    right
-                  >
-                    <template v-slot:activator="{ on, attrs }">
-                      <v-text-field
-                        :value="privateInterval === 'all' ? '' : dateEndFormat"
-                        :label="$t('to')"
-                        :prepend-icon="mdiCalendar"
-                        :disabled="disabled"
-                        readonly
-                        hide-details
-                        v-bind="attrs"
-                        v-on="on"
                       />
-                    </template>
+                    </v-menu>
+                  </v-col>
 
-                    <v-date-picker
-                      :value="dateEndFormat"
-                      :min="datePickersRules.end.min"
-                      :max="datePickersRules.end.max"
-                      @input="($e) => {
+                  <v-col
+                    cols="12"
+                    sm="6"
+                  >
+                    <v-menu
+                      v-model="isMenuDateEndOpen"
+                      :close-on-content-click="false"
+                      transition="scale-transition"
+                      min-width="auto"
+                      offset-y
+                      right
+                    >
+                      <template v-slot:activator="{ on, attrs }">
+                        <v-text-field
+                          :value="privateInterval === 'all' ? '' : dateEndFormat"
+                          :label="$t('to')"
+                          :prepend-icon="mdiCalendar"
+                          :disabled="disabled"
+                          readonly
+                          hide-details
+                          v-bind="attrs"
+                          v-on="on"
+                        />
+                      </template>
+
+                      <v-date-picker
+                        :value="dateEndFormat"
+                        :min="datePickersRules.end.min"
+                        :max="datePickersRules.end.max"
+                        @input="($e) => {
                         onChange({dateStart, dateEnd: +new Date($e)});
                         isMenuDateEndOpen = false;
                       }"
-                    />
-                  </v-menu>
-                </v-col>
-              </v-row>
-            </v-container>
-          </template>
+                      />
+                    </v-menu>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </template>
 
-          <template v-else>
-            {{ option.label }}
-          </template>
-        </v-list-item>
-      </v-list>
-    </v-card>
-  </v-menu>
-</div>
+            <template v-else>
+              {{ option.label }}
+            </template>
+          </v-list-item>
+        </v-list>
+      </v-card>
+    </v-menu>
+  </div>
 </template>
 
 <script lang="ts">
-import { mdiCalendar } from '@mdi/js'
+import {mdiCalendar} from '@mdi/js'
 import moment from 'moment'
-import { Vue, Component, Prop, Watch } from 'vue-property-decorator'
+import {Vue, Component, Prop, Watch} from 'vue-property-decorator'
 import i18n from '@/plugins/i18n'
 import DatesIntervals from './DatesIntervals'
 import DateInterval from './DateInterval'
 
 @Component
 export default class DatesIntervalInput extends Vue {
-
   @Prop({type: String, required: false})
   readonly interval!: DatesIntervals
 
@@ -159,24 +164,24 @@ export default class DatesIntervalInput extends Vue {
   readonly format!: string
 
   private mdiCalendar = mdiCalendar
-  private privateInterval: DatesIntervals|null = null
+  private privateInterval: DatesIntervals | null = null
   private isMenuOpen: boolean = false
   private isMenuDateStartOpen: boolean = false
   private isMenuDateEndOpen: boolean = false
 
-  private get dateStartFormat (): string {
+  private get dateStartFormat(): string {
     return moment.utc(this.dateStart).format(this.format)
   }
 
-  private get dateEndFormat (): string {
+  private get dateEndFormat(): string {
     return moment.utc(this.dateEnd).format(this.format)
   }
 
-  private get maxDate (): string {
+  private get maxDate(): string {
     return moment().format('YYYY-MM-DD')
   }
 
-  private get datePickersRules (): any {
+  private get datePickersRules(): any {
     const frmt = (date?: number) => moment.utc(date).format('YYYY-MM-DD')
     const min = frmt(+moment.utc().year(moment().year() - 100))
     return {
@@ -191,43 +196,43 @@ export default class DatesIntervalInput extends Vue {
     }
   }
 
-  private get DATES_RANGES (): DateInterval[] {
+  private get DATES_RANGES(): DateInterval[] {
     return DatesIntervalInput.DATES_RANGES
   }
 
-  private get formattedValue (): string {
+  private get formattedValue(): string {
     if (!this.privateInterval) return ''
     return DatesIntervalInput.formatValue(
       this.privateInterval,
       this.dateStart,
       this.dateEnd,
-      this.format,
+      this.format
     )
   }
 
-  private mounted () {
+  private mounted() {
     this.privateInterval = this.determineInterval(this.dateStart, this.dateEnd)
   }
 
   @Watch('interval')
-  private onChangeInterval (val: DatesIntervals|null = null) {
+  private onChangeInterval(val: DatesIntervals | null = null) {
     this.privateInterval = val
   }
 
   @Watch('dateStart')
   @Watch('dateEnd')
-  private onChangeValue () {
+  private onChangeValue() {
     this.privateInterval = this.determineInterval(this.dateStart, this.dateEnd)
   }
 
-  private onClickMenuOption (val: DatesIntervals = DatesIntervals.custom) {
+  private onClickMenuOption(val: DatesIntervals = DatesIntervals.custom) {
     if (val === DatesIntervals.custom) return
     const dates = this.determineDates(val)
     this.onChange(dates)
-    setTimeout(() => this.isMenuOpen = false, 50)
+    setTimeout(() => (this.isMenuOpen = false), 50)
   }
 
-  private onChange (dates: {dateStart: number, dateEnd: number}) {
+  private onChange(dates: {dateStart: number; dateEnd: number}) {
     if (dates?.dateStart !== this.dateStart) {
       this.$emit(`update:date-start`, dates.dateStart)
     }
@@ -238,26 +243,21 @@ export default class DatesIntervalInput extends Vue {
     this.$emit('input', dates)
   }
 
-  public determineInterval (
+  public determineInterval(
     dateStart: number,
     dateEnd: number,
     today?: number
   ): DatesIntervals {
-    return DatesIntervalInput.determineInterval(
-      dateStart,
-      dateEnd,
-      today,
-    )
+    return DatesIntervalInput.determineInterval(dateStart, dateEnd, today)
   }
 
-  public determineDates (
+  public determineDates(
     interval: DatesIntervals,
     today?: number
-  ): {dateStart: number, dateEnd: number} {
-
+  ): {dateStart: number; dateEnd: number} {
     const result = {
       dateStart: 0,
-      dateEnd: 0
+      dateEnd: 0,
     }
 
     if ([DatesIntervals.all, DatesIntervals.custom].includes(interval)) {
@@ -271,7 +271,11 @@ export default class DatesIntervalInput extends Vue {
     if (regYear.test(interval)) {
       const res = regYear.exec(interval)
       const diff: number = Math.abs(Number(res?.[1] || 0))
-      result.dateStart = +moment.utc(_today).year(_today.year() - diff).month(0).date(1)
+      result.dateStart = +moment
+        .utc(_today)
+        .year(_today.year() - diff)
+        .month(0)
+        .date(1)
       result.dateEnd = +_today
     }
 
@@ -281,65 +285,63 @@ export default class DatesIntervalInput extends Vue {
   static DATES_RANGES = [
     {
       value: DatesIntervals['year:0'],
-      label: ''+i18n.t('dates_interval.this_year'),
+      label: '' + i18n.t('dates_interval.this_year'),
     },
     {
       value: DatesIntervals['year:-1'],
-      label: ''+i18n.t('dates_interval.last_n_years', {n: 2}),
+      label: '' + i18n.t('dates_interval.last_n_years', {n: 2}),
     },
     {
       value: DatesIntervals['year:-2'],
-      label: ''+i18n.t('dates_interval.last_n_years', {n: 3}),
+      label: '' + i18n.t('dates_interval.last_n_years', {n: 3}),
     },
     {
       value: DatesIntervals['year:-3'],
-      label: ''+i18n.t('dates_interval.last_n_years', {n: 4}),
+      label: '' + i18n.t('dates_interval.last_n_years', {n: 4}),
     },
     {
       value: DatesIntervals['year:-4'],
-      label: ''+i18n.t('dates_interval.last_n_years', {n: 5}),
+      label: '' + i18n.t('dates_interval.last_n_years', {n: 5}),
     },
     {
       value: DatesIntervals['all'],
-      label: ''+i18n.t('dates_interval.all'),
+      label: '' + i18n.t('dates_interval.all'),
     },
     {
       value: DatesIntervals['custom'],
-      label: ''+i18n.t('dates_interval.custom'),
+      label: '' + i18n.t('dates_interval.custom'),
     },
   ]
 
-  static formatValue (
+  static formatValue(
     privateInterval: DatesIntervals,
     dateStart: number,
     dateEnd: number,
-    format: string,
+    format: string
   ): string {
     if (!privateInterval) return ''
 
     if (privateInterval === DatesIntervals.custom) {
       const _today = moment().format(format)
-      const _dateStart = dateStart
-        ? moment(dateStart).format(format)
-        : _today
-      const _endDate = dateEnd
-        ? moment(dateEnd).format(format)
-        : _today
+      const _dateStart = dateStart ? moment(dateStart).format(format) : _today
+      const _endDate = dateEnd ? moment(dateEnd).format(format) : _today
 
-      return ''+i18n.t('dates_interval.from_x_to_y', {x: _dateStart, y: _endDate})
+      return (
+        '' + i18n.t('dates_interval.from_x_to_y', {x: _dateStart, y: _endDate})
+      )
     }
 
-    const opts = DatesIntervalInput.DATES_RANGES
-      .find(i => i.value === privateInterval)
+    const opts = DatesIntervalInput.DATES_RANGES.find(
+      (i) => i.value === privateInterval
+    )
     return opts?.label || ''
   }
 
-  static determineInterval (
+  static determineInterval(
     dateStart: number,
     dateEnd: number,
     today?: number
   ): DatesIntervals {
-
     let interval = DatesIntervals.custom
 
     const _today = today ? moment.utc(today) : moment.utc()
@@ -350,7 +352,8 @@ export default class DatesIntervalInput extends Vue {
     if (!start && !end) return DatesIntervals.all
 
     const isStart_Jan1 = start && start.format('MM-DD') === `01-01`
-    const isEnd_today = end && end.format('YYYY-MM-DD') === _today.format('YYYY-MM-DD')
+    const isEnd_today =
+      end && end.format('YYYY-MM-DD') === _today.format('YYYY-MM-DD')
 
     if (start) {
       if (isStart_Jan1 && (!end || isEnd_today)) {

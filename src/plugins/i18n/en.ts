@@ -81,7 +81,8 @@ export default {
     unsupported_symbols: 'Unsupported symbols: {symbols}',
     must_have_num_chars: 'Must have at least {num} characters',
     must_be_less_num_chars: 'Must be less than {num} characters',
-    must_have_num_items: 'Must have at least {num} item | Must have at least {num} items',
+    must_have_num_items:
+      'Must have at least {num} item | Must have at least {num} items',
     maximum_character_limit_exceeded: 'Maximum character limit exceeded',
     end_cannot_be_before_start: 'End cannot be before start',
     invalid: 'Invalid',
@@ -109,10 +110,11 @@ export default {
     change_password: 'Change password',
     set_new_password: 'Set a new password',
     forgot_password_question: 'Forgot password?',
-    dont_have_account_question: 'Don\'t have an account yet?',
+    dont_have_account_question: "Don't have an account yet?",
     already_have_account_question: 'Already have an account?',
-    reset_password_done_instruction: 'To complete the password reset, open the link supplied in the message sent to the specified email',
-    email_wasnt_set_for_user: 'Email wasn\'t set for the user',
+    reset_password_done_instruction:
+      'To complete the password reset, open the link supplied in the message sent to the specified email',
+    email_wasnt_set_for_user: "Email wasn't set for the user",
     password_successfully_changed: 'Password successfully changed',
   },
 
@@ -125,5 +127,5 @@ export default {
     from_x_to_y: '<i>from</i> <b>{x}</b> <i>to</i> <b>{y}</b>',
     from: 'From',
     to: 'To',
-  }
+  },
 }

@@ -1,29 +1,36 @@
 <template>
-<v-navigation-drawer :value="open" :permanent="open" app clipped left width="200">
-  <v-list dense>
-    <v-list-item
-      :class="{'grey--text text--darken-1': item.disabled}"
-      v-for="item in menuItems"
-      :key="item.title"
-      :to="item.to"
-      :disabled="item.disabled"
-    >
-      <v-list-item-icon class="mr-4">
-        <v-icon>{{ item.icon }}</v-icon>
-      </v-list-item-icon>
+  <v-navigation-drawer
+    :value="open"
+    :permanent="open"
+    app
+    clipped
+    left
+    width="200"
+  >
+    <v-list dense>
+      <v-list-item
+        :class="{'grey--text text--darken-1': item.disabled}"
+        v-for="item in menuItems"
+        :key="item.title"
+        :to="item.to"
+        :disabled="item.disabled"
+      >
+        <v-list-item-icon class="mr-4">
+          <v-icon>{{ item.icon }}</v-icon>
+        </v-list-item-icon>
 
-      <v-list-item-content>
-        <v-list-item-title>{{ item.label }}</v-list-item-title>
-      </v-list-item-content>
-    </v-list-item>
-  </v-list>
-</v-navigation-drawer>
+        <v-list-item-content>
+          <v-list-item-title>{{ item.label }}</v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+    </v-list>
+  </v-navigation-drawer>
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from 'vue-property-decorator'
-import { mdiChartLine, mdiMapMarkerRadius, mdiCalendarMonth } from '@mdi/js'
-import { Location } from 'vue-router'
+import {Component, Vue, Prop} from 'vue-property-decorator'
+import {mdiChartLine, mdiMapMarkerRadius, mdiCalendarMonth} from '@mdi/js'
+import {Location} from 'vue-router'
 
 interface MenuItem {
   label: string
@@ -36,7 +43,7 @@ interface MenuItem {
 export default class AppDrawer extends Vue {
   @Prop({type: Boolean, default: false}) open!: boolean
 
-  private get menuItems (): MenuItem[] {
+  private get menuItems(): MenuItem[] {
     return [
       {
         label: this.$t('measurements').toString(),

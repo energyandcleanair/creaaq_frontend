@@ -6,7 +6,7 @@ export default class Country {
 
   public _cities?: City[]
 
-  constructor (data: Country) {
+  constructor(data: Country) {
     Object.assign(this, data)
   }
 }

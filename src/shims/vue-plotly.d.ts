@@ -1,1 +1,1 @@
-declare module 'vue-plotly';
+declare module 'vue-plotly'

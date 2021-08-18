@@ -1,1 +1,1 @@
-declare module '@riophae/vue-treeselect';
+declare module '@riophae/vue-treeselect'

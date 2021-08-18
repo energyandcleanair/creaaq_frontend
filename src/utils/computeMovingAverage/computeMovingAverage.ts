@@ -1,21 +1,20 @@
-import { getAverage } from '../index'
+import {getAverage} from '../index'
 
 type TimestampMS = number
-type DatesArray = (TimestampMS|Date|null|undefined)[]
+type DatesArray = (TimestampMS | Date | null | undefined)[]
 
 interface MovingAverageRes {
-  dates: number[],
-  values: (number|null)[],
+  dates: number[]
+  values: (number | null)[]
 }
 
-export default function computeMovingAverage (
+export default function computeMovingAverage(
   dates: DatesArray,
-  values: (number|null)[],
+  values: (number | null)[],
   period: number,
   minThreshold?: number,
   nullValue = null
 ): MovingAverageRes {
-
   if (dates.length !== values.length) {
     throw new Error('Dates and values array should have one length')
   }
@@ -26,10 +25,11 @@ export default function computeMovingAverage (
     values: [],
   }
 
-  const {
-    dates: _dates,
-    values: _values
-  } = fillGapsInDatesArray(dates, values, nullValue)
+  const {dates: _dates, values: _values} = fillGapsInDatesArray(
+    dates,
+    values,
+    nullValue
+  )
 
   average.dates = _dates
 
@@ -47,7 +47,9 @@ export default function computeMovingAverage (
     }
     const from = Math.max(0, x - period + 1)
     const to = Math.min(from + period, x + 1)
-    const chunk = _values.slice(from, to).filter(v => v !== nullValue) as number[]
+    const chunk = _values
+      .slice(from, to)
+      .filter((v) => v !== nullValue) as number[]
 
     if (chunk.length < _minThreshold) {
       average.values.push(nullValue)
@@ -61,21 +63,20 @@ export default function computeMovingAverage (
 }
 
 const DAY_MS = 1000 * 60 * 60 * 24
-export function fillGapsInDatesArray (
+export function fillGapsInDatesArray(
   sortedDatesArray: DatesArray,
-  values: (number|null)[],
+  values: (number | null)[],
   nullValue = null
 ): {
-    dates: number[],
-    values: (number|null)[],
-  } {
-
+  dates: number[]
+  values: (number | null)[]
+} {
   if (sortedDatesArray.length !== values.length) {
     throw new Error('Dates and values array should have one length')
   }
 
   const resultDates: TimestampMS[] = []
-  const resultValues: (number|null)[] = []
+  const resultValues: (number | null)[] = []
 
   for (const _i in sortedDatesArray) {
     const i = +_i
@@ -103,8 +104,9 @@ export function fillGapsInDatesArray (
       resultValues.push(value)
     } else if (prevDateDiff > DAY_MS) {
       const gapDays = Math.floor(prevDateDiff / DAY_MS)
-      const newDates = Array(gapDays - 1).fill(0)
-        .map((_, x) => prevDate + (DAY_MS * (x + 1)))
+      const newDates = Array(gapDays - 1)
+        .fill(0)
+        .map((_, x) => prevDate + DAY_MS * (x + 1))
       const newValues = Array(gapDays - 1).fill(nullValue)
 
       resultDates.push(...newDates)

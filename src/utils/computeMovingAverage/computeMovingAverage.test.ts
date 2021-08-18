@@ -1,6 +1,8 @@
 import moment from 'moment'
-import { getAverage } from '../index'
-import computeMovingAverage, { fillGapsInDatesArray } from './computeMovingAverage'
+import {getAverage} from '../index'
+import computeMovingAverage, {
+  fillGapsInDatesArray,
+} from './computeMovingAverage'
 
 describe('utils.computeMovingAverage', () => {
   it('fillGapsInDatesArray', () => {
@@ -16,31 +18,33 @@ describe('utils.computeMovingAverage', () => {
       // gap
       {x: 'Jan-10', y: 8},
     ]
-    const dates = inputData.map(itm => +moment(itm.x, 'MMM-DD'))
-    const values = inputData.map(itm => itm.y)
+    const dates = inputData.map((itm) => +moment(itm.x, 'MMM-DD'))
+    const values = inputData.map((itm) => itm.y)
 
-    const expectedDates = Array(10).fill(0)
-      .map((_, i) => +moment(0).year(0).month(0).date(i + 1))
+    const expectedDates = Array(10)
+      .fill(0)
+      .map(
+        (_, i) =>
+          +moment(0)
+            .year(0)
+            .month(0)
+            .date(i + 1)
+      )
 
-    const expectedValues = [
-      1,
-      2,
-      null,
-      3,
-      4,
-      5,
-      null,
-      7,
-      null,
-      8,
-    ]
+    const expectedValues = [1, 2, null, 3, 4, 5, null, 7, null, 8]
 
     const result = fillGapsInDatesArray(dates, values)
-    const expectedDatesHash = expectedDates.map(itm => moment(itm).format('MMM-DD')).join(',')
-    const resultDatesHash = result.dates.map(itm => moment(itm).format('MMM-DD')).join(',')
+    const expectedDatesHash = expectedDates
+      .map((itm) => moment(itm).format('MMM-DD'))
+      .join(',')
+    const resultDatesHash = result.dates
+      .map((itm) => moment(itm).format('MMM-DD'))
+      .join(',')
 
-    const expectedValuesHash = expectedValues.map(itm => String(itm)).join(',')
-    const resultValuesHash = result.values.map(itm => String(itm)).join(',')
+    const expectedValuesHash = expectedValues
+      .map((itm) => String(itm))
+      .join(',')
+    const resultValuesHash = result.values.map((itm) => String(itm)).join(',')
 
     expect(resultDatesHash).toBe(expectedDatesHash)
     expect(resultValuesHash).toBe(expectedValuesHash)
@@ -62,8 +66,8 @@ describe('utils.computeMovingAverage', () => {
       {x: 'Jan-12', y: 120},
       {x: 'Jan-13', y: 130},
     ]
-    const dates = inputData.map(itm => +moment(itm.x, 'MMM-DD').hours(12))
-    const values = inputData.map(itm => itm.y)
+    const dates = inputData.map((itm) => +moment(itm.x, 'MMM-DD').hours(12))
+    const values = inputData.map((itm) => itm.y)
 
     const expectedData = [
       {x: 'Jan-01', y: null},
@@ -80,16 +84,24 @@ describe('utils.computeMovingAverage', () => {
       {x: 'Jan-12', y: getAverage([100, 110, 120])},
       {x: 'Jan-13', y: getAverage([100, 110, 120, 130])},
     ]
-    const expectedDates = expectedData.map(itm => +moment(itm.x, 'MMM-DD').hours(12))
-    const expectedValues = expectedData.map(itm => itm.y)
+    const expectedDates = expectedData.map(
+      (itm) => +moment(itm.x, 'MMM-DD').hours(12)
+    )
+    const expectedValues = expectedData.map((itm) => itm.y)
 
     const result = computeMovingAverage(dates, values, 5, 3)
 
-    const expectedDatesHash = expectedDates.map(itm => moment(itm).format('MMM-DD')).join(',')
-    const resultDatesHash = result.dates.map(itm => moment(itm).format('MMM-DD')).join(',')
+    const expectedDatesHash = expectedDates
+      .map((itm) => moment(itm).format('MMM-DD'))
+      .join(',')
+    const resultDatesHash = result.dates
+      .map((itm) => moment(itm).format('MMM-DD'))
+      .join(',')
 
-    const expectedValuesHash = expectedValues.map(itm => String(itm)).join(',')
-    const resultValuesHash = result.values.map(itm => String(itm)).join(',')
+    const expectedValuesHash = expectedValues
+      .map((itm) => String(itm))
+      .join(',')
+    const resultValuesHash = result.values.map((itm) => String(itm)).join(',')
 
     expect(resultDatesHash).toBe(expectedDatesHash)
     expect(resultValuesHash).toBe(expectedValuesHash)
@@ -101,24 +113,32 @@ describe('utils.computeMovingAverage', () => {
       {x: 'Jan-02', y: 20},
       {x: 'Jan-03', y: 30},
     ]
-    const dates = inputData.map(itm => +moment(itm.x, 'MMM-DD').hours(12))
-    const values = inputData.map(itm => itm.y)
+    const dates = inputData.map((itm) => +moment(itm.x, 'MMM-DD').hours(12))
+    const values = inputData.map((itm) => itm.y)
 
     const expectedData = [
       {x: 'Jan-01', y: null},
       {x: 'Jan-02', y: null},
       {x: 'Jan-03', y: null},
     ]
-    const expectedDates = expectedData.map(itm => +moment(itm.x, 'MMM-DD').hours(12))
-    const expectedValues = expectedData.map(itm => itm.y)
+    const expectedDates = expectedData.map(
+      (itm) => +moment(itm.x, 'MMM-DD').hours(12)
+    )
+    const expectedValues = expectedData.map((itm) => itm.y)
 
     const result = computeMovingAverage(dates, values, 7, 5)
 
-    const expectedDatesHash = expectedDates.map(itm => moment(itm).format('MMM-DD')).join(',')
-    const resultDatesHash = result.dates.map(itm => moment(itm).format('MMM-DD')).join(',')
+    const expectedDatesHash = expectedDates
+      .map((itm) => moment(itm).format('MMM-DD'))
+      .join(',')
+    const resultDatesHash = result.dates
+      .map((itm) => moment(itm).format('MMM-DD'))
+      .join(',')
 
-    const expectedValuesHash = expectedValues.map(itm => String(itm)).join(',')
-    const resultValuesHash = result.values.map(itm => String(itm)).join(',')
+    const expectedValuesHash = expectedValues
+      .map((itm) => String(itm))
+      .join(',')
+    const resultValuesHash = result.values.map((itm) => String(itm)).join(',')
 
     expect(resultDatesHash).toBe(expectedDatesHash)
     expect(resultValuesHash).toBe(expectedValuesHash)

@@ -1,14 +1,14 @@
 // import firebase from 'firebase'
-import { Store } from 'vuex'
+import {Store} from 'vuex'
 import User from '@/entities/User'
-import { auth } from '@/plugins/firebase'
+import {auth} from '@/plugins/firebase'
 
 export default class Auth {
   private _isInitialized: boolean = false
   private _store: Store<any>
   // private _firebase: any
 
-  constructor (store: Store<any>, firebase: any) {
+  constructor(store: Store<any>, firebase: any) {
     this._store = store
     // this._firebase = firebase
 
@@ -36,16 +36,16 @@ export default class Auth {
     //   },
     // })
 
-    auth.onAuthStateChanged((user: any|null) => {
+    auth.onAuthStateChanged((user: any | null) => {
       this._store.commit('SET_CURRENT_USER', user?.toJSON() || null)
     })
   }
 
-  public get currentUser (): User|null {
+  public get currentUser(): User | null {
     return this._store.state.currentUser
   }
 
-  public onInitialized (): Promise<void> {
+  public onInitialized(): Promise<void> {
     return new Promise((resolve: () => void) => {
       if (this._isInitialized) return resolve()
       auth.onAuthStateChanged(() => {
@@ -55,7 +55,7 @@ export default class Auth {
     })
   }
 
-  public logout (): Promise<void> {
+  public logout(): Promise<void> {
     this._store.commit('SET_CURRENT_USER', null)
     return auth.signOut()
   }

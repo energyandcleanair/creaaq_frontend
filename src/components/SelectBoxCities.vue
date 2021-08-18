@@ -1,71 +1,77 @@
 <template>
-<div>
-  <div
-    v-if="$props.label"
-    class="caption grey--text text--darken-2"
-  >
-    {{ $props.label }}
-  </div>
-
-  <treeselect
-    ref="input"
-    :value="value"
-    :cacheOptions="false"
-    :defaultOptions="filteredCountries"
-    :load-options="loadItems"
-    :limitText="(count) => `(+${count})`"
-    :noResultsText="$t('msg.no_results_found')"
-    :searchPromptText="$t('msg.type_to_search')"
-    :disabled="disabled"
-    :limit="3"
-    placeholder=""
-    valueConsistsOf="LEAF_PRIORITY"
-    searchable
-    clearable
-    multiple
-    async
-    @input="onChangeValue"
-  >
-    <div slot="value-label" slot-scope="{ node }">
-      {{ node.raw.name }}
+  <div>
+    <div
+      v-if="$props.label"
+      class="caption grey--text text--darken-2"
+    >
+      {{ $props.label }}
     </div>
 
-    <div slot="option-label" slot-scope="{ node }">
-      <span class="pl-1">
-        <CountryFlag
-          v-if="node.raw.type === 'country'"
-          :country="(node.raw.country_id || '').toLowerCase()"
-          size="small"
-        />
-      </span>
-      <span class="grey--text text--base">
-        &nbsp;&nbsp;{{ node.raw.name  }}
-      </span>
-      <span
-        v-if="node.raw.type === 'country' && node.raw.childrenLength"
-        class="caption grey--text text--lighten-1"
+    <treeselect
+      ref="input"
+      :value="value"
+      :cacheOptions="false"
+      :defaultOptions="filteredCountries"
+      :load-options="loadItems"
+      :limitText="(count) => `(+${count})`"
+      :noResultsText="$t('msg.no_results_found')"
+      :searchPromptText="$t('msg.type_to_search')"
+      :disabled="disabled"
+      :limit="3"
+      placeholder=""
+      valueConsistsOf="LEAF_PRIORITY"
+      searchable
+      clearable
+      multiple
+      async
+      @input="onChangeValue"
+    >
+      <div
+        slot="value-label"
+        slot-scope="{ node }"
       >
-        &nbsp;({{ node.raw.childrenLength }})
-      </span>
-    </div>
-  </treeselect>
-</div>
+        {{ node.raw.name }}
+      </div>
+
+      <div
+        slot="option-label"
+        slot-scope="{ node }"
+      >
+        <span class="pl-1">
+          <CountryFlag
+            v-if="node.raw.type === 'country'"
+            :country="(node.raw.country_id || '').toLowerCase()"
+            size="small"
+          />
+        </span>
+        <span class="grey--text text--base">
+          &nbsp;&nbsp;{{ node.raw.name  }}
+        </span>
+        <span
+          v-if="node.raw.type === 'country' && node.raw.childrenLength"
+          class="caption grey--text text--lighten-1"
+        >
+          &nbsp;({{ node.raw.childrenLength }})
+        </span>
+      </div>
+    </treeselect>
+  </div>
 </template>
 
 <script lang="ts">
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
-import Treeselect, { ASYNC_SEARCH } from '@riophae/vue-treeselect'
+import Treeselect, {ASYNC_SEARCH} from '@riophae/vue-treeselect'
 import _orderBy from 'lodash.orderby'
 import _sortBy from 'lodash.sortby'
 import CountryFlag from 'vue-country-flag'
-import { Vue, Component, Model, Prop, Emit, Watch } from 'vue-property-decorator'
+import {Vue, Component, Model, Prop, Emit, Watch} from 'vue-property-decorator'
 import City from '@/entities/City'
 
 @Component({
   components: {
     Treeselect,
     CountryFlag,
-  }
+  },
 })
 export default class SelectBoxCities extends Vue {
   @Model('input', {type: Array})
@@ -83,7 +89,7 @@ export default class SelectBoxCities extends Vue {
   private searchQuery: string = ''
   private privateItems: any[] = []
 
-  get countries (): any[] {
+  get countries(): any[] {
     const map = this.items.reduce((memo: any, city: City) => {
       if (memo[city.country_id]) {
         memo[city.country_id].children.push(city)
@@ -105,30 +111,30 @@ export default class SelectBoxCities extends Vue {
     return _orderBy(Object.values(map), 'name')
   }
 
-  get selectedCountriesIds (): string[] {
+  get selectedCountriesIds(): string[] {
     const selectedIds = this.value || []
-    const countriesIds: string[] = Object.keys(this.items.reduce(
-      (ids: {[id: string]: number}, city: City) => {
+    const countriesIds: string[] = Object.keys(
+      this.items.reduce((ids: {[id: string]: number}, city: City) => {
         if (!ids[city.country_id] && selectedIds.includes(city.id)) {
           ids[city.country_id] = 1
         }
         return ids
-      },
-      {}
-    ))
+      }, {})
+    )
     return countriesIds
   }
 
-  get selectedCountries (): any[] {
+  get selectedCountries(): any[] {
     const countriesIds: string[] = this.selectedCountriesIds
-    const countries = this.countries
-      .filter((country) => countriesIds.includes(country.id))
+    const countries = this.countries.filter((country) =>
+      countriesIds.includes(country.id)
+    )
     return countries
   }
 
-  get filteredCountries (): any[] {
+  get filteredCountries(): any[] {
     const countriesIds: string[] = this.selectedCountriesIds
-    const lastIndex = this.countries.length;
+    const lastIndex = this.countries.length
     const sortedArr = _sortBy([...this.countries], (item) => {
       const i = countriesIds.indexOf(item.id)
       if (i !== -1) item.isDefaultExpanded = true
@@ -138,7 +144,7 @@ export default class SelectBoxCities extends Vue {
   }
 
   @Emit('input')
-  private onChangeValue (value: any) {
+  private onChangeValue(value: any) {
     setTimeout(() => {
       const $input: any = this.$refs.input
       $input?.initialize()
@@ -146,13 +152,12 @@ export default class SelectBoxCities extends Vue {
   }
 
   @Watch('items')
-  private onChangeValue2 (value: any) {
+  private onChangeValue2(value: any) {
     setTimeout(() => {
       const $input: any = this.$refs.input
       $input?.initialize()
     }, 300)
   }
-
 
   private async loadItems({action, searchQuery, callback}: any): Promise<void> {
     if (action === ASYNC_SEARCH) {
@@ -166,56 +171,65 @@ export default class SelectBoxCities extends Vue {
       const delay = 100
       const results: any[] = []
 
-      await _runIteration((index: number) => {
-        const _query = searchQuery.trim().toLocaleLowerCase()
+      await _runIteration(
+        (index: number) => {
+          const _query = searchQuery.trim().toLocaleLowerCase()
 
-        const countries = this.filteredCountries
-          .slice(index * chunkSize, index * chunkSize + chunkSize)
+          const countries = this.filteredCountries.slice(
+            index * chunkSize,
+            index * chunkSize + chunkSize
+          )
 
-        for (const country of countries) {
-          const name = country.name?.toLocaleLowerCase() || ''
+          for (const country of countries) {
+            const name = country.name?.toLocaleLowerCase() || ''
 
-          if (name.indexOf(_query) > -1) {
-            results.push({
-              ...country,
-              isDefaultExpanded: true,
-            })
-            return
-          }
-
-          if (country.children) {
-            const cities: any[] = []
-            for (const city of country.children) {
-              const nameCity = city.name?.toLocaleLowerCase() || ''
-              if (nameCity.indexOf(_query) > -1) cities.push(city)
-            }
-
-            if (cities.length) {
+            if (name.indexOf(_query) > -1) {
               results.push({
                 ...country,
-                children: cities,
                 isDefaultExpanded: true,
               })
+              return
+            }
+
+            if (country.children) {
+              const cities: any[] = []
+              for (const city of country.children) {
+                const nameCity = city.name?.toLocaleLowerCase() || ''
+                if (nameCity.indexOf(_query) > -1) cities.push(city)
+              }
+
+              if (cities.length) {
+                results.push({
+                  ...country,
+                  children: cities,
+                  isDefaultExpanded: true,
+                })
+              }
             }
           }
-        }
-
-      }, numTimes, delay)
+        },
+        numTimes,
+        delay
+      )
 
       callback(null, results)
     }
   }
 }
 
-function _runIteration(fn: any, numTimes: number, delay: number): Promise<void> {
+function _runIteration(
+  fn: any,
+  numTimes: number,
+  delay: number
+): Promise<void> {
   return new Promise((resolve) => {
-    let index = 0;
+    let index = 0
 
-    function end () {
+    function end() {
       resolve()
     }
 
-    function next () {
+    function next() {
       if (fn(index) === false) return end()
       index++
       if (index < numTimes) setTimeout(next, delay)

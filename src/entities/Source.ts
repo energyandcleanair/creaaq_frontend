@@ -1,5 +1,5 @@
 import City from './City'
-import { MeasurementLevels } from './Measurement'
+import {MeasurementLevels} from './Measurement'
 
 export default class Source {
   public id!: string
@@ -10,7 +10,7 @@ export default class Source {
   public city?: City
   public _measurementsNumber?: number
 
-  constructor (data: Source) {
+  constructor(data: Source) {
     Object.assign(this, data)
   }
 }

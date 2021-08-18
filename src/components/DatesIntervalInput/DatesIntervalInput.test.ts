@@ -1,18 +1,24 @@
 import moment from 'moment'
-import { shallowMount, Wrapper } from '@vue/test-utils'
+import {shallowMount, Wrapper} from '@vue/test-utils'
 import DatesIntervalInput from './DatesIntervalInput.vue'
 import DatesIntervals from './DatesIntervals'
 
 describe('DatesIntervalInput.vue', () => {
   let wrapper: Wrapper<DatesIntervalInput>
-  const today = moment.utc()
-    .year(2021).month(6).date(21)
-    .hours(0).minutes(0).seconds(0).milliseconds(0)
+  const today = moment
+    .utc()
+    .year(2021)
+    .month(6)
+    .date(21)
+    .hours(0)
+    .minutes(0)
+    .seconds(0)
+    .milliseconds(0)
 
   beforeEach(() => {
     wrapper = shallowMount(DatesIntervalInput, {
       mocks: {
-        $t: () => {}
+        $t: () => {},
       },
       stubs: [
         'v-select',
@@ -27,7 +33,7 @@ describe('DatesIntervalInput.vue', () => {
         'v-card-text',
         'v-date-picker',
       ],
-      propsData: {}
+      propsData: {},
     })
   })
 
@@ -35,16 +41,32 @@ describe('DatesIntervalInput.vue', () => {
     const vm: any = wrapper.findComponent(DatesIntervalInput).vm
 
     const case1 = () => {
-      const dateStart = +moment.utc().year(today.year()).month(0).date(1)
+      const dateStart = +moment
+        .utc()
+        .year(today.year())
+        .month(0)
+        .date(1)
       const endDate = +today
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
     const case2 = () => {
-      const dateStart = +moment.utc().year(today.year()).month(0).date(1)
+      const dateStart = +moment
+        .utc()
+        .year(today.year())
+        .month(0)
+        .date(1)
       const endDate = 0
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
@@ -56,16 +78,32 @@ describe('DatesIntervalInput.vue', () => {
     const vm: any = wrapper.findComponent(DatesIntervalInput).vm
 
     const case1 = () => {
-      const dateStart = +moment.utc().year(today.year() - 1).month(0).date(1)
+      const dateStart = +moment
+        .utc()
+        .year(today.year() - 1)
+        .month(0)
+        .date(1)
       const endDate = +today
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
     const case2 = () => {
-      const dateStart = +moment.utc().year(today.year() - 1).month(0).date(1)
+      const dateStart = +moment
+        .utc()
+        .year(today.year() - 1)
+        .month(0)
+        .date(1)
       const endDate = 0
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
@@ -77,16 +115,32 @@ describe('DatesIntervalInput.vue', () => {
     const vm: any = wrapper.findComponent(DatesIntervalInput).vm
 
     const case1 = () => {
-      const dateStart = +moment.utc().year(today.year() - 4).month(0).date(1)
+      const dateStart = +moment
+        .utc()
+        .year(today.year() - 4)
+        .month(0)
+        .date(1)
       const endDate = +today
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
     const case2 = () => {
-      const dateStart = +moment.utc().year(today.year() - 4).month(0).date(1)
+      const dateStart = +moment
+        .utc()
+        .year(today.year() - 4)
+        .month(0)
+        .date(1)
       const endDate = 0
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
@@ -98,23 +152,51 @@ describe('DatesIntervalInput.vue', () => {
     const vm: any = wrapper.findComponent(DatesIntervalInput).vm
 
     const case1 = () => {
-      const dateStart = +moment.utc().year(today.year()).month(0).date(2)
-      const endDate = +moment.utc().year(today.year()).month(9).date(12)
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const dateStart = +moment
+        .utc()
+        .year(today.year())
+        .month(0)
+        .date(2)
+      const endDate = +moment
+        .utc()
+        .year(today.year())
+        .month(9)
+        .date(12)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
     const case2 = () => {
-      const dateStart = +moment.utc().year(today.year()).month(0).date(2)
+      const dateStart = +moment
+        .utc()
+        .year(today.year())
+        .month(0)
+        .date(2)
       const endDate = 0
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
     const case3 = () => {
       const dateStart = 0
-      const endDate = +moment.utc().year(today.year() + 4).month(12).date(30)
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const endDate = +moment
+        .utc()
+        .year(today.year() + 4)
+        .month(12)
+        .date(30)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
@@ -127,23 +209,39 @@ describe('DatesIntervalInput.vue', () => {
     const vm: any = wrapper.findComponent(DatesIntervalInput).vm
 
     const case1 = () => {
-      const dateStart = +moment.utc().year(today.year() - 100).month(0).date(1)
+      const dateStart = +moment
+        .utc()
+        .year(today.year() - 100)
+        .month(0)
+        .date(1)
       const endDate = +today
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
     const case2 = () => {
       const dateStart = 0
       const endDate = +today
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
     const case3 = () => {
       const dateStart = 0
       const endDate = 0
-      const interval: DatesIntervals = vm.determineInterval(dateStart, endDate, +today)
+      const interval: DatesIntervals = vm.determineInterval(
+        dateStart,
+        endDate,
+        +today
+      )
       return interval
     }
 
@@ -156,10 +254,16 @@ describe('DatesIntervalInput.vue', () => {
     const vm: any = wrapper.findComponent(DatesIntervalInput).vm
 
     const case1 = () => {
-      const dates: {dateStart: number, dateEnd: number} = vm
-        .determineDates(DatesIntervals['year:0'], +today)
+      const dates: {dateStart: number; dateEnd: number} = vm.determineDates(
+        DatesIntervals['year:0'],
+        +today
+      )
 
-      const dateStart = +moment.utc(today).year(today.year()).month(0).date(1)
+      const dateStart = +moment
+        .utc(today)
+        .year(today.year())
+        .month(0)
+        .date(1)
       const endDate = +today
 
       expect(dates.dateStart).toBe(dateStart)
@@ -167,10 +271,16 @@ describe('DatesIntervalInput.vue', () => {
     }
 
     const case2 = () => {
-      const dates: {dateStart: number, dateEnd: number} = vm
-        .determineDates(DatesIntervals['year:-1'], +today)
+      const dates: {dateStart: number; dateEnd: number} = vm.determineDates(
+        DatesIntervals['year:-1'],
+        +today
+      )
 
-      const dateStart = +moment.utc(today).year(today.year() - 1).month(0).date(1)
+      const dateStart = +moment
+        .utc(today)
+        .year(today.year() - 1)
+        .month(0)
+        .date(1)
       const endDate = +today
 
       expect(dates.dateStart).toBe(dateStart)
@@ -178,10 +288,16 @@ describe('DatesIntervalInput.vue', () => {
     }
 
     const case3 = () => {
-      const dates: {dateStart: number, dateEnd: number} = vm
-        .determineDates(DatesIntervals['year:-4'], +today)
+      const dates: {dateStart: number; dateEnd: number} = vm.determineDates(
+        DatesIntervals['year:-4'],
+        +today
+      )
 
-      const dateStart = +moment.utc(today).year(today.year() - 4).month(0).date(1)
+      const dateStart = +moment
+        .utc(today)
+        .year(today.year() - 4)
+        .month(0)
+        .date(1)
       const endDate = +today
 
       expect(dates.dateStart).toBe(dateStart)
@@ -189,8 +305,10 @@ describe('DatesIntervalInput.vue', () => {
     }
 
     const case4 = () => {
-      const dates: {dateStart: number, dateEnd: number} = vm
-        .determineDates(DatesIntervals['all'], +today)
+      const dates: {dateStart: number; dateEnd: number} = vm.determineDates(
+        DatesIntervals['all'],
+        +today
+      )
 
       const dateStart = 0
       const endDate = 0
@@ -200,8 +318,10 @@ describe('DatesIntervalInput.vue', () => {
     }
 
     const case5 = () => {
-      const dates: {dateStart: number, dateEnd: number} = vm
-        .determineDates(DatesIntervals['custom'], +today)
+      const dates: {dateStart: number; dateEnd: number} = vm.determineDates(
+        DatesIntervals['custom'],
+        +today
+      )
 
       const dateStart = 0
       const endDate = 0

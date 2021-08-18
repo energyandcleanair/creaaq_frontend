@@ -15,7 +15,7 @@ export default class Target {
 
   public _violationsNumber?: number
 
-  constructor (data: Target) {
+  constructor(data: Target) {
     Object.assign(this, data)
   }
 }

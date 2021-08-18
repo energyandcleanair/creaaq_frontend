@@ -1,124 +1,131 @@
 <template>
-<v-container
-  class="violations-chart"
-  fluid
->
-  <template v-if="loading">
-    <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
+  <v-container
+    class="violations-chart"
+    fluid
+  >
+    <template v-if="loading">
+      <v-skeleton-loader
+        class="mb-2"
+        type="image"
+        style="height: 64px;"
+      />
 
-    <v-row class="px-2">
-      <template v-for="i of (12 / vCols)">
-        <v-col :key="i">
-          <v-skeleton-loader type="text, image" />
-        </v-col>
-      </template>
-    </v-row>
-  </template>
+      <v-row class="px-2">
+        <template v-for="i of (12 / vCols)">
+          <v-col :key="i">
+            <v-skeleton-loader type="text, image" />
+          </v-col>
+        </template>
+      </v-row>
+    </template>
 
-  <template v-else-if="!violations.length">
-    <v-alert class="text-center ma-12" color="grey lighten-3">
-      {{ $t('msg.no_data') }}
-    </v-alert>
-  </template>
-
-  <template v-else>
-    <v-row
-      v-for="row of chartRows"
-      :key="row.id"
-      class="chart-row"
-    >
-
-      <v-list-item
-        class="chart-row__title grey lighten-4 primary--text mb-6"
-        two-line
+    <template v-else-if="!violations.length">
+      <v-alert
+        class="text-center ma-12"
+        color="grey lighten-3"
       >
-        <v-list-item-content>
-          <v-list-item-title>
-            <span class="font-weight-bold">{{ row.title }}</span>
-          </v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
+        {{ $t('msg.no_data') }}
+      </v-alert>
+    </template>
 
-      <v-col
-        v-for="col of row.cols"
-        class="chart-col"
-        :key="col.id"
-        :cols="vCols"
+    <template v-else>
+      <v-row
+        v-for="row of chartRows"
+        :key="row.id"
+        class="chart-row"
       >
-        <v-list-item class="chart-col__title">
-          <v-list-item-content class="text-subtitle-2 font-weight-bold">
-            <v-list-item-title v-text="col.title"/>
+
+        <v-list-item
+          class="chart-row__title grey lighten-4 primary--text mb-6"
+          two-line
+        >
+          <v-list-item-content>
+            <v-list-item-title>
+              <span class="font-weight-bold">{{ row.title }}</span>
+            </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
 
-        <v-calendar
-          class="chart-col__calendar"
-          type="month"
-          :value="col.firstDate"
-          :weekdays="[1, 2, 3, 4, 5, 6, 0]"
-          :weekday-format="weekdayFormatter"
-          :show-month-on-first="false"
+        <v-col
+          v-for="col of row.cols"
+          class="chart-col"
+          :key="col.id"
+          :cols="vCols"
         >
-          <template v-slot:day-label>
-            <span>
-              <!-- empty -->
-            </span>
-          </template>
+          <v-list-item class="chart-col__title">
+            <v-list-item-content class="text-subtitle-2 font-weight-bold">
+              <v-list-item-title v-text="col.title" />
+            </v-list-item-content>
+          </v-list-item>
 
-          <template v-slot:day="{ day, outside, future }">
-            <template v-if="outside">
-              <!-- empty -->
+          <v-calendar
+            class="chart-col__calendar"
+            type="month"
+            :value="col.firstDate"
+            :weekdays="[1, 2, 3, 4, 5, 6, 0]"
+            :weekday-format="weekdayFormatter"
+            :show-month-on-first="false"
+          >
+            <template v-slot:day-label>
+              <span>
+                <!-- empty -->
+              </span>
             </template>
 
-            <v-btn
-              v-else-if="future || !col.dates[day]"
-              class="not-interactive"
-              :color="'white'"
-              :ripple="false"
-              small
-              depressed
-            >
-              {{ day }}
-            </v-btn>
-
-            <v-menu
-              v-else
-              contentClass="violations-chart__calendar__day-menu"
-              top
-              offset-y
-              open-on-hover
-              allow-overflow
-              internal-activator
-              z-index="110"
-            >
-              <template v-slot:activator="{ on, attrs }">
-                <v-btn
-                  v-if="!outside"
-                  :color="col.dates[day].color || 'white'"
-                  :ripple="false"
-                  small
-                  depressed
-                  v-bind="attrs"
-                  v-on="on"
-                >
-                  {{ day }}
-                </v-btn>
+            <template v-slot:day="{ day, outside, future }">
+              <template v-if="outside">
+                <!-- empty -->
               </template>
 
-              <ChartTooltip
-                v-if="col.dates[day].tooltip"
-                :title="col.dates[day].tooltip.title"
-                :subtitle="col.dates[day].tooltip.subtitle"
-                :table-headers="col.dates[day].tooltip.tableHeaders"
-                :table-items="col.dates[day].tooltip.tableItems"
-              />
-            </v-menu>
-          </template>
-        </v-calendar>
-      </v-col>
-    </v-row>
-  </template>
-</v-container>
+              <v-btn
+                v-else-if="future || !col.dates[day]"
+                class="not-interactive"
+                :color="'white'"
+                :ripple="false"
+                small
+                depressed
+              >
+                {{ day }}
+              </v-btn>
+
+              <v-menu
+                v-else
+                contentClass="violations-chart__calendar__day-menu"
+                top
+                offset-y
+                open-on-hover
+                allow-overflow
+                internal-activator
+                z-index="110"
+              >
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                    v-if="!outside"
+                    :color="col.dates[day].color || 'white'"
+                    :ripple="false"
+                    small
+                    depressed
+                    v-bind="attrs"
+                    v-on="on"
+                  >
+                    {{ day }}
+                  </v-btn>
+                </template>
+
+                <ChartTooltip
+                  v-if="col.dates[day].tooltip"
+                  :title="col.dates[day].tooltip.title"
+                  :subtitle="col.dates[day].tooltip.subtitle"
+                  :table-headers="col.dates[day].tooltip.tableHeaders"
+                  :table-items="col.dates[day].tooltip.tableItems"
+                />
+              </v-menu>
+            </template>
+          </v-calendar>
+        </v-col>
+      </v-row>
+    </template>
+  </v-container>
 </template>
 
 <script lang="ts">
@@ -126,10 +133,10 @@ import chroma from 'chroma-js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _orderBy from 'lodash.orderby'
-import moment, { Moment } from 'moment'
-import { Component, Vue, Prop, Ref } from 'vue-property-decorator'
-import { Plotly } from 'vue-plotly'
-import { URL_DATE_FORMAT } from '@/utils'
+import moment, {Moment} from 'moment'
+import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
+import {Plotly} from 'vue-plotly'
+import {URL_DATE_FORMAT} from '@/utils'
 import theme from '@/theme'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
@@ -147,7 +154,7 @@ const COL_ID_DIVIDER = '--'
 interface ViolationsCalendar {
   [year: string]: {
     [month: string]: {
-      [date: string]: Violation[]|undefined
+      [date: string]: Violation[] | undefined
     }
   }
 }
@@ -176,10 +183,9 @@ const TOOLTIP_DEFAULTS = {
   components: {
     Plotly,
     ChartTooltip,
-  }
+  },
 })
 export default class ViolationsChart extends Vue {
-
   @Ref('calendarTooltip')
   readonly $calendarTooltip!: any
 
@@ -195,27 +201,27 @@ export default class ViolationsChart extends Vue {
   private tooltip: TooltipParams = TOOLTIP_DEFAULTS
   private tooltips: any[] = []
 
-  private get cities (): City[] {
+  private get cities(): City[] {
     return this.chartData.cities || []
   }
 
-  private get violations (): Violation[] {
+  private get violations(): Violation[] {
     return this.chartData.violations || []
   }
 
-  private get pollutants (): Pollutant[] {
+  private get pollutants(): Pollutant[] {
     return this.chartData.pollutants || []
   }
 
-  private get organizations (): Organization[] {
+  private get organizations(): Organization[] {
     return this.chartData.organizations || []
   }
 
-  private get targets (): Target[] {
+  private get targets(): Target[] {
     return this.chartData.targets || []
   }
 
-  private get vCols (): number /* Vuetify <v-col> size: [1, 12] */ {
+  private get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
     const b = this.$vuetify.breakpoint
     if (b.width >= 1620) return 2
     if (b.width >= 1300) return 3
@@ -224,30 +230,41 @@ export default class ViolationsChart extends Vue {
     return 12
   }
 
-  private get filteredViolations (): Violation[] {
+  private get filteredViolations(): Violation[] {
     const violations: Violation[] = []
-    const filterCities: MapFilter = this.queryParams.cities
-      .reduce((memo: MapFilter, id: City['id']) => (memo[id] = 1) && memo, {})
+    const filterCities: MapFilter = this.queryParams.cities.reduce(
+      (memo: MapFilter, id: City['id']) => (memo[id] = 1) && memo,
+      {}
+    )
 
-    let filterPollutants: MapFilter|null = this.queryParams.pollutants
-      .reduce((memo: MapFilter, id: Pollutant['id']) => (memo[id] = 1) && memo, {})
+    let filterPollutants: MapFilter | null = this.queryParams.pollutants.reduce(
+      (memo: MapFilter, id: Pollutant['id']) => (memo[id] = 1) && memo,
+      {}
+    )
     if (!Object.keys(filterPollutants).length) filterPollutants = null
 
-    let filterOrganizations: MapFilter|null = this.queryParams.organizations
-      .reduce((memo: MapFilter, id: Organization['id']) => (memo[id] = 1) && memo, {})
+    let filterOrganizations: MapFilter | null =
+      this.queryParams.organizations.reduce(
+        (memo: MapFilter, id: Organization['id']) => (memo[id] = 1) && memo,
+        {}
+      )
     if (!Object.keys(filterOrganizations).length) filterOrganizations = null
 
-    let filterTargets: MapFilter|null = this.queryParams.targets
-      .reduce((memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo, {})
+    let filterTargets: MapFilter | null = this.queryParams.targets.reduce(
+      (memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo,
+      {}
+    )
     if (!Object.keys(filterTargets).length) filterTargets = null
 
     for (const violation of this.violations) {
       const cityId = violation.location_id
 
-      if (!_valuePassesFilter(cityId, filterCities) ||
+      if (
+        !_valuePassesFilter(cityId, filterCities) ||
         !_valuePassesFilter(violation.pollutant, filterPollutants) ||
         !_valuePassesFilter(violation.organization, filterOrganizations) ||
-        !_valuePassesFilter(violation.target_id, filterTargets)) {
+        !_valuePassesFilter(violation.target_id, filterTargets)
+      ) {
         continue
       }
 
@@ -257,7 +274,7 @@ export default class ViolationsChart extends Vue {
     return violations
   }
 
-  private get chartRows (): ChartRow[] {
+  private get chartRows(): ChartRow[] {
     if (this.loading) return []
     if (!this.queryParams.cities?.length) return []
 
@@ -277,10 +294,10 @@ export default class ViolationsChart extends Vue {
       const $date = moment(violation.date, URL_DATE_FORMAT)
       const calendarProp = $date.format('YYYY.MM.DD')
 
-      let violations: Violation[]|undefined = _get(
+      let violations: Violation[] | undefined = _get(
         violationsCalendar,
         calendarProp
-      ) as any as Violation[]|undefined
+      ) as any as Violation[] | undefined
 
       if (!violations) {
         _set<Violation[]>(violationsCalendar, calendarProp, [])
@@ -296,7 +313,7 @@ export default class ViolationsChart extends Vue {
 
     // gen chart rows with the calendars
     for (const cityId of this.queryParams.cities) {
-      const city: City = this.cities.find(itm => itm.id === cityId) as City
+      const city: City = this.cities.find((itm) => itm.id === cityId) as City
       const row: ChartRow = {
         id: city.id,
         cityId: city.id,
@@ -309,7 +326,10 @@ export default class ViolationsChart extends Vue {
         for (let month = 0; month <= 11; month++) {
           const monthStr = month < 10 ? `0${month}` : String(month)
 
-          const $firstDate = moment(0).year(+year).month(month).date(1)
+          const $firstDate = moment(0)
+            .year(+year)
+            .month(month)
+            .date(1)
           const col: ChartCol = {
             id: `${row.id}${COL_ID_DIVIDER}${year}${COL_ID_DIVIDER}${monthStr}`,
             title: $firstDate.format('MMMM YYYY'),
@@ -322,14 +342,13 @@ export default class ViolationsChart extends Vue {
             const dateStr = date < 10 ? `0${date}` : String(date)
             const key = `${y_m}-${dateStr}`
             const $date = moment(key, 'YYYY-MM-DD')
-            const dateViolations: Violation[]|undefined = _get(
+            const dateViolations: Violation[] | undefined = _get(
               violationsCalendar,
-              key.replace(/-/g, '.'),
-            ) as any as Violation[]|undefined
+              key.replace(/-/g, '.')
+            ) as any as Violation[] | undefined
 
-            const violationsNum: number = +$date >= _tomorrow
-              ? -1
-              : dateViolations?.length || -1
+            const violationsNum: number =
+              +$date >= _tomorrow ? -1 : dateViolations?.length || -1
 
             col.dates[date] = {
               color: _getViolationsColor(violationsNum),
@@ -352,19 +371,19 @@ export default class ViolationsChart extends Vue {
     return rows
   }
 
-  private weekdayFormatter (dayProps: any) {
+  private weekdayFormatter(dayProps: any) {
     return ['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayProps.weekday]
   }
 
-  private genDateTooltipParams (
+  private genDateTooltipParams(
     $date: Moment,
     violations: Violation[],
-    targets: Target[],
+    targets: Target[]
   ): TooltipParams {
     let numRedViolations = 0
 
-    const tableItems = violations.map(item => {
-      const target = targets.find(i => i.id === item.target_id)
+    const tableItems = violations.map((item) => {
+      const target = targets.find((i) => i.id === item.target_id)
       const value = Math.round(item.value || 0)
       const target_value = Math.round(item.target_value || 0)
       const exceeded = value > target_value
@@ -380,7 +399,8 @@ export default class ViolationsChart extends Vue {
     })
 
     const tooltipParams: any = {
-      title: (numRedViolations +
+      title: (
+        numRedViolations +
         ' ' +
         (numRedViolations <= 1 ? this.$t('violation') : this.$t('violations'))
       ).toLowerCase(),
@@ -419,27 +439,24 @@ const VIOLATIONS_SCALE = chroma.scale([
   theme.colors.orange.base,
   theme.colors.darkRed.base,
 ])
-const PALETTE_COLORS = VIOLATIONS_SCALE.mode('lch').colors(VIOLATIONS_PALETTE_SIZE + 1)
-function _getViolationsColor (num: number): string {
+const PALETTE_COLORS = VIOLATIONS_SCALE.mode('lch').colors(
+  VIOLATIONS_PALETTE_SIZE + 1
+)
+function _getViolationsColor(num: number): string {
   if (num === -1) return ''
   if (num === 0) return theme.colors.green.base
   const percentage = num / (VIOLATIONS_HIGHEST_AMOUNT / 100)
-  const scaleVal = num >= VIOLATIONS_HIGHEST_AMOUNT
-    ? 1
-    : Math.min(1, percentage / 100)
+  const scaleVal =
+    num >= VIOLATIONS_HIGHEST_AMOUNT ? 1 : Math.min(1, percentage / 100)
   return PALETTE_COLORS[Math.round(VIOLATIONS_PALETTE_SIZE * scaleVal)]
 }
 
-function _valuePassesFilter (
-  key: any,
-  filterMap: MapFilter|null,
-): boolean {
+function _valuePassesFilter(key: any, filterMap: MapFilter | null): boolean {
   return !filterMap || (key && filterMap[key])
 }
 </script>
 
 <style lang="scss">
-
 $violations-chart__calendar--width: 170px;
 
 .violations-chart {
@@ -565,7 +582,7 @@ $violations-chart__calendar--width: 170px;
 
   &::before {
     position: absolute;
-    content: "";
+    content: '';
     width: 10px;
     height: 14px;
     border-left: 12px solid transparent;
