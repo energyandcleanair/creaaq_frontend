@@ -10,3 +10,20 @@ export default interface URLQuery {
   organizations: Organization['id'][]
   date_start?: string
 }
+
+export interface URLQueryRaw {
+  // cities
+  ct?: string[]
+
+  // pollutants
+  pl?: string[]
+
+  // targets
+  tg?: string[]
+
+  // organizations
+  org?: string[]
+
+  // date_start
+  start?: string
+}

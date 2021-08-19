@@ -22,3 +22,32 @@ export default interface URLQuery {
   running_average?: RunningAverageEnum
   chart_cols?: ChartColumnSize | 0
 }
+
+export interface URLQueryRaw {
+  // cities
+  ct?: string[]
+
+  // sources
+  sr?: string[]
+
+  // pollutants
+  pl?: string[]
+
+  // stations
+  st?: string[]
+
+  // date_start
+  start?: string
+
+  // date_end
+  end?: string
+
+  // display_mode
+  dspl?: string
+
+  // running_average
+  avg?: string
+
+  // chart_cols
+  cols?: string
+}

@@ -96,6 +96,14 @@ export default {
     sign_up_success: 'You have successfully registered and logged in.',
     type_to_search: 'Type to search',
     no_results_found: 'No results found',
+    limit_exceeded__server_cannot_process_amount__reduce_query:
+      'The limit is exceeded. The server cannot process such a large request. Please reduce the amount of data requested.',
+    limit_exceeded__app_cannot_render_amount__you_can_export_file:
+      'The limit is exceeded. The app cannot render too much charts, but you still can export the data to a file.',
+    too_large_url: 'Too large URL',
+    too_large_query: 'Too large query',
+    queried_of_limit: 'Queried {queried} with the limit of {limit}',
+    loaded_of_limit: 'Loaded {loaded} with the limit of {limit}',
   },
 
   auth: {

@@ -52,8 +52,31 @@
         @update:queryParams="onChangeQuery"
       />
 
+      <template v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API">
+        <v-alert
+          class="text-center my-12 px-12"
+          color="warning lighten-2"
+        >
+          <div class="d-flex justify-center">
+            {{ $t('msg.limit_exceeded__server_cannot_process_amount__reduce_query') }}
+          </div>
+
+          <b class="d-flex justify-center pt-2">
+            {{
+              $t(
+                'msg.queried_of_limit',
+                {
+                  queried: `${urlQuery.cities.length} ${$t('cities').toLowerCase()}`,
+                  limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities').toLowerCase()}`,
+                }
+              )
+            }}
+          </b>
+        </v-alert>
+      </template>
+
       <ViolationsChart
-        ref="violationsChart"
+        v-else
         :queryParams="urlQuery"
         :chartData="chartData"
         :loading="isChartLoading"
@@ -67,6 +90,7 @@ import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
 import {Component, Vue} from 'vue-property-decorator'
+import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Pollutant from '@/entities/Pollutant'
@@ -82,7 +106,7 @@ import {toURLStringDate, toQueryString, URL_DATE_FORMAT} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
-import URLQuery from './types/URLQuery'
+import URLQuery, {URLQueryRaw} from './types/URLQuery'
 
 const JAN_1: number = +moment(0).year(moment().year())
 
@@ -96,6 +120,8 @@ const JAN_1: number = +moment(0).year(moment().year())
 export default class ViewViolations extends Vue {
   private isLoading: boolean = false
   private isChartLoading: boolean = false
+  private readonly LIMIT_FETCH_ITEMS_FROM_API: number =
+    Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
   private chartData: ChartData = {
     cities: [],
@@ -106,42 +132,57 @@ export default class ViewViolations extends Vue {
   }
 
   private get urlQuery(): URLQuery {
-    const q = this.$route.query
-
-    const cities = Array.isArray(q.cities) ? q.cities : [q.cities]
-    const pollutants = Array.isArray(q.pollutants)
-      ? q.pollutants
-      : [q.pollutants]
-    const targets = Array.isArray(q.targets) ? q.targets : [q.targets]
-    const organizations = Array.isArray(q.organizations)
-      ? q.organizations
-      : [q.organizations]
-    const date_start = q.date_start
-      ? toURLStringDate(q.date_start as string)
-      : ''
+    const q: URLQueryRaw = this.$route.query
+    const _toArray = (itm: string | string[] | undefined) =>
+      (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
     return {
-      cities: cities.filter((i) => i) as City['id'][],
-      pollutants: pollutants.filter((i) => i) as Pollutant['id'][],
-      targets: targets.filter((i) => i) as Target['id'][],
-      organizations: organizations.filter((i) => i) as Organization['id'][],
-      date_start,
+      cities: _toArray(q.ct),
+      pollutants: _toArray(q.pl),
+      targets: _toArray(q.tg),
+      organizations: _toArray(q.org),
+      date_start: q.start ? toURLStringDate(q.start as string) : '',
     }
   }
 
-  private set urlQuery(query: URLQuery) {
-    const newPath = this.$router.resolve({
+  private async setUrlQuery(inputQuery: URLQuery): Promise<void> {
+    const query: URLQueryRaw = {
+      ct: inputQuery.cities,
+      pl: inputQuery.pollutants,
+      tg: inputQuery.targets,
+      start: inputQuery.date_start
+        ? toURLStringDate(inputQuery.date_start)
+        : undefined,
+    }
+
+    for (const _key in query) {
+      const key: keyof URLQueryRaw = _key as any
+      if (!query[key]) delete query[key]
+    }
+
+    let newRoute = this.$router.resolve({
       ...(this.$route as any),
       query,
-    }).href
-
-    this.$store.commit('SET', {key: 'queryForm.cities', value: query.cities})
-    this.$store.commit('SET', {
-      key: 'queryForm.dateStart',
-      value: query.date_start,
     })
 
-    if (this.$route.fullPath !== newPath) this.$router.replace(newPath)
+    if ((newRoute.href.length || 0) > 2000) {
+      const newHref = newRoute.href.slice(0, 2000).replace(/\&[^&]*$/, '')
+      newRoute = this.$router.resolve(newHref)
+      this.$dialog.notify.warning(this.$t('msg.too_large_url').toString())
+    }
+
+    if (this.$route.fullPath !== newRoute.href) {
+      const newRouteQuery: URLQueryRaw = newRoute.route.query
+      this.$store.commit('SET', {
+        key: 'queryForm.cities',
+        value: newRouteQuery.ct,
+      })
+      this.$store.commit('SET', {
+        key: 'queryForm.dateStart',
+        value: newRouteQuery.start,
+      })
+      this.$router.replace(newRoute.href)
+    }
   }
 
   private get isRightPanelOpen(): boolean {
@@ -172,10 +213,10 @@ export default class ViewViolations extends Vue {
 
     // set from cache
     if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
-      this.urlQuery = {
+      await this.setUrlQuery({
         ...this.urlQuery,
         cities: this.queryFormCached?.cities || [],
-      }
+      })
     }
 
     if (this.urlQuery.cities.length) {
@@ -189,15 +230,15 @@ export default class ViewViolations extends Vue {
       )
       const existingCities = cities.filter((city) => idsMap[city.id])
 
-      this.urlQuery = {
+      await this.setUrlQuery({
         ...this.urlQuery,
         cities: existingCities.map((i) => i.id),
-      }
+      })
     } else if (cities[0]) {
-      this.urlQuery = {
+      await this.setUrlQuery({
         ...this.urlQuery,
         cities: [cities[0].id],
-      }
+      })
     }
 
     await this.refreshChartData()
@@ -229,6 +270,11 @@ export default class ViewViolations extends Vue {
   }
 
   private async fetchChartData(): Promise<ChartData> {
+    if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
+      this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
+      throw new Error('exit')
+    }
+
     const newChartData: ChartData = {
       cities: this.chartData.cities,
       violations: [],
@@ -323,7 +369,16 @@ export default class ViewViolations extends Vue {
   private async refreshChartData(): Promise<void> {
     this.isChartLoading = true
 
-    const chartData = await this.fetchChartData()
+    const [err, chartData] = await to(this.fetchChartData())
+    if (err) {
+      this.isChartLoading = false
+      if (err?.message === 'exit') return
+      else throw err
+    }
+    if (!chartData) {
+      this.isChartLoading = false
+      return
+    }
 
     const allOrgs = chartData.organizations
     let visibleOrgs = this.urlQuery.organizations.filter((id) =>
@@ -339,11 +394,11 @@ export default class ViewViolations extends Vue {
       visiblePollutants = allPollutants.map((i) => i.id)
 
     this.chartData = chartData
-    this.urlQuery = {
+    await this.setUrlQuery({
       ...this.urlQuery,
       organizations: visibleOrgs,
       pollutants: visiblePollutants,
-    }
+    })
 
     this.isChartLoading = false
   }
@@ -382,15 +437,14 @@ export default class ViewViolations extends Vue {
     return items || []
   }
 
-  private onChangeQuery(query: URLQuery) {
+  private async onChangeQuery(query: URLQuery) {
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
-
     const needRefresh =
       query.date_start !== this.urlQuery.date_start || citiesChanged
 
-    this.urlQuery = query
+    await this.setUrlQuery(query)
 
     if (needRefresh) this.onClickRefresh()
   }

@@ -7,6 +7,7 @@ interface ConfigParams {
   FIREBASE_AUTH_DOMAIN: string
   FIREBASE_PROJECT_ID: string
   FIREBASE_APP_ID: string
+  LIMIT_FETCH_ITEMS_FROM_API: string
 }
 
 export default class ConfigProvider {
@@ -20,6 +21,7 @@ export default class ConfigProvider {
       FIREBASE_AUTH_DOMAIN: '$FIREBASE_AUTH_DOMAIN',
       FIREBASE_PROJECT_ID: '$FIREBASE_PROJECT_ID',
       FIREBASE_APP_ID: '$FIREBASE_APP_ID',
+      LIMIT_FETCH_ITEMS_FROM_API: '$LIMIT_FETCH_ITEMS_FROM_API',
     }
   }
 

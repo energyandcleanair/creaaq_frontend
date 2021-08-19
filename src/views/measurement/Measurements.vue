@@ -67,7 +67,62 @@
         @click:export="onClickExport"
       />
 
+      <template v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API">
+        <v-alert
+          class="text-center my-12 px-12"
+          color="warning lighten-2"
+        >
+          <div class="d-flex justify-center">
+            {{ $t('msg.limit_exceeded__server_cannot_process_amount__reduce_query') }}
+          </div>
+
+          <b class="d-flex justify-center pt-2">
+            {{
+              $t(
+                'msg.queried_of_limit',
+                {
+                  queried: `${urlQuery.cities.length} ${$t('cities').toLowerCase()}`,
+                  limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities').toLowerCase()}`,
+                }
+              )
+            }}
+          </b>
+        </v-alert>
+      </template>
+
+      <template v-else-if="urlQuery && urlQuery.cities.length > LIMIT_RENDER_ITEMS">
+        <v-alert
+          class="text-center my-12 px-12"
+          color="warning lighten-3"
+        >
+          <div class="d-flex justify-center">
+            {{ $t('msg.limit_exceeded__app_cannot_render_amount__you_can_export_file') }}
+          </div>
+
+          <b class="d-flex justify-center pt-2">
+            {{
+              $t(
+                'msg.loaded_of_limit',
+                {
+                  loaded: `${urlQuery.cities.length} ${$t('cities').toLowerCase()}`,
+                  limit: `${LIMIT_RENDER_ITEMS} ${$t('cities').toLowerCase()}`,
+                }
+              )
+            }}
+          </b>
+        </v-alert>
+
+        <v-row class="justify-center">
+          <ExportBtn
+            class="d-flex"
+            :value="'CSV'"
+            @click="onClickExport"
+          />
+        </v-row>
+      </template>
+
       <MeasurementsChart
+        v-else
         :queryParams="urlQuery"
         :chartData="chartData"
         :cols.sync="chartCols"
@@ -97,6 +152,7 @@ import {
   toNumberDate,
   toQueryString,
 } from '@/utils'
+import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Source from '@/entities/Source'
@@ -106,7 +162,7 @@ import Measurement, {MeasurementProcesses} from '@/entities/Measurement'
 import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
-import {ExportFileType} from '@/components/ExportBtn.vue'
+import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
@@ -115,7 +171,7 @@ import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 import ChartData from './components/MeasurementsChart/ChartData'
 import ChartColumnSize from './components/MeasurementsChart/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
-import URLQuery, {URLQueryStations} from './types/URLQuery'
+import URLQuery, {URLQueryRaw, URLQueryStations} from './types/URLQuery'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
@@ -126,11 +182,15 @@ const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
     DatesIntervalInput,
     SelectBoxCities,
     MeasurementsChart,
+    ExportBtn,
   },
 })
 export default class ViewMeasurements extends Vue {
   private isLoading: boolean = false
   private isChartLoading: boolean = false
+  private readonly LIMIT_RENDER_ITEMS: number = 10
+  private readonly LIMIT_FETCH_ITEMS_FROM_API: number =
+    Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
   private chartData: ChartData = {
     cities: [],
@@ -141,58 +201,74 @@ export default class ViewMeasurements extends Vue {
   }
 
   private get urlQuery(): URLQuery {
-    const q = this.$route.query
-
-    const cities = Array.isArray(q.cities) ? q.cities : [q.cities]
-    const sources = Array.isArray(q.sources) ? q.sources : [q.sources]
-    const pollutants = Array.isArray(q.pollutants)
-      ? q.pollutants
-      : [q.pollutants]
-    const stations = Array.isArray(q.stations) ? q.stations : [q.stations]
-    const date_start = q.date_start
-      ? toURLStringDate(q.date_start as string)
-      : ''
-    const date_end = q.date_end ? toURLStringDate(q.date_end as string) : ''
+    const q: URLQueryRaw = this.$route.query
+    const _toArray = (itm: string | string[] | undefined) =>
+      (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
     return {
-      cities: cities.filter((i) => i) as City['id'][],
-      sources: sources.filter((i) => i) as Source['id'][],
-      pollutants: pollutants.filter((i) => i) as Pollutant['id'][],
-      stations: stations.filter((i) => i) as Station['id'][],
-      date_start,
-      date_end,
-      chart_cols: (Number(q.chart_cols) || 0) as ChartColumnSize,
-      running_average: (q.running_average as RunningAverageEnum) || undefined,
-      display_mode: q.display_mode
-        ? ((String(q.display_mode) || '').toUpperCase() as ChartDisplayModes)
+      cities: _toArray(q.ct),
+      sources: _toArray(q.sr),
+      pollutants: _toArray(q.pl),
+      stations: _toArray(q.st),
+      date_start: q.start ? toURLStringDate(q.start as string) : '',
+      date_end: q.end ? toURLStringDate(q.end as string) : '',
+      display_mode: q.dspl
+        ? ((String(q.dspl) || '').toUpperCase() as ChartDisplayModes)
         : undefined,
+      running_average: (q.avg as RunningAverageEnum) || undefined,
+      chart_cols: (Number(q.cols) || 0) as ChartColumnSize,
     }
   }
 
-  private set urlQuery(queryForm: URLQuery) {
-    const query: URLQuery = {
-      ...queryForm,
+  private async setUrlQuery(inputQuery: URLQuery): Promise<void> {
+    const query: URLQueryRaw = {
+      ct: inputQuery.cities,
+      sr: inputQuery.sources,
+      pl: inputQuery.pollutants,
+      st: inputQuery.stations,
+      start: inputQuery.date_start
+        ? toURLStringDate(inputQuery.date_start)
+        : undefined,
+      end: inputQuery.date_end
+        ? toURLStringDate(inputQuery.date_end)
+        : undefined,
+      dspl: inputQuery.display_mode,
+      avg: inputQuery.running_average,
+      cols: String(inputQuery.chart_cols || 0),
     }
-    const date_start = queryForm.date_start
-      ? toURLStringDate(queryForm.date_start)
-      : ''
-    const date_end = queryForm.date_end
-      ? toURLStringDate(queryForm.date_end)
-      : ''
 
-    if (date_start) query.date_start = date_start
-    if (date_end) query.date_end = date_end
+    for (const _key in query) {
+      const key: keyof URLQueryRaw = _key as any
+      if (!query[key]) delete query[key]
+    }
 
-    const newPath = this.$router.resolve({
+    let newRoute = this.$router.resolve({
       ...(this.$route as any),
       query,
-    }).href
+    })
 
-    this.$store.commit('SET', {key: 'queryForm.cities', value: query.cities})
-    this.$store.commit('SET', {key: 'queryForm.dateStart', value: date_start})
-    this.$store.commit('SET', {key: 'queryForm.dateEnd', value: date_end})
+    if ((newRoute.href.length || 0) > 2000) {
+      const newHref = newRoute.href.slice(0, 2000).replace(/\&[^&]*$/, '')
+      newRoute = this.$router.resolve(newHref)
+      this.$dialog.notify.warning(this.$t('msg.too_large_url').toString())
+    }
 
-    if (this.$route.fullPath !== newPath) this.$router.replace(newPath)
+    if (this.$route.fullPath !== newRoute.href) {
+      const newRouteQuery: URLQueryRaw = newRoute.route.query
+      this.$store.commit('SET', {
+        key: 'queryForm.cities',
+        value: newRouteQuery.ct,
+      })
+      this.$store.commit('SET', {
+        key: 'queryForm.dateStart',
+        value: newRouteQuery.start,
+      })
+      this.$store.commit('SET', {
+        key: 'queryForm.dateEnd',
+        value: newRouteQuery.end,
+      })
+      await this.$router.replace(newRoute.href)
+    }
   }
 
   private get filterSources(): Source['id'][] {
@@ -229,10 +305,10 @@ export default class ViewMeasurements extends Vue {
     return this.urlQuery.chart_cols || 0
   }
   private set chartCols(cols: ChartColumnSize | 0) {
-    this.urlQuery = {
+    this.setUrlQuery({
       ...this.urlQuery,
       chart_cols: cols,
-    }
+    })
   }
 
   private get isRightPanelOpen(): boolean {
@@ -263,10 +339,10 @@ export default class ViewMeasurements extends Vue {
 
     // set from cache
     if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
-      this.urlQuery = {
+      await this.setUrlQuery({
         ...this.urlQuery,
         cities: this.queryFormCached?.cities || [],
-      }
+      })
     }
 
     if (this.urlQuery.cities.length) {
@@ -280,15 +356,15 @@ export default class ViewMeasurements extends Vue {
       )
       const existingCities = cities.filter((city) => idsMap[city.id])
 
-      this.urlQuery = {
+      await this.setUrlQuery({
         ...this.urlQuery,
         cities: existingCities.map((i) => i.id),
-      }
+      })
     } else if (cities[0]) {
-      this.urlQuery = {
+      await this.setUrlQuery({
         ...this.urlQuery,
         cities: [cities[0].id],
-      }
+      })
     }
 
     await this.refreshChartData()
@@ -340,6 +416,11 @@ export default class ViewMeasurements extends Vue {
   }
 
   private async fetchChartData(): Promise<ChartData> {
+    if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
+      this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
+      throw new Error('exit')
+    }
+
     const newChartData: ChartData = {
       cities: this.chartData.cities,
       measurements: [],
@@ -467,7 +548,16 @@ export default class ViewMeasurements extends Vue {
   private async refreshChartData(): Promise<void> {
     this.isChartLoading = true
 
-    const chartData = await this.fetchChartData()
+    const [err, chartData] = await to(this.fetchChartData())
+    if (err) {
+      this.isChartLoading = false
+      if (err?.message === 'exit') return
+      else throw err
+    }
+    if (!chartData) {
+      this.isChartLoading = false
+      return
+    }
 
     // automatically select the source with the most measurements in city-level
     const allSources = chartData.sources
@@ -495,12 +585,12 @@ export default class ViewMeasurements extends Vue {
     }
 
     this.chartData = chartData
-    this.urlQuery = {
+    await this.setUrlQuery({
       ...this.urlQuery,
       sources: visibleSources,
       pollutants: visiblePollutants,
       stations: visibleStations,
-    }
+    })
 
     this.isChartLoading = false
   }
@@ -523,7 +613,7 @@ export default class ViewMeasurements extends Vue {
     return items || []
   }
 
-  private onChangeQuery(query: URLQuery) {
+  private async onChangeQuery(query: URLQuery) {
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
@@ -547,7 +637,7 @@ export default class ViewMeasurements extends Vue {
       query.display_mode = ChartDisplayModes.NORMAL
     }
 
-    this.urlQuery = query
+    await this.setUrlQuery(query)
 
     if (needRefresh) this.onClickRefresh()
   }
