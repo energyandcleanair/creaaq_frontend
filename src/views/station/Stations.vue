@@ -124,6 +124,11 @@ export default class ViewStations extends Vue {
     const _toArray = (itm: string | string[] | undefined) =>
       (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
+    // TODO: delete
+    // fallback for old URL format
+    if (!q.ct && (q as any).cities) q.ct = (q as any).cities
+    if (!q.st && (q as any).stations) q.st = (q as any).stations
+
     return {
       cities: _toArray(q.ct),
       stations: _toArray(q.st),

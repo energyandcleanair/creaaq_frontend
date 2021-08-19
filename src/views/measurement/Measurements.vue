@@ -188,7 +188,7 @@ const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
 export default class ViewMeasurements extends Vue {
   private isLoading: boolean = false
   private isChartLoading: boolean = false
-  private readonly LIMIT_RENDER_ITEMS: number = 10
+  private readonly LIMIT_RENDER_ITEMS: number = 20
   private readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
@@ -201,9 +201,21 @@ export default class ViewMeasurements extends Vue {
   }
 
   private get urlQuery(): URLQuery {
-    const q: URLQueryRaw = this.$route.query
+    const q: URLQueryRaw = {...this.$route.query}
     const _toArray = (itm: string | string[] | undefined) =>
       (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
+
+    // TODO: delete
+    // fallback for old URL format
+    if (!q.ct && (q as any).cities) q.ct = (q as any).cities
+    if (!q.sr && (q as any).sources) q.sr = (q as any).sources
+    if (!q.pl && (q as any).pollutants) q.pl = (q as any).pollutants
+    if (!q.st && (q as any).stations) q.st = (q as any).stations
+    if (!q.start && (q as any).date_start) q.start = (q as any).date_start
+    if (!q.end && (q as any).date_end) q.end = (q as any).date_end
+    if (!q.dspl && (q as any).display_mode) q.dspl = (q as any).display_mode
+    if (!q.avg && (q as any).running_average) q.avg = (q as any).running_average
+    if (!q.cols && (q as any).chart_cols) q.cols = (q as any).chart_cols
 
     return {
       cities: _toArray(q.ct),
@@ -337,6 +349,16 @@ export default class ViewMeasurements extends Vue {
     const cities = await this.fetchCities()
     this.chartData.cities = cities
 
+    // await new Promise
+
+    console.log(
+      'this.urlQuery.cities.length: ',
+      await this.urlQuery.cities.length
+    )
+    console.log(
+      'this.queryFormCached?.cities.length: ',
+      this.queryFormCached?.cities.length
+    )
     // set from cache
     if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
       await this.setUrlQuery({
