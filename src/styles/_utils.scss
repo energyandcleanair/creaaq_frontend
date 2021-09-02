@@ -1,0 +1,15 @@
+$breakpoints: xs sm md lg xl;
+@function addBreakpoints($prefix, $size) {
+  $results: (#{$prefix + '-' + $size});
+
+  @each $breakpoint in $breakpoints {
+    $results: append($results, #{$prefix + '-' + $breakpoint + '-' + $size});
+  }
+
+  @return $results;
+}
+
+@function ends-with($string, $find) {
+  @return str-slice($string, (str-length($string) - str-length($find) + 1)) ==
+    $find;
+}

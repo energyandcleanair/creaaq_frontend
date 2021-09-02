@@ -20,8 +20,8 @@ export default new Vuetify({
           base: theme.colors.darkBlue.base,
         },
         secondary: {
-          ...colors.purple,
-          base: colors.purple.lighten1,
+          ...colors.green,
+          base: '#27a59c',
         },
         info: {
           ...colors.teal,

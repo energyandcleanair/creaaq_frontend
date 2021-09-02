@@ -1,0 +1,123 @@
+@import '~vuetify/src/styles/styles';
+@import './_variables';
+@import './_utils';
+
+@function getHeadings() {
+  $typoOptions: ();
+  $typoOptions: join($typoOptions, addBreakpoints(text, h1));
+  $typoOptions: join($typoOptions, addBreakpoints(text, h2));
+  $typoOptions: join($typoOptions, addBreakpoints(text, h3));
+  $typoOptions: join($typoOptions, addBreakpoints(text, h4));
+  $typoOptions: join($typoOptions, addBreakpoints(text, h5));
+  $typoOptions: join($typoOptions, addBreakpoints(text, h6));
+  $typoOptions: join($typoOptions, addBreakpoints(text, headline));
+  $typoOptions: join($typoOptions, addBreakpoints(text, title));
+  $typoOptions: join($typoOptions, addBreakpoints(text, subtitle-1));
+  $typoOptions: join($typoOptions, addBreakpoints(text, subtitle-2));
+  $typoOptions: join($typoOptions, addBreakpoints(text, body-1));
+  $typoOptions: join($typoOptions, addBreakpoints(text, body-2));
+  $typoOptions: join($typoOptions, addBreakpoints(text, button));
+  $typoOptions: join($typoOptions, addBreakpoints(text, caption));
+  $typoOptions: join($typoOptions, addBreakpoints(text, overline));
+  @return $typoOptions;
+}
+
+.v-application {
+  font-family: $body-font-family !important;
+  font-size: $font-size-root;
+
+  @each $typoOption in getHeadings() {
+    // TODO: avoid adding tags as: subtitle-1, body-1
+    $tagName: str-slice($typoOption, str-length('text-') + 1);
+
+    #{$tagName},
+    .#{$typoOption} {
+      font-family: $body-font-family !important;
+      letter-spacing: 0 !important;
+      color: $text-color;
+      font-style: normal;
+
+      @if (ends-with($typoOption, '-h1')) {
+        font-size: 72px !important;
+        line-height: 96px;
+        font-weight: bold;
+      }
+      @if (ends-with($typoOption, '-h2')) {
+        font-size: 64px !important;
+        line-height: 80px;
+        font-weight: bold;
+      }
+      @if (ends-with($typoOption, '-h3')) {
+        font-size: 56px !important;
+        line-height: 72px;
+        font-weight: bold;
+      }
+      @if (ends-with($typoOption, '-h4')) {
+        font-size: 40px !important;
+        line-height: 52px;
+        font-weight: bold;
+      }
+      @if (ends-with($typoOption, '-h5')) {
+        font-size: 32px !important;
+        line-height: 44px;
+        font-weight: bold;
+      }
+      @if (ends-with($typoOption, '-h6')) {
+        font-size: 26px !important;
+        line-height: 32px;
+        font-weight: bold;
+      }
+      @if (ends-with($typoOption, '-headline')) {
+        font-size: 26px !important;
+        line-height: 32px;
+      }
+      @if (ends-with($typoOption, '-title')) {
+        font-weight: 500 !important;
+        font-size: 14px;
+        line-height: 20px;
+      }
+      @if (ends-with($typoOption, '-subtitle-1')) {
+        font-size: $font-size-root !important;
+        line-height: 1.4em;
+        font-weight: 600;
+      }
+      @if (ends-with($typoOption, '-subtitle-2')) {
+        font-size: $font-size-root - 2px !important;
+        line-height: 1.4em;
+        font-weight: 600;
+      }
+      @if (ends-with($typoOption, '-body-1')) {
+        font-size: $font-size-root !important;
+        line-height: 1.4em;
+      }
+      @if (ends-with($typoOption, '-body-2')) {
+        font-size: $font-size-root - 2px !important;
+        line-height: 1.4em;
+      }
+      @if (ends-with($typoOption, '-button')) {
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        line-height: 20px;
+        text-transform: none !important;
+      }
+      @if (ends-with($typoOption, '-caption')) {
+        font-size: 12px !important;
+        line-height: 20px;
+      }
+      @if (ends-with($typoOption, '-overline')) {
+        font-size: 8px !important;
+        line-height: 10px;
+        letter-spacing: 0.14em;
+      }
+    }
+  }
+
+  p {
+    color: $text-color;
+  }
+}
+
+::selection {
+  background: $text-selection-bg;
+  color: $text-selection-color;
+}

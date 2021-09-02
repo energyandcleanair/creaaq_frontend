@@ -5,7 +5,7 @@
     app
     clipped
     right
-    width="230"
+    width="260"
     mobile-breakpoint="960"
     @input="toggle($event)"
   >

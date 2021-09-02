@@ -156,8 +156,9 @@ export default class ViewViolations extends Vue {
   private async setUrlQuery(inputQuery: URLQuery): Promise<void> {
     const query: URLQueryRaw = {
       ct: inputQuery.cities,
-      pl: inputQuery.pollutants,
-      tg: inputQuery.targets,
+      pl: _orderBy(inputQuery.pollutants),
+      tg: _orderBy(inputQuery.targets),
+      org: _orderBy(inputQuery.organizations),
       start: inputQuery.date_start
         ? toURLStringDate(inputQuery.date_start)
         : undefined,
@@ -392,20 +393,24 @@ export default class ViewViolations extends Vue {
     let visibleOrgs = this.urlQuery.organizations.filter((id) =>
       allOrgs.find((p) => p.id === id)
     )
-    if (!visibleOrgs.length) visibleOrgs = allOrgs.map((i) => i.id)
 
     const allPollutants = chartData.pollutants
     let visiblePollutants = this.urlQuery.pollutants.filter((id) =>
       allPollutants.find((p) => p.id === id)
     )
-    if (!visiblePollutants.length)
-      visiblePollutants = allPollutants.map((i) => i.id)
+
+    const allTargets = chartData.targets
+    let visibleTargets = this.urlQuery.targets.filter((id) =>
+      allTargets.find((p) => p.id === id)
+    )
+    if (!visibleTargets.length) visibleTargets = allTargets.map((i) => i.id)
 
     this.chartData = chartData
     await this.setUrlQuery({
       ...this.urlQuery,
       organizations: visibleOrgs,
       pollutants: visiblePollutants,
+      targets: visibleTargets,
     })
 
     this.isChartLoading = false

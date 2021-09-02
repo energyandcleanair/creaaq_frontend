@@ -1,34 +1,50 @@
 @import './_variables';
-@import './_helpers';
+
+:root {
+  --v-text-color: #{$text-color};
+}
+
+html {
+  font-size: $font-size-root !important;
+  font-family: $body-font-family;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 16px;
+  overflow: hidden;
+
+  .theme--light.v-application {
+    color: var(--v-primary-base);
+  }
+
+  @import './_helpers';
+  @import './_typography';
+
+  .v-application {
+    .v-application--wrap {
+      > .v-main {
+        max-height: 100%;
+      }
+    }
+
+    .v-list-item--dense,
+    .v-list--dense .v-list-item {
+      min-height: 30px;
+    }
+  }
+
+  body {
+    font-size: 1rem;
+    line-height: 1.4em;
+    color: #000;
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+}
 
 html,
 body,
 .v-application {
   height: 100%;
   max-height: 100%;
-}
-
-html {
-  font-family: $body-font-family;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-size: 16px;
-  overflow: hidden;
-}
-
-body {
-  font-size: 1rem;
-  line-height: 1.4em;
-  color: #000;
-  margin: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.v-application {
-  .v-application--wrap {
-    > .v-main {
-      max-height: 100%;
-    }
-  }
 }

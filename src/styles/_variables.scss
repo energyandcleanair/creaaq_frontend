@@ -3,54 +3,12 @@
 $body-font-family: Roboto, Arial, sans-serif;
 $font-family-primary: $body-font-family;
 
-$breakpoints: sx sm md lg xl;
-@function addBreakpoints($prefix, $size) {
-  $results: (#{$prefix + '-' + $size});
+$body-font-family: 'TT Norms Pro Regular', Helvetica, sans-serif;
+$body-font-family--medium: 'TT Norms Pro Medium', Helvetica, sans-serif;
+$font-size-root: 16px;
 
-  @each $breakpoint in $breakpoints {
-    $results: append($results, #{$prefix + '-' + $breakpoint + '-' + $size});
-  }
+$text-color: #252d4b;
+$text-selection-color: #fff;
+$text-selection-bg: var(--v-secondary-base);
 
-  @return $results;
-}
-
-@function getHeadings() {
-  $typoOptions: ();
-  $typoOptions: join($typoOptions, addBreakpoints(text, h1));
-  $typoOptions: join($typoOptions, addBreakpoints(text, h2));
-  $typoOptions: join($typoOptions, addBreakpoints(text, h3));
-  $typoOptions: join($typoOptions, addBreakpoints(text, h4));
-  $typoOptions: join($typoOptions, addBreakpoints(text, h5));
-  $typoOptions: join($typoOptions, addBreakpoints(text, h6));
-  $typoOptions: join($typoOptions, addBreakpoints(text, display-4));
-  $typoOptions: join($typoOptions, addBreakpoints(text, display-3));
-  $typoOptions: join($typoOptions, addBreakpoints(text, display-2));
-  $typoOptions: join($typoOptions, addBreakpoints(text, display-1));
-  $typoOptions: append($typoOptions, headline);
-  $typoOptions: append($typoOptions, title);
-  $typoOptions: join($typoOptions, addBreakpoints(text, subtitle-1));
-  $typoOptions: join($typoOptions, addBreakpoints(text, subtitle-2));
-  $typoOptions: join($typoOptions, addBreakpoints(text, body-1));
-  $typoOptions: join($typoOptions, addBreakpoints(text, body-2));
-  $typoOptions: append($typoOptions, caption);
-  $typoOptions: append($typoOptions, overline);
-  @return $typoOptions;
-}
-
-%font-choice {
-  font-family: $body-font-family !important;
-  letter-spacing: 0 !important;
-}
-
-@mixin md-typography {
-  @each $typoOption in getHeadings() {
-    .#{$typoOption} {
-      @extend %font-choice;
-    }
-  }
-}
-
-.v-application {
-  @extend %font-choice;
-  @include md-typography;
-}
+$primary: var(--v-primary-base);

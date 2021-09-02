@@ -23,9 +23,8 @@
 </template>
 
 <script lang="ts">
-import _sortBy from 'lodash.sortby'
 import {mdiFileDownloadOutline} from '@mdi/js'
-import {Component, Emit, Model, Prop} from 'vue-property-decorator'
+import {Component, Emit, Model} from 'vue-property-decorator'
 import {VBtn} from 'vuetify/lib'
 
 export enum ExportFileType {

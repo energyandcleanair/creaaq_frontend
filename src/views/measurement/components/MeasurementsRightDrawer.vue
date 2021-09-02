@@ -6,7 +6,7 @@
     <v-form>
       <v-row no-gutters>
         <v-col
-          class="subtitle-2"
+          class="text-subtitle-2"
           cols="12"
         >{{ $t('display_mode') }}</v-col>
 
@@ -28,7 +28,7 @@
 
       <v-row no-gutters>
         <v-col
-          class="subtitle-2"
+          class="text-subtitle-2"
           cols="12"
         >{{ $t('running_average') }}</v-col>
 
@@ -89,7 +89,7 @@
 
       <v-row no-gutters>
         <v-col
-          class="subtitle-2"
+          class="text-subtitle-2"
           cols="12"
         >{{ $t('sources') }}</v-col>
 
@@ -116,7 +116,7 @@
 
       <v-row no-gutters>
         <v-col
-          class="subtitle-2"
+          class="text-subtitle-2"
           cols="12"
         >{{ $t('pollutants') }}</v-col>
 
@@ -143,7 +143,7 @@
 
       <v-row no-gutters>
         <v-col
-          class="subtitle-2 d-flex align-center"
+          class="text-subtitle-2 d-flex align-center"
           cols="12"
         >
           <label
@@ -194,7 +194,7 @@
 
       <v-row no-gutters>
         <v-col
-          class="subtitle-2"
+          class="text-subtitle-2"
           cols="12"
         >{{ $t('export') }}</v-col>
 

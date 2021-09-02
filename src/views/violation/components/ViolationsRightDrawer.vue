@@ -6,7 +6,7 @@
     <v-form>
       <v-row no-gutters>
         <v-col
-          class="subtitle-2"
+          class="text-subtitle-2"
           cols="12"
         >{{ $t('year') }}</v-col>
 
@@ -27,87 +27,17 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="subtitle-2"
-          cols="12"
-        >{{ $t('organizations') }}</v-col>
-
-        <v-col
-          v-if="organizations.length"
-          class="pl-1"
-          cols="12"
-        >
-          <v-checkbox
-            v-for="item of organizations"
-            :input-value="queryParams.organizations"
-            :key="item.id"
-            :value="item.id"
-            :label="item.name"
-            color="primary"
-            hide-details
-            :disabled="queryParams.organizations.length <= 1
-            && queryParams.organizations.includes(item.id)
-          "
-            @change="onChangeForm('organizations', $event)"
-          />
-        </v-col>
-      </v-row>
-
-      <v-row no-gutters>
-        <v-col
-          class="subtitle-2"
-          cols="12"
-        >{{ $t('pollutants') }}</v-col>
-
-        <v-col
-          v-if="pollutants.length"
-          class="pl-1"
-          cols="12"
-        >
-          <v-checkbox
-            v-for="item of pollutants"
-            :input-value="queryParams.pollutants"
-            :key="item.id"
-            :value="item.id"
-            :label="item.label"
-            color="primary"
-            hide-details
-            :disabled="queryParams.pollutants.length <= 1
-            && queryParams.pollutants.includes(item.id)
-          "
-            @change="onChangeForm('pollutants', $event)"
-          />
-        </v-col>
-      </v-row>
-
-      <div class="d-flex flex-row align-center my-6">
-        <v-divider class="d-inline-flex grey lighten-2" />
-        <span class="d-inline-flex px-2 black--text">{{ $t('or') }}</span>
-        <v-divider class="d-inline-flex grey lighten-2" />
-      </div>
-
-      <v-row no-gutters>
-        <v-col
-          class="subtitle-2"
-          cols="12"
-        >{{ $t('targets') }}</v-col>
-
-        <v-col
-          v-if="targets.length"
-          class="pl-1"
-          cols="12"
-        >
-          <v-checkbox
-            v-for="item of targets"
-            :input-value="queryParams.targets"
-            :key="item.id"
-            :value="item.id"
-            :label="item.short_name"
-            color="primary"
-            hide-details
-            @change="onChangeForm('targets', $event)"
-          />
-        </v-col>
+        <ViolationsFiltersForm
+          :value-organizations="queryParams.organizations"
+          :value-pollutants="queryParams.pollutants"
+          :value-targets="queryParams.targets"
+          filter-primary="organizations"
+          filter-secondary="pollutants/targets"
+          :organizations="organizations"
+          :pollutants="pollutants"
+          :targets="targets"
+          @change="onChangeFiltersForm"
+        />
       </v-row>
     </v-form>
   </PageDrawer>
@@ -124,10 +54,12 @@ import Organization from '@/entities/Organization'
 import Target from '@/entities/Target'
 import URLQuery from '../types/URLQuery'
 import ChartData from './ViolationsChart/ChartData'
+import ViolationsFiltersForm from './ViolationsFiltersForm.vue'
 
 @Component({
   components: {
     PageDrawer,
+    ViolationsFiltersForm,
   },
 })
 export default class ViolationsRightDrawer extends Vue {
@@ -171,11 +103,23 @@ export default class ViolationsRightDrawer extends Vue {
   @Emit('update:open')
   public toggle(value: boolean) {}
 
+  public onChangeFiltersForm(newParams: any) {
+    const queryParams = {
+      ...this.queryParams,
+      ...newParams,
+    }
+    this.emitChange(queryParams)
+  }
+
   public onChangeForm(key: keyof URLQuery, value: any) {
     const queryParams = {
       ...this.queryParams,
       [key]: value,
     }
+    this.emitChange(queryParams)
+  }
+
+  public emitChange(queryParams: URLQuery) {
     setTimeout(() => this.$emit('update:queryParams', queryParams), 100)
   }
 }

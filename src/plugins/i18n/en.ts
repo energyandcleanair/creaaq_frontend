@@ -72,6 +72,8 @@ export default {
   format: 'Format',
   export: 'Export',
   export_to_csv: 'Export to CSV',
+  primary_filter: 'Primary filter',
+  secondary_filter: 'Secondary filter',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

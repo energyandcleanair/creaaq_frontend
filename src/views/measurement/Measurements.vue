@@ -349,16 +349,6 @@ export default class ViewMeasurements extends Vue {
     const cities = await this.fetchCities()
     this.chartData.cities = cities
 
-    // await new Promise
-
-    console.log(
-      'this.urlQuery.cities.length: ',
-      await this.urlQuery.cities.length
-    )
-    console.log(
-      'this.queryFormCached?.cities.length: ',
-      this.queryFormCached?.cities.length
-    )
     // set from cache
     if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
       await this.setUrlQuery({
