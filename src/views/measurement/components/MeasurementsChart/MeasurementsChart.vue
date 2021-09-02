@@ -46,7 +46,7 @@
       >
 
         <v-list-item
-          class="chart-row__title grey lighten-4 primary--text"
+          class="chart-row__title white lighten-4 primary--text"
           two-line
         >
           <v-list-item-content>
@@ -896,7 +896,7 @@ function _valuePassesFilter(key: any, filterMap: MapFilter | null): boolean {
         min-height: auto;
         text-align: center;
         border-radius: 3px;
-        padding: 0 0.3rem;
+        padding: 0.1rem 0.3rem;
 
         .v-list-item__content {
           padding: 0;

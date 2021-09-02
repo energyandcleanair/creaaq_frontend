@@ -5,7 +5,7 @@
     app
     clipped
     right
-    width="260"
+    width="250"
     mobile-breakpoint="960"
     @input="toggle($event)"
   >
@@ -38,7 +38,7 @@
       </v-toolbar>
     </template>
 
-    <div class="drawer__content px-3">
+    <div class="drawer__content px-3 pb-1">
       <slot />
     </div>
   </v-navigation-drawer>
@@ -104,9 +104,14 @@ export default class PageDrawer extends Vue {
     }
   }
 
+  .v-navigation-drawer__content {
+    overflow: hidden;
+  }
+
   .drawer__content {
-    overflow: auto;
-    padding-bottom: 7rem;
+    overflow-y: auto;
+    height: 100%;
+    // overflow: hidden;
 
     .row {
       margin-bottom: 2rem;
