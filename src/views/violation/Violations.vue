@@ -49,6 +49,7 @@
         :queryParams="urlQuery"
         :chartData="chartData"
         :open.sync="isRightPanelOpen"
+        :loading="isLoading || isChartLoading"
         @update:queryParams="onChangeQuery"
       />
 
@@ -118,7 +119,6 @@ const JAN_1: number = +moment(0).year(moment().year())
   },
 })
 export default class ViewViolations extends Vue {
-  private isLoading: boolean = false
   private isChartLoading: boolean = false
   private readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
@@ -129,6 +129,10 @@ export default class ViewViolations extends Vue {
     pollutants: [],
     organizations: [],
     targets: [],
+  }
+
+  private get isLoading(): boolean {
+    return this.$loader.isLoadingProcess
   }
 
   private get urlQuery(): URLQuery {
@@ -190,7 +194,7 @@ export default class ViewViolations extends Vue {
         key: 'queryForm.dateStart',
         value: newRouteQuery.start,
       })
-      this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href)
     }
   }
 
@@ -205,10 +209,8 @@ export default class ViewViolations extends Vue {
     return this.$store.getters.GET('queryForm') || null
   }
 
-  private async beforeMount() {
-    this.isLoading = true
-    await this.fetch()
-    this.isLoading = false
+  private beforeMount() {
+    this.fetch()
   }
 
   private async fetch() {
@@ -451,6 +453,8 @@ export default class ViewViolations extends Vue {
   }
 
   private async onChangeQuery(query: URLQuery) {
+    this.$loader.on()
+
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
@@ -458,8 +462,9 @@ export default class ViewViolations extends Vue {
       query.date_start !== this.urlQuery.date_start || citiesChanged
 
     await this.setUrlQuery(query)
+    if (needRefresh) return this.onClickRefresh()
 
-    if (needRefresh) this.onClickRefresh()
+    this.$loader.off()
   }
 
   private async onClickRefresh() {

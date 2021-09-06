@@ -1,5 +1,8 @@
 <template>
-  <v-form class="violations-filters-form">
+  <v-form
+    class="violations-filters-form"
+    :class="{'violations-filters-form--disabled': disabled}"
+  >
     <v-row no-gutters>
       <v-col cols="12">
         <span class="text-subtitle-2">{{ $t('primary_filter') }}:&nbsp;</span>
@@ -171,6 +174,9 @@ export default class ViolationsFiltersForm extends Vue {
   @Prop({type: Array, required: true})
   public readonly targets!: Target[]
 
+  @Prop({type: Boolean, default: false})
+  readonly disabled!: boolean
+
   private mdiMenuDown = mdiMenuDown
 
   private get primaryFilterItems(): ViolationsFilterItem[] {
@@ -308,7 +314,7 @@ export default class ViolationsFiltersForm extends Vue {
   }
 
   private onChangeForm(value: any) {
-    setTimeout(() => this.$emit('change', value))
+    this.$emit('change', value)
   }
 
   private _getTreeSelectedParentItems($tree: any): string[] {
@@ -398,6 +404,15 @@ export default class ViolationsFiltersForm extends Vue {
 <style lang="scss">
 .violations-filters-form {
   max-width: 100%;
+
+  &--disabled {
+    .v-treeview {
+      .v-treeview-node__checkbox {
+        pointer-events: none;
+        opacity: 0.3;
+      }
+    }
+  }
 
   .v-treeview {
     max-width: 100%;

@@ -18,6 +18,7 @@
             class="mt-0 pt-2"
             :value="queryParams.date_start"
             :items="YEARS"
+            :disabled="loading"
             item-text="label"
             item-value="value"
             hide-details
@@ -36,6 +37,7 @@
           :organizations="organizations"
           :pollutants="pollutants"
           :targets="targets"
+          :disabled="loading"
           @change="onChangeFiltersForm"
         />
       </v-row>
@@ -65,6 +67,9 @@ import ViolationsFiltersForm from './ViolationsFiltersForm.vue'
 export default class ViolationsRightDrawer extends Vue {
   @Prop({type: Boolean, default: false})
   readonly open!: boolean
+
+  @Prop({type: Boolean, default: false})
+  readonly loading!: boolean
 
   @Prop({type: Object, required: true})
   readonly queryParams!: URLQuery
@@ -120,7 +125,7 @@ export default class ViolationsRightDrawer extends Vue {
   }
 
   public emitChange(queryParams: URLQuery) {
-    setTimeout(() => this.$emit('update:queryParams', queryParams), 100)
+    this.$emit('update:queryParams', queryParams)
   }
 }
 </script>

@@ -163,7 +163,7 @@ export default class ViewStations extends Vue {
         key: 'queryForm.cities',
         value: newRouteQuery.ct,
       })
-      this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href)
     }
   }
 
