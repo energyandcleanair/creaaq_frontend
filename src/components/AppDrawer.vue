@@ -29,7 +29,12 @@
 
 <script lang="ts">
 import {Component, Vue, Prop} from 'vue-property-decorator'
-import {mdiChartLine, mdiMapMarkerRadius, mdiCalendarMonth} from '@mdi/js'
+import {
+  mdiChartLine,
+  mdiMapMarkerRadius,
+  mdiCalendarMonth,
+  mdiFactory,
+} from '@mdi/js'
 import {Location} from 'vue-router'
 
 interface MenuItem {
@@ -59,8 +64,14 @@ export default class AppDrawer extends Vue {
       },
       {
         label: this.$t('stations').toString(),
-        icon: mdiMapMarkerRadius,
+        icon: mdiFactory,
         to: {name: 'stations'},
+        disabled: false,
+      },
+      {
+        label: this.$t('map').toString(),
+        icon: mdiMapMarkerRadius,
+        to: {name: 'map'},
         disabled: false,
       },
     ]

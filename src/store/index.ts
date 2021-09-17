@@ -16,6 +16,9 @@ interface UIParams {
   violations: {
     isRightPanelOpen: boolean
   }
+  map: {
+    isRightPanelOpen: boolean
+  }
 }
 
 interface QueryForm {
@@ -36,6 +39,9 @@ export class ModuleState {
       isRightPanelOpen: true,
     },
     violations: {
+      isRightPanelOpen: true,
+    },
+    map: {
       isRightPanelOpen: true,
     },
   }

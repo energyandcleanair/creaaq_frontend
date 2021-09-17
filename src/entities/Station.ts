@@ -1,12 +1,8 @@
 import City from './City'
+import Coordinates from './Coordinates'
 import Country from './Country'
 import Pollutant from './Pollutant'
 import Source from './Source'
-
-export interface Coordinates {
-  latitude: number
-  longitude: number
-}
 
 export default class Station {
   public id!: string

@@ -87,6 +87,15 @@ const routes: Array<RouteConfig> = [
     },
   },
   {
+    path: '/map',
+    name: 'map',
+    component: () =>
+      import(/* webpackChunkName: "map" */ '@/views/map/Map.vue'),
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
     path: '/profile',
     name: 'profile',
     component: () =>

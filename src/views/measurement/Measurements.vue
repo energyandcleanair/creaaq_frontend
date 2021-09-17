@@ -159,7 +159,6 @@ import Source from '@/entities/Source'
 import Pollutant from '@/entities/Pollutant'
 import Station from '@/entities/Station'
 import Measurement, {MeasurementProcesses} from '@/entities/Measurement'
-import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
@@ -344,7 +343,7 @@ export default class ViewMeasurements extends Vue {
     this.$loader.on()
     this.isChartLoading = true
 
-    this.setQueryFormDefaults()
+    await this.setUrlQueryDefaults()
 
     const cities = await this.fetchCities()
     this.chartData.cities = cities
@@ -366,7 +365,9 @@ export default class ViewMeasurements extends Vue {
         },
         {}
       )
-      const existingCities = cities.filter((city) => idsMap[city.id])
+      const existingCities = Object.keys(idsMap).length
+        ? cities.filter((city) => idsMap[city.id])
+        : []
 
       await this.setUrlQuery({
         ...this.urlQuery,
@@ -385,7 +386,7 @@ export default class ViewMeasurements extends Vue {
     this.$loader.off()
   }
 
-  private setQueryFormDefaults(): void {
+  private async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
 
     if (!urlQuery.chart_cols) {
@@ -412,7 +413,7 @@ export default class ViewMeasurements extends Vue {
       urlQuery.display_mode = ChartDisplayModes.NORMAL
     }
 
-    Object.assign(this.urlQuery, urlQuery)
+    await this.setUrlQuery(urlQuery)
   }
 
   private async fetchCities(): Promise<City[]> {
@@ -494,12 +495,12 @@ export default class ViewMeasurements extends Vue {
 
     const pollutantsMap = measurementsByCities.reduce(
       (memo: {[pollutantId: string]: Pollutant}, meas: Measurement) => {
-        if (meas.pollutant && !memo[meas.pollutant]) {
-          const pollutant = POLLUTANTS.find((i) => i.id === meas.pollutant)
-          if (pollutant) {
-            memo[meas.pollutant] = {...pollutant, unit: meas.unit}
-          } else {
-            console.warn(`Unknown pollutant: ${meas.pollutant}`)
+        const pollutantId = meas.pollutant?.toLowerCase() || ''
+        if (pollutantId && !memo[pollutantId]) {
+          memo[pollutantId] = {
+            id: pollutantId,
+            label: pollutantId.toUpperCase(),
+            unit: meas.unit,
           }
         }
         return memo

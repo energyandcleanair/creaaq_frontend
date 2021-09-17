@@ -21,6 +21,11 @@ export default {
   submit: 'Submit',
   all: 'All',
   none: 'None',
+  level: 'Level',
+  basemap: 'Basemap',
+  satellite: 'Satellite',
+  terrain: 'Terrain',
+  map: 'Map',
   success: 'Success',
   fail: 'Fail',
   save: 'Save',
@@ -74,6 +79,7 @@ export default {
   export_to_csv: 'Export to CSV',
   primary_filter: 'Primary filter',
   secondary_filter: 'Secondary filter',
+  search_by_moving_map: 'Search by moving the map',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

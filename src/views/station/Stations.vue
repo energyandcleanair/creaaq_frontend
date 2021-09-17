@@ -178,6 +178,7 @@ export default class ViewStations extends Vue {
     return this.$store.getters.GET('queryForm') || null
   }
 
+  // TODO: make it a mixin
   private created() {
     let cancelWatcherMounted: () => void = () => {}
     let cancelWatcherFetched: () => void = () => {}
@@ -232,7 +233,9 @@ export default class ViewStations extends Vue {
         },
         {}
       )
-      const existingCities = cities.filter((city) => idsMap[city.id])
+      const existingCities = Object.keys(idsMap).length
+        ? cities.filter((city) => idsMap[city.id])
+        : []
 
       await this.setUrlQuery({
         ...this.urlQuery,
@@ -256,7 +259,9 @@ export default class ViewStations extends Vue {
       },
       {}
     )
-    const existingStations = stations.filter((itm) => stationsIdsMap[itm.id])
+    const existingStations = Object.keys(stationsIdsMap).length
+      ? stations.filter((itm) => stationsIdsMap[itm.id])
+      : []
 
     await this.setUrlQuery({
       ...this.urlQuery,
@@ -345,6 +350,7 @@ export default class ViewStations extends Vue {
       return []
     }
 
+    console.log('items: ', items)
     return items || []
   }
 

@@ -1,3 +1,4 @@
+import Coordinates from './Coordinates'
 import Country from './Country'
 
 // TODO: approve the schema
@@ -13,10 +14,7 @@ export default class City {
   public timezone?: string
   public gadm1_id?: string
   public name_local?: string | null
-  public geometry?: {
-    longitude: number
-    latitude: number
-  }
+  public geometry?: Coordinates
 
   constructor(data: City) {
     Object.assign(this, data)

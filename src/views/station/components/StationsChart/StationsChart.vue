@@ -120,7 +120,7 @@ import _orderBy from 'lodash.orderby'
 import moment from 'moment'
 import json2csv from 'json2csv'
 import {saveAs} from 'file-saver'
-import Leaflet, {Icon} from 'leaflet'
+import Leaflet, {Icon, LatLngBounds} from 'leaflet'
 import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
 import {LMap, LTileLayer, LMarker, LTooltip} from 'vue2-leaflet'
 import {mdiArrowExpandAll} from '@mdi/js'
@@ -129,6 +129,7 @@ import City from '@/entities/City'
 import Station from '@/entities/Station'
 import URLQuery from '../../types/URLQuery'
 import ChartData from './ChartData'
+import Coordinates from '@/entities/Coordinates'
 
 type D = Icon.Default & {_getIconUrl?: string}
 delete (Icon.Default.prototype as D)._getIconUrl
@@ -361,21 +362,31 @@ export default class StationsChart extends Vue {
     )
 
     const group = Leaflet.featureGroup(markers)
-    this.$map?.fitBounds(group.getBounds())
+    const bounds = group.getBounds()
+    if (bounds.isValid()) {
+      this.$map?.fitBounds(group.getBounds() as LatLngBounds)
+    }
+  }
+
+  public moveToPoint(coords: Coordinates) {
+    if (!coords.longitude && !coords.latitude) return
+    const latLng = new Leaflet.LatLng(
+      coords.latitude || 0,
+      coords.longitude || 0
+    )
+    const bounds: LatLngBounds = latLng.toBounds(1000) as LatLngBounds // meters
+    this.$map?.mapObject?.panTo(latLng)
+    this.$map?.mapObject?.fitBounds(bounds)
   }
 
   private mapMoveToStation(stationId: Station['id']) {
     const marker = this.mapMarkers.find((m) => m.station.id === stationId)
     if (!marker) return
 
-    const coords = new Leaflet.LatLng(
-      marker.coordinates?.[0] || 0,
-      marker.coordinates?.[1] || 0
-    )
-    const bounds = coords.toBounds(1000) // metres
-
-    this.$map?.mapObject?.panTo(coords)
-    this.$map?.mapObject?.fitBounds(bounds)
+    this.moveToPoint({
+      latitude: marker.coordinates?.[0] || 0,
+      longitude: marker.coordinates?.[1] || 0,
+    })
   }
 
   private openMapMarkerTooltip(stationId: Station['id']) {
@@ -480,7 +491,6 @@ $stations-chart__table-footer--height: 59px;
 
   &__content {
     .vue2leaflet-map {
-      border-radius: 4px;
       z-index: 1;
       max-height: 700px;
 

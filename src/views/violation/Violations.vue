@@ -98,7 +98,6 @@ import Pollutant from '@/entities/Pollutant'
 import Organization from '@/entities/Organization'
 import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
-import POLLUTANTS from '@/constants/pollutants.json'
 import CityAPI from '@/api/CityAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
@@ -217,7 +216,7 @@ export default class ViewViolations extends Vue {
     this.$loader.on()
     this.isChartLoading = true
 
-    this.setQueryFormDefaults()
+    this.setUrlQueryDefaults()
 
     const cities = await this.fetchCities()
     this.chartData.cities = cities
@@ -239,7 +238,9 @@ export default class ViewViolations extends Vue {
         },
         {}
       )
-      const existingCities = cities.filter((city) => idsMap[city.id])
+      const existingCities = Object.keys(idsMap).length
+        ? cities.filter((city) => idsMap[city.id])
+        : []
 
       await this.setUrlQuery({
         ...this.urlQuery,
@@ -258,14 +259,14 @@ export default class ViewViolations extends Vue {
     this.$loader.off()
   }
 
-  private setQueryFormDefaults(): void {
+  private async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
 
     if (!urlQuery.date_start) {
       urlQuery.date_start = toURLStringDate(JAN_1)
     }
 
-    Object.assign(this.urlQuery, urlQuery)
+    await this.setUrlQuery(urlQuery)
   }
 
   private async fetchCities(): Promise<City[]> {
@@ -336,12 +337,12 @@ export default class ViewViolations extends Vue {
 
     const pollutantsMap = targets.reduce(
       (memo: {[pollutantId: string]: Pollutant}, item: Target) => {
-        if (item.pollutant && !memo[item.pollutant]) {
-          const pollutant = POLLUTANTS.find((i) => i.id === item.pollutant)
-          if (pollutant) {
-            memo[item.pollutant] = {...pollutant, unit: item.target_unit}
-          } else {
-            console.warn(`Unknown pollutant: ${item.pollutant}`)
+        const pollutantId = item.pollutant?.toLowerCase() || ''
+        if (pollutantId && !memo[pollutantId]) {
+          memo[pollutantId] = {
+            id: pollutantId,
+            label: pollutantId.toUpperCase(),
+            unit: item.target_unit,
           }
         }
         return memo
