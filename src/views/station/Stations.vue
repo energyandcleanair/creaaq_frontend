@@ -350,7 +350,6 @@ export default class ViewStations extends Vue {
       return []
     }
 
-    console.log('items: ', items)
     return items || []
   }
 

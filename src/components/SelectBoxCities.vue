@@ -214,8 +214,6 @@ export default class SelectBoxCities extends Vue {
         delay
       )
 
-      console.log('results: ', results)
-      console.log('this.$refs.input: ', this.$refs.input)
       callback(null, results)
     }
   }

@@ -95,7 +95,7 @@ import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Pollutant from '@/entities/Pollutant'
-import Organization from '@/entities/Organization'
+import Guideline from '@/entities/Guideline'
 import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
 import CityAPI from '@/api/CityAPI'
@@ -126,7 +126,7 @@ export default class ViewViolations extends Vue {
     cities: [],
     violations: [],
     pollutants: [],
-    organizations: [],
+    guidelines: [],
     targets: [],
   }
 
@@ -144,14 +144,14 @@ export default class ViewViolations extends Vue {
     if (!q.ct && (q as any).cities) q.ct = (q as any).cities
     if (!q.pl && (q as any).pollutants) q.pl = (q as any).pollutants
     if (!q.tg && (q as any).targets) q.tg = (q as any).targets
-    if (!q.org && (q as any).organizations) q.org = (q as any).organizations
+    if (!q.gl && (q as any).guidelines) q.gl = (q as any).guidelines
     if (!q.start && (q as any).date_start) q.start = (q as any).date_start
 
     return {
       cities: _toArray(q.ct),
       pollutants: _toArray(q.pl),
       targets: _toArray(q.tg),
-      organizations: _toArray(q.org),
+      guidelines: _toArray(q.gl),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
     }
   }
@@ -161,7 +161,7 @@ export default class ViewViolations extends Vue {
       ct: inputQuery.cities,
       pl: _orderBy(inputQuery.pollutants),
       tg: _orderBy(inputQuery.targets),
-      org: _orderBy(inputQuery.organizations),
+      gl: _orderBy(inputQuery.guidelines),
       start: inputQuery.date_start
         ? toURLStringDate(inputQuery.date_start)
         : undefined,
@@ -291,7 +291,7 @@ export default class ViewViolations extends Vue {
       cities: this.chartData.cities,
       violations: [],
       pollutants: [],
-      organizations: [],
+      guidelines: [],
       targets: [],
     }
 
@@ -351,17 +351,16 @@ export default class ViewViolations extends Vue {
     )
     const pollutants = _orderBy(Object.values(pollutantsMap), 'id')
 
-    const organizationsMap = targets.reduce(
-      (memo: {[orgId: string]: Organization}, item: Target) => {
-        if (!item.organization) return memo
-        if (memo[item.organization]) {
-          memo[item.organization]._violationsNumber =
-            1 + (memo[item.organization]?._violationsNumber || 0)
+    const guidelinesMap = targets.reduce(
+      (memo: {[guidelineId: string]: Guideline}, item: Target) => {
+        if (!item.guideline) return memo
+        if (memo[item.guideline]) {
+          memo[item.guideline]._violationsNumber =
+            1 + (memo[item.guideline]?._violationsNumber || 0)
         } else {
-          memo[item.organization] = {
-            id: item.organization,
-            name: item.organization,
-            cityId: item.location_id,
+          memo[item.guideline] = {
+            id: item.guideline,
+            name: item.guideline,
             _violationsNumber: 0,
           }
         }
@@ -369,11 +368,11 @@ export default class ViewViolations extends Vue {
       },
       {}
     )
-    const organizations = _orderBy(Object.values(organizationsMap), 'id')
+    const guidelines = _orderBy(Object.values(guidelinesMap), 'id')
 
     newChartData.violations = violations
     newChartData.pollutants = pollutants
-    newChartData.organizations = organizations
+    newChartData.guidelines = guidelines
     newChartData.targets = targets
     return newChartData
   }
@@ -392,9 +391,9 @@ export default class ViewViolations extends Vue {
       return
     }
 
-    const allOrgs = chartData.organizations
-    let visibleOrgs = this.urlQuery.organizations.filter((id) =>
-      allOrgs.find((p) => p.id === id)
+    const allGuidelines = chartData.guidelines
+    let visibleGuidelines = this.urlQuery.guidelines.filter((id) =>
+      allGuidelines.find((p) => p.id === id)
     )
 
     const allPollutants = chartData.pollutants
@@ -411,7 +410,7 @@ export default class ViewViolations extends Vue {
     this.chartData = chartData
     await this.setUrlQuery({
       ...this.urlQuery,
-      organizations: visibleOrgs,
+      guidelines: visibleGuidelines,
       pollutants: visiblePollutants,
       targets: visibleTargets,
     })

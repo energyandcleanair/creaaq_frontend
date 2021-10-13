@@ -29,12 +29,12 @@
 
       <v-row no-gutters>
         <ViolationsFiltersForm
-          :value-organizations="queryParams.organizations"
+          :value-guidelines="queryParams.guidelines"
           :value-pollutants="queryParams.pollutants"
           :value-targets="queryParams.targets"
-          filter-primary="organizations"
+          filter-primary="guidelines"
           filter-secondary="pollutants/targets"
-          :organizations="organizations"
+          :guidelines="guidelines"
           :pollutants="pollutants"
           :targets="targets"
           :disabled="loading"
@@ -57,6 +57,7 @@ import Target from '@/entities/Target'
 import URLQuery from '../types/URLQuery'
 import ChartData from './ViolationsChart/ChartData'
 import ViolationsFiltersForm from './ViolationsFiltersForm.vue'
+import Guideline from '@/entities/Guideline'
 
 @Component({
   components: {
@@ -97,8 +98,8 @@ export default class ViolationsRightDrawer extends Vue {
     return this.chartData.pollutants || []
   }
 
-  private get organizations(): Organization[] {
-    return this.chartData.organizations || []
+  private get guidelines(): Guideline[] {
+    return this.chartData.guidelines || []
   }
 
   private get targets(): Target[] {

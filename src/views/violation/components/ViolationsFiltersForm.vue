@@ -92,11 +92,11 @@ import _uniqBy from 'lodash.uniqby'
 import {mdiMenuDown} from '@mdi/js'
 import {Vue, Component, Prop, Ref} from 'vue-property-decorator'
 import Pollutant from '@/entities/Pollutant'
-import Organization from '@/entities/Organization'
+import Guideline from '@/entities/Guideline'
 import Target from '@/entities/Target'
 
 export enum ViolationsPrimaryFilter {
-  organizations = 'organizations',
+  guidelines = 'guidelines',
 }
 
 export enum ViolationsSecondaryFilter {
@@ -104,7 +104,7 @@ export enum ViolationsSecondaryFilter {
 }
 
 export type ViolationsFilterValue =
-  | Organization['id']
+  | Guideline['id']
   | Pollutant['id']
   | Target['id']
 
@@ -113,7 +113,7 @@ export interface ViolationsFilterItem {
   name: string
   description?: string
   disabled?: boolean
-  organization?: Organization['id']
+  guideline?: Guideline['id']
   pollutant?: Pollutant['id']
 }
 
@@ -143,7 +143,7 @@ export default class ViolationsFiltersForm extends Vue {
   private readonly $secondaryFilterTree: any | undefined
 
   @Prop({type: Array, required: true})
-  public readonly valueOrganizations!: Organization['id'][]
+  public readonly valueGuidelines!: Guideline['id'][]
 
   @Prop({type: Array, required: true})
   public readonly valuePollutants!: Pollutant['id'][]
@@ -166,7 +166,7 @@ export default class ViolationsFiltersForm extends Vue {
   public readonly filterSecondary!: ViolationsSecondaryFilter
 
   @Prop({type: Array, required: true})
-  public readonly organizations!: Organization[]
+  public readonly guidelines!: Guideline[]
 
   @Prop({type: Array, required: true})
   public readonly pollutants!: Pollutant[]
@@ -210,7 +210,7 @@ export default class ViolationsFiltersForm extends Vue {
         this.filterSecondary === ViolationsSecondaryFilter['pollutants/targets']
       ) {
         for (const secondaryItem of this.secondaryFilterItems) {
-          if (secondaryItem.organization === primaryItem.id) {
+          if (secondaryItem.guideline === primaryItem.id) {
             children.push(secondaryItem)
           }
         }
@@ -260,7 +260,7 @@ export default class ViolationsFiltersForm extends Vue {
 
   private onChangeTree(tree: 'primary' | 'secondary', values: string[]) {
     const componentValue = {
-      organizations: this.valueOrganizations,
+      guidelines: this.valueGuidelines,
       pollutants: this.valuePollutants,
       targets: this.valueTargets,
     }
@@ -295,12 +295,12 @@ export default class ViolationsFiltersForm extends Vue {
           this.$secondaryFilterTree
         )
 
-        if (this.filterPrimary === ViolationsPrimaryFilter.organizations) {
-          componentValue.organizations = values.reduce(
+        if (this.filterPrimary === ViolationsPrimaryFilter.guidelines) {
+          componentValue.guidelines = values.reduce(
             (ids: string[], id: string) => {
               const tg = this.secondaryFilterItems.find((itm) => itm.id === id)
-              if (tg?.organization && !ids.includes(tg?.organization)) {
-                ids.push(tg?.organization)
+              if (tg?.guideline && !ids.includes(tg?.guideline)) {
+                ids.push(tg?.guideline)
               }
               return ids
             },
@@ -335,12 +335,12 @@ export default class ViolationsFiltersForm extends Vue {
     filter: ViolationsPrimaryFilter
   ): ViolationsFilterItem[] {
     let items = []
-    let type: 'organization' | 'pollutant' | 'target'
+    let type: 'guideline' | 'pollutant' | 'target'
 
     switch (filter) {
-      case ViolationsPrimaryFilter.organizations:
-        type = 'organization'
-        items = this.organizations
+      case ViolationsPrimaryFilter.guidelines:
+        type = 'guideline'
+        items = this.guidelines
         break
       default:
         throw new Error(`Unknown filter name: ${filter}`)
@@ -352,7 +352,7 @@ export default class ViolationsFiltersForm extends Vue {
     filter: ViolationsSecondaryFilter
   ): ViolationsFilterItem[] {
     let items = []
-    let type: 'organization' | 'pollutant' | 'target'
+    let type: 'guideline' | 'pollutant' | 'target'
 
     switch (filter) {
       case ViolationsSecondaryFilter['pollutants/targets']:
@@ -379,31 +379,26 @@ export default class ViolationsFiltersForm extends Vue {
 
   private _parseToFilterItem(
     item: any,
-    type: 'organization' | 'pollutant' | 'target'
+    type: 'guideline' | 'pollutant' | 'target'
   ): ViolationsFilterItem {
     let nameProp: string
-    let descriptionProp: string
 
     switch (type) {
       case 'pollutant':
         nameProp = 'label'
-        descriptionProp = 'label'
         break
       case 'target':
-        nameProp = 'short_name'
-        descriptionProp = 'name'
+        nameProp = 'name'
         break
       default:
         nameProp = 'name'
-        descriptionProp = 'name'
     }
 
     return {
       id: item.id,
       name: item[nameProp],
-      description: item[descriptionProp],
-      organization: item.organization,
       pollutant: item.pollutant,
+      guideline: item.guideline,
     }
   }
 }

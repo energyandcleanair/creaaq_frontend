@@ -1,5 +1,5 @@
 import City from '@/entities/City'
-import Organization from '@/entities/Organization'
+import Guideline from '@/entities/Guideline'
 import Pollutant from '@/entities/Pollutant'
 import Target from '@/entities/Target'
 
@@ -7,7 +7,7 @@ export default interface URLQuery {
   cities: City['id'][]
   pollutants: Pollutant['id'][]
   targets: Target['id'][]
-  organizations: Organization['id'][]
+  guidelines: Guideline['id'][]
   date_start?: string
 }
 
@@ -21,8 +21,8 @@ export interface URLQueryRaw {
   // targets
   tg?: string[]
 
-  // organizations
-  org?: string[]
+  // guidelines
+  gl?: string[]
 
   // date_start
   start?: string

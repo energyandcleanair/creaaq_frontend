@@ -216,7 +216,6 @@ export default class ViewMeasurements extends Vue {
     if (!q.avg && (q as any).running_average) q.avg = (q as any).running_average
     if (!q.cols && (q as any).chart_cols) q.cols = (q as any).chart_cols
 
-    console.log('_toArray(q.st): ', _toArray(q.st))
     return {
       cities: _toArray(q.ct),
       sources: _toArray(q.sr),
@@ -492,7 +491,6 @@ export default class ViewMeasurements extends Vue {
 
     const measurementsByCities = arrays[0] || []
     const measurementsByStations = arrays[1] || []
-    console.log('measurementsByStations: ', measurementsByStations)
     const measurements = measurementsByCities.concat(measurementsByStations)
 
     const pollutantsMap = measurementsByCities.reduce(
@@ -591,7 +589,6 @@ export default class ViewMeasurements extends Vue {
     if (!visiblePollutants.length)
       visiblePollutants = allPollutants.map((i) => i.id)
 
-    console.log('chartData.stations: ', chartData.stations)
     const allStations = chartData.stations
     let visibleStations = (this.urlQuery.stations || []).filter((id) =>
       allStations.find((p) => p.id === id)

@@ -190,7 +190,6 @@ export default class ViewMap extends Vue {
 
     // let pollutants: Pollutant[] = []
 
-    console.log('this.urlQuery.level: ', this.urlQuery.level)
     if (this.urlQuery.level === MapChartLevel.city) {
       const cities = await this.fetchCities()
       this.chartData.cities = cities

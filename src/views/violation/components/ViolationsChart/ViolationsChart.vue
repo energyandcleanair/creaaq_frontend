@@ -148,6 +148,7 @@ import ChartTooltip from './ChartTooltip.vue'
 import ChartData from './ChartData'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
+import Guideline from '@/entities/Guideline'
 
 const COL_ID_DIVIDER = '--'
 
@@ -213,8 +214,8 @@ export default class ViolationsChart extends Vue {
     return this.chartData.pollutants || []
   }
 
-  private get organizations(): Organization[] {
-    return this.chartData.organizations || []
+  private get guidelines(): Guideline[] {
+    return this.chartData.guidelines || []
   }
 
   private get targets(): Target[] {
@@ -243,12 +244,12 @@ export default class ViolationsChart extends Vue {
     )
     if (!Object.keys(filterPollutants).length) filterPollutants = null
 
-    let filterOrganizations: MapFilter | null =
-      this.queryParams.organizations.reduce(
-        (memo: MapFilter, id: Organization['id']) => (memo[id] = 1) && memo,
-        {}
-      )
-    if (!Object.keys(filterOrganizations).length) filterOrganizations = null
+    // TODO: complete this filter
+    // let filterGuidelines: MapFilter | null = this.queryParams.guidelines.reduce(
+    //   (memo: MapFilter, id: Guideline['id']) => (memo[id] = 1) && memo,
+    //   {}
+    // )
+    // if (!Object.keys(filterGuidelines).length) filterGuidelines = null
 
     let filterTargets: MapFilter | null = this.queryParams.targets.reduce(
       (memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo,
@@ -262,7 +263,7 @@ export default class ViolationsChart extends Vue {
       if (
         !_valuePassesFilter(cityId, filterCities) ||
         !_valuePassesFilter(violation.pollutant, filterPollutants) ||
-        !_valuePassesFilter(violation.organization, filterOrganizations) ||
+        // !_valuePassesFilter(violation.guideline, filterGuidelines) ||
         !_valuePassesFilter(violation.target_id, filterTargets)
       ) {
         continue
@@ -391,7 +392,7 @@ export default class ViolationsChart extends Vue {
       return {
         exceeded,
         class: exceeded ? 'red--text' : 'green--text',
-        title: target?.short_name || item.organization || item.pollutant || '?',
+        title: target?.name || item.guideline || item.pollutant || '?',
         pollutant: item.pollutant || '?',
         value: value,
         target_value: target_value,

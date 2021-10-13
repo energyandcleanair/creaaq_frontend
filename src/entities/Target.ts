@@ -1,4 +1,5 @@
 import City from './City'
+import Guideline from './Guideline'
 import Organization from './Organization'
 import Pollutant from './Pollutant'
 
@@ -9,8 +10,7 @@ export default class Target {
   public location_id!: City['id']
   public organization!: Organization['id']
   public pollutant!: Pollutant['id']
-  public guideline?: string
-  public short_name!: string
+  public guideline?: Guideline['id']
 
   public target_unit?: string
 
