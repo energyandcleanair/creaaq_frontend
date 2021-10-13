@@ -80,6 +80,7 @@ export default {
   primary_filter: 'Primary filter',
   secondary_filter: 'Secondary filter',
   search_by_moving_map: 'Search by moving the map',
+  go_to_measurements: 'Go to measurements',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

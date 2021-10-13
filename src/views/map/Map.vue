@@ -46,6 +46,7 @@
         :queryParams="urlQuery"
         :chartData="chartData"
         :loading="isChartLoading"
+        @click:markerAction="onClickMapMarkerAction"
         @update:queryParams="onChangeQuery"
       />
     </v-container>
@@ -71,6 +72,7 @@ import URLQuery, {
   MapChartLevel,
   URLQueryRaw,
 } from './types/URLQuery'
+import {URLQueryRaw as MeasurementPageURLQueryRaw} from '@/views/measurement/types/URLQuery'
 import {ExportFileType} from '@/components/ExportBtn.vue'
 import Pollutant from '@/entities/Pollutant'
 
@@ -188,6 +190,7 @@ export default class ViewMap extends Vue {
 
     // let pollutants: Pollutant[] = []
 
+    console.log('this.urlQuery.level: ', this.urlQuery.level)
     if (this.urlQuery.level === MapChartLevel.city) {
       const cities = await this.fetchCities()
       this.chartData.cities = cities
@@ -216,6 +219,7 @@ export default class ViewMap extends Vue {
       pollutants: existingPollutants.map((i) => i.id),
     })
 
+    this.$map?.refreshMapMarkers()
     this.isChartLoading = false
     this.$loader.off()
   }
@@ -228,15 +232,13 @@ export default class ViewMap extends Vue {
     }
 
     if (!urlQuery.basemap) {
-      urlQuery.basemap = MapChartBasemap.satellite
+      urlQuery.basemap = MapChartBasemap.terrain
     }
 
     await this.setUrlQuery(urlQuery)
   }
 
-  private mountedAfterFetch() {
-    this.$map?.fitAllMarkers()
-  }
+  private mountedAfterFetch() {}
 
   private async fetchCities(): Promise<City[]> {
     const [err, cities] = await to(CityAPI.findAll({count: 10}))
@@ -275,41 +277,30 @@ export default class ViewMap extends Vue {
     return {}
   }
 
-  private async fetchChartData(): Promise<ChartData> {
-    return this.chartData
-    // if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
-    //   this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
-    //   throw new Error('exit')
-    // }
-
-    // const newChartData: ChartData = {
-    //   cities: this.chartData.cities,
-    //   stations: [],
-    // }
-
-    // if (!this.urlQuery?.cities.length) return newChartData
-
-    // const promise = this.fetchStations({city: this.urlQuery.cities})
-
-    // let [err, stations = []] = await to<Station[]>(promise)
-
-    // if (err) {
-    //   this.$dialog.notify.error(
-    //     err?.message || '' + this.$t('msg.something_went_wrong')
-    //   )
-    //   throw err
-    // }
-
-    // newChartData.stations = stations
-    // return newChartData
+  private async onChangeQuery(query: URLQuery) {
+    const changedLvl = this.urlQuery.level !== query.level
+    const changedBasemap = this.urlQuery.basemap !== query.basemap
+    await this.setUrlQuery(query)
+    if (changedLvl || changedBasemap) this.onClickRefresh()
   }
 
-  private async onChangeQuery(query: URLQuery) {
-    // const citiesOld = [...this.urlQuery.cities].sort().join(',')
-    // const citiesNew = [...query.cities].sort().join(',')
-    // const citiesChanged = citiesOld !== citiesNew
-    // await this.setUrlQuery(query)
-    // if (citiesChanged) this.onClickRefresh()
+  private async onClickMapMarkerAction(item: City | Station) {
+    this.isChartLoading = true
+
+    if ((item as City).level === 'city') {
+      const query: MeasurementPageURLQueryRaw = {
+        ct: [item.id],
+      }
+      this.$router.push({name: 'measurements', query: query as any})
+    } else if ((item as Station).level === 'station') {
+      const query: MeasurementPageURLQueryRaw = {
+        ct: [(item as Station).city_id],
+        st: [item.id],
+      }
+      this.$router.push({name: 'measurements', query: query as any})
+    } else {
+      console.error('Unknown marker level', item)
+    }
   }
 
   private async onClickRefresh() {
@@ -324,7 +315,9 @@ export default class ViewMap extends Vue {
     }
   }
 
+  // TODO: complete
   private onClickExportToCSV() {
+    this.$dialog.notify.info(this.$tc('msg.will_be_added_soon').toString())
     // const citiesNames: string[] = this.urlQuery.cities
     //   .map(
     //     (cityId) =>

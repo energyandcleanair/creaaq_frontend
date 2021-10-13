@@ -383,7 +383,6 @@ export default class ViolationsFiltersForm extends Vue {
   ): ViolationsFilterItem {
     let nameProp: string
     let descriptionProp: string
-    console.log('item: ', item)
 
     switch (type) {
       case 'pollutant':

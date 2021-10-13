@@ -15,7 +15,8 @@
           cols="12"
         >
           <v-radio-group
-            v-model="queryLevel"
+            :value="queryLevel"
+            hide-details
             @change="onChangeForm('level', $event)"
           >
             <v-radio
@@ -28,7 +29,7 @@
         </v-col>
       </v-row>
 
-      <v-row no-gutters>
+      <!-- <v-row no-gutters>
         <v-col
           class="text-subtitle-1"
           cols="12"
@@ -47,7 +48,7 @@
             hide-details
           />
         </v-col>
-      </v-row>
+      </v-row> -->
 
       <v-row no-gutters>
         <v-col
@@ -60,7 +61,9 @@
           cols="12"
         >
           <v-radio-group
-            v-model="queryBasemap"
+            :value="queryBasemap"
+            disabled
+            hide-details
             @change="onChangeForm('basemap', $event)"
           >
             <v-radio

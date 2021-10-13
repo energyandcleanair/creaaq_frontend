@@ -28,3 +28,26 @@ export const toQueryString = (obj: {[key: string]: any}): string => {
 export function getAverage(arr: number[]): number {
   return arr.reduce((acc, val) => acc + val, 0) / arr.length
 }
+
+export function _runIteration(
+  fn: any,
+  numTimes: number,
+  delay: number
+): Promise<void> {
+  return new Promise((resolve) => {
+    let index = 0
+
+    function end() {
+      resolve()
+    }
+
+    function next() {
+      if (fn(index) === false) return end()
+      index++
+      if (index < numTimes) setTimeout(next, delay)
+      else end()
+    }
+
+    next()
+  })
+}

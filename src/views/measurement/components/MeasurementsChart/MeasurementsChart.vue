@@ -26,7 +26,7 @@
 
     <template v-else-if="!measurements.length">
       <v-alert
-        class="text-center ma-12"
+        class="fill-width text-center ma-12"
         color="grey lighten-3"
       >
         {{ $t('msg.no_data') }}

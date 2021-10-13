@@ -15,6 +15,8 @@ export default class City {
   public gadm1_id?: string
   public name_local?: string | null
   public geometry?: Coordinates
+  public pollutants?: string[]
+  public last_updated?: string | Date
 
   constructor(data: City) {
     Object.assign(this, data)

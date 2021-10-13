@@ -66,6 +66,7 @@ import _sortBy from 'lodash.sortby'
 import CountryFlag from 'vue-country-flag'
 import {Vue, Component, Model, Prop, Emit, Watch} from 'vue-property-decorator'
 import City from '@/entities/City'
+import {_runIteration} from '@/utils'
 
 @Component({
   components: {
@@ -218,27 +219,5 @@ export default class SelectBoxCities extends Vue {
       callback(null, results)
     }
   }
-}
-
-function _runIteration(
-  fn: any,
-  numTimes: number,
-  delay: number
-): Promise<void> {
-  return new Promise((resolve) => {
-    let index = 0
-
-    function end() {
-      resolve()
-    }
-
-    function next() {
-      if (fn(index) === false) return end()
-      index++
-      if (index < numTimes) setTimeout(next, delay)
-      else end()
-    }
-    next()
-  })
 }
 </script>

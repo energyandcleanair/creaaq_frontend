@@ -3,13 +3,20 @@
     class="map-chart"
     fluid
   >
-    <template v-if="loading">
-      <v-skeleton-loader type="image" />
-    </template>
+    <div
+      v-if="isLoading"
+      class="map-chart__loader d-flex justify-center align-center"
+    >
+      <v-progress-circular
+        indeterminate
+        color="primary"
+        size="80"
+      />
+    </div>
 
-    <template v-else-if="!entities.length">
+    <template v-if="!isLoading && !entities.length">
       <v-alert
-        class="text-center ma-12"
+        class="fill-width text-center ma-12"
         color="grey lighten-3"
       >
         {{ $t('msg.no_data') }}
@@ -26,32 +33,52 @@
         >
           <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-          <l-marker
-            :ref="`marker--${marker.id}`"
-            v-for="marker of mapMarkers"
-            :key="marker.id"
-            :lat-lng="marker.coordinates"
-            :icon="selectedMarkersIds.includes(marker.id) ? iconSelected : iconPrimary"
-            @click="onClickMapMarker(marker.id)"
-          >
-            <l-tooltip
-              :class="{'tooltip--selected': selectedMarkersIds.includes(marker.id)}"
-              :options="{
-                permanent: permanentTooltipOnSelected,
-                interactive: false,
-                direction: 'top',
-                offset: {x: 0, y: -41}
-              }"
+          <v-marker-cluster>
+            <l-marker
+              :ref="`marker--${marker.id}`"
+              v-for="marker of mapMarkers"
+              :key="marker.id"
+              :lat-lng="marker.coordinates"
+              :icon="selectedMarkersIds.includes(marker.id) ? iconSelected : iconPrimary"
+              @click="onClickMapMarker(marker.id)"
             >
-              <div class="pb-2">
-                <b class="text-body-1 font-weight-bold">
-                  <!-- TODO: complete the tooltip details -->
-                  {{ marker.station ? marker.station.name : '' }}
-                  {{ marker.city ? marker.city.name : '' }}
+              <l-popup
+                v-if="marker.tooltip"
+                :class="{'tooltip--selected': selectedMarkersIds.includes(marker.id)}"
+                :options="{
+                  permanent: true,
+                  interactive: true,
+                  direction: 'top',
+                  offset: {x: 0, y: -41}
+                }"
+              >
+                <b class="text-title font-weight-bold">
+                  {{ marker.tooltip.title }}
                 </b>
-              </div>
-            </l-tooltip>
-          </l-marker>
+
+                <div class="mt-3">
+                  <div
+                    class="text-body-2"
+                    v-for="(val, key) of marker.tooltip.params"
+                    :key="key"
+                  >
+                    <b>{{key}}:</b> {{ val }}
+                  </div>
+                </div>
+
+                <v-btn
+                  class="mt-3"
+                  color="primary"
+                  block
+                  depressed
+                  dense
+                  @click="onClickMarkerTooltipButton(marker)"
+                >
+                  {{ $t('go_to_measurements') }}
+                </v-btn>
+              </l-popup>
+            </l-marker>
+          </v-marker-cluster>
 
           <div class="leaflet-bottom leaflet-left">
             <v-btn
@@ -71,17 +98,22 @@
 
 <script lang="ts">
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import _set from 'lodash.set'
 import _orderBy from 'lodash.orderby'
 import Leaflet, {Icon, LatLngBounds} from 'leaflet'
 import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
-import {LMap, LTileLayer, LMarker, LTooltip} from 'vue2-leaflet'
+import {LMap, LTileLayer, LMarker, LTooltip, LPopup} from 'vue2-leaflet'
+import Vue2LeafletMarkerCluster from 'vue2-leaflet-markercluster'
 import {mdiArrowExpandAll} from '@mdi/js'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
+import Coordinates from '@/entities/Coordinates'
 import URLQuery from '../../types/URLQuery'
 import ChartData from './MapChartData'
-import Coordinates from '@/entities/Coordinates'
+import {_runIteration} from '@/utils'
+import moment from 'moment'
 
 type D = Icon.Default & {_getIconUrl?: string}
 delete (Icon.Default.prototype as D)._getIconUrl
@@ -121,6 +153,10 @@ interface MapMarker {
   coordinates: number[]
   station?: Station
   city?: City
+  tooltip?: {
+    title: string
+    params: Record<string, any>
+  }
 }
 
 @Component({
@@ -129,6 +165,8 @@ interface MapMarker {
     LTileLayer,
     LMarker,
     LTooltip,
+    LPopup,
+    'v-marker-cluster': Vue2LeafletMarkerCluster,
   },
 })
 export default class MapChart extends Vue {
@@ -150,6 +188,8 @@ export default class MapChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly permanentTooltipOnSelected!: boolean
 
+  private privateisLoading: boolean = false
+  private mapMarkers: MapMarker[] = []
   private mdiArrowExpandAll = mdiArrowExpandAll
   private iconPrimary = iconPrimary
   private iconSelected = iconSelected
@@ -158,6 +198,13 @@ export default class MapChart extends Vue {
     itemsPerPage: 5,
     sortBy: ['id'],
     sortDesc: [false],
+  }
+
+  private get isLoading(): boolean {
+    return this.loading || this.privateisLoading
+  }
+  private set isLoading(val: boolean) {
+    this.privateisLoading = val
   }
 
   private get selectedMarkersIds(): Station['id'][] {
@@ -186,11 +233,6 @@ export default class MapChart extends Vue {
     return [...this.chartData.cities, ...this.chartData.stations]
   }
 
-  // ??
-  private get tooltipInfoHeaders(): any[] {
-    return []
-  }
-
   private get mapOptions(): Leaflet.MapOptions {
     const firstMarker = this.mapMarkers[0]
     return {
@@ -204,14 +246,68 @@ export default class MapChart extends Vue {
     }
   }
 
-  private get mapMarkers(): MapMarker[] {
+  private mounted() {
+    // see this.onMapInitialized()
+  }
+
+  private async onMapInitialized() {
+    this.refreshMapMarkers()
+
+    // move to the selected station if exists
+    // if (this.selectedMarkersIds.length) {
+    //   this.mapMoveToStation(this.selectedMarkersIds[0])
+    //   this.selectStation(this.selectedMarkersIds[0])
+    // }
+  }
+
+  public async refreshMapMarkers() {
+    this.isLoading = true
+    this.mapMarkers = []
+    const markers = this.getMapMarkers()
+
+    const chunkSize = 300
+    const numTimes = markers.length / chunkSize
+    const delay = 100
+
+    await _runIteration(
+      (index: number) => {
+        const _markers = markers.slice(
+          index * chunkSize,
+          index * chunkSize + chunkSize
+        )
+        this.mapMarkers.push(..._markers)
+        if (index % 3 === 0) this.fitAllMarkers()
+      },
+      numTimes,
+      delay
+    )
+
+    setTimeout(() => this.fitAllMarkers(), 100)
+    this.$emit('markers:added')
+    this.isLoading = false
+  }
+
+  private selectStation(stationId: Station['id']) {
+    // this.selectedMarkersIds = stationId ? [stationId] : []
+    // this.closeAllMapMarkerTooltips()
+    // this.openMapMarkerTooltip(stationId)
+  }
+
+  private getMapMarkers(): MapMarker[] {
     const cities = this.chartData.cities
     const stations = this.chartData.stations
 
-    return [
-      ...cities.map((itm) => this._genMarker('city', itm)),
-      ...stations.map((itm) => this._genMarker('station', itm)),
-    ].filter((i) => i) as MapMarker[]
+    if (this.queryParams.level === 'city') {
+      return cities
+        .map((itm) => this._genMarker('city', itm))
+        .filter((i) => i) as MapMarker[]
+    } else if (this.queryParams.level === 'station') {
+      return stations
+        .map((itm) => this._genMarker('station', itm))
+        .filter((i) => i) as MapMarker[]
+    } else {
+      return []
+    }
   }
 
   private _genMarker(
@@ -227,33 +323,35 @@ export default class MapChart extends Vue {
 
     if (!coordinates) return null
 
+    const tooltipParams: any = {}
+
+    if (item.last_updated) {
+      tooltipParams['' + this.$t('last_updated')] = moment(
+        item.last_updated
+      ).format('DD MMMM YYYY')
+    }
+    if (Array.isArray(item.pollutants)) {
+      tooltipParams['' + this.$t('pollutants')] = item.pollutants
+        .join(', ')
+        .toUpperCase()
+    }
+    if ((item as Station).source) {
+      tooltipParams['' + this.$t('source')] = (
+        item as Station
+      ).source?.toUpperCase()
+    }
+
     const marker: MapMarker = {
       id: item.id,
       [type]: item,
       coordinates: [coordinates.latitude, coordinates.longitude],
+      tooltip: {
+        title: item.name,
+        params: tooltipParams,
+      },
     }
 
     return marker
-  }
-
-  private mounted() {
-    // see this.onMapInitialized()
-  }
-
-  private onMapInitialized() {
-    this.closeAllMapMarkerTooltips()
-
-    // move to the selected station if exists
-    // if (this.selectedMarkersIds.length) {
-    //   this.mapMoveToStation(this.selectedMarkersIds[0])
-    //   this.selectStation(this.selectedMarkersIds[0])
-    // }
-  }
-
-  private selectStation(stationId: Station['id']) {
-    // this.selectedMarkersIds = stationId ? [stationId] : []
-    // this.closeAllMapMarkerTooltips()
-    // this.openMapMarkerTooltip(stationId)
   }
 
   public fitAllMarkers() {
@@ -321,6 +419,10 @@ export default class MapChart extends Vue {
     })
   }
 
+  private onClickMarkerTooltipButton(marker: MapMarker) {
+    this.$emit('click:markerAction', marker.city || marker.station)
+  }
+
   private onClickMapMarker(stationId: Station['id']) {
     this.selectStation(stationId)
     this.openMapMarkerTooltip(stationId)
@@ -339,6 +441,17 @@ $map-chart__table-footer--height: 59px;
 
 .map-chart {
   padding: 0;
+  position: relative;
+
+  &__loader {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: #ffffff5e;
+    z-index: 10;
+  }
 
   &__content {
     .vue2leaflet-map {

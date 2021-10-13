@@ -10,6 +10,7 @@ export default class Station {
   public city_id!: City['id']
   public country_id!: Country['id']
 
+  public level?: 'station'
   public city_name?: City['name']
   public source?: Source['id']
   public names?: string[]
