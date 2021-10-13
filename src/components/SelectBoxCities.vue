@@ -202,6 +202,7 @@ export default class SelectBoxCities extends Vue {
                 results.push({
                   ...country,
                   children: cities,
+                  childrenLength: cities.length,
                   isDefaultExpanded: true,
                 })
               }
