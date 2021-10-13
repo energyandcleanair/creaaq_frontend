@@ -62,7 +62,6 @@
           :items="secondaryFilterTree"
           :expand-icon="mdiMenuDown"
           item-key="id"
-          item-text="name"
           item-disabled="disabled"
           selected-color="primary"
           selection-type="leaf"
@@ -79,7 +78,7 @@
                   v-text="item.name"
                 />
               </template>
-              <span>{{ item.name }}</span>
+              <span>{{ item.description || item.name }}</span>
             </v-tooltip>
           </template>
         </v-treeview>
@@ -112,6 +111,7 @@ export type ViolationsFilterValue =
 export interface ViolationsFilterItem {
   id: ViolationsFilterValue
   name: string
+  description?: string
   disabled?: boolean
   organization?: Organization['id']
   pollutant?: Pollutant['id']
@@ -382,18 +382,27 @@ export default class ViolationsFiltersForm extends Vue {
     type: 'organization' | 'pollutant' | 'target'
   ): ViolationsFilterItem {
     let nameProp: string
+    let descriptionProp: string
+    console.log('item: ', item)
 
     switch (type) {
       case 'pollutant':
         nameProp = 'label'
+        descriptionProp = 'label'
+        break
+      case 'target':
+        nameProp = 'short_name'
+        descriptionProp = 'name'
         break
       default:
         nameProp = 'name'
+        descriptionProp = 'name'
     }
 
     return {
       id: item.id,
       name: item[nameProp],
+      description: item[descriptionProp],
       organization: item.organization,
       pollutant: item.pollutant,
     }
