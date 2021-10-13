@@ -81,12 +81,13 @@
               }"
               >
                 <div class="pb-2">
-                  <b class="text-body-1 font-weight-bold">
+                  <b class="text-title font-weight-bold">
                     {{ marker.station.name }}
                   </b>
                 </div>
 
                 <div
+                  class="text-body-2"
                   v-for="header of tooltipInfoHeaders"
                   :key="header.value"
                 >
@@ -524,6 +525,11 @@ $stations-chart__table-footer--height: 59px;
             }
           }
         }
+      }
+
+      th,
+      td {
+        font-size: 14px !important;
       }
 
       .v-data-footer {

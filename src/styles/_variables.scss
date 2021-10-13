@@ -5,7 +5,9 @@ $font-family-primary: $body-font-family;
 
 $body-font-family: 'TT Norms Pro Regular', Helvetica, sans-serif;
 $body-font-family--medium: 'TT Norms Pro Medium', Helvetica, sans-serif;
-$font-size-root: 16px;
+$font-size-root: 14px;
+$input-font-size: $font-size-root;
+$label-font-size: $font-size-root;
 
 $text-color: #252d4b;
 $text-selection-color: #fff;

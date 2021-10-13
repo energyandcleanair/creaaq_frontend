@@ -6,7 +6,7 @@
     <v-form>
       <v-row no-gutters>
         <v-col
-          class="text-subtitle-2"
+          class="text-subtitle-1"
           cols="12"
         >{{ $t('level') }}</v-col>
 
@@ -30,7 +30,7 @@
 
       <v-row no-gutters>
         <v-col
-          class="text-subtitle-2"
+          class="text-subtitle-1"
           cols="12"
         >{{ $t('pollutants') }}</v-col>
 
@@ -51,7 +51,7 @@
 
       <v-row no-gutters>
         <v-col
-          class="text-subtitle-2"
+          class="text-subtitle-1"
           cols="12"
         >{{ $t('basemap') }}</v-col>
 
@@ -75,7 +75,7 @@
 
       <v-row no-gutters>
         <v-col
-          class="text-subtitle-2"
+          class="text-subtitle-1"
           cols="12"
         >{{ $t('export') }}</v-col>
 

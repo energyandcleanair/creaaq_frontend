@@ -6,6 +6,8 @@ import theme from '@/theme'
 Vue.use(Vuetify)
 
 export default new Vuetify({
+  customVariables: ['@/styles/_variables.scss'],
+  treeShake: true,
   icons: {
     iconfont: 'mdiSvg',
   },

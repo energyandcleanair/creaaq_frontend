@@ -51,10 +51,10 @@
         >
           <v-list-item-content>
             <v-list-item-title>
-              <span class="font-weight-bold">{{ row.title }}</span>
+              <span class="text-title font-weight-bold">{{ row.title }}</span>
               <i
                 v-if="row.subtitle"
-                class="grey--text text--darken-1 pl-1"
+                class="text-caption grey--text text--darken-1 pl-1"
                 style="font-size: 0.6em;"
                 v-text="row.subtitle"
               />

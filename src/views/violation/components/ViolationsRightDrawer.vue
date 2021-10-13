@@ -6,7 +6,7 @@
     <v-form>
       <v-row no-gutters>
         <v-col
-          class="text-subtitle-2"
+          class="text-subtitle-1"
           cols="12"
         >{{ $t('year') }}</v-col>
 

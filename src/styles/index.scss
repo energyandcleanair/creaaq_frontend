@@ -52,3 +52,13 @@ body,
 .vue2leaflet-map {
   border-radius: 4px;
 }
+
+.v-application {
+  .v-input {
+    font-size: $input-font-size;
+  }
+
+  .v-label {
+    font-size: $label-font-size;
+  }
+}

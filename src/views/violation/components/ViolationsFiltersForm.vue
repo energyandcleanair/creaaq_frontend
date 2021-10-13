@@ -5,8 +5,8 @@
   >
     <v-row no-gutters>
       <v-col cols="12">
-        <span class="text-subtitle-2">{{ $t('primary_filter') }}:&nbsp;</span>
-        <span class="text-body-2">{{ $t(filterPrimary) }}</span>
+        <span class="text-subtitle-1">{{ $t('primary_filter') }}:&nbsp;</span>
+        <span class="text-body-1">{{ $t(filterPrimary) }}</span>
       </v-col>
 
       <v-col
@@ -47,8 +47,8 @@
 
     <v-row no-gutters>
       <v-col cols="12">
-        <span class="text-subtitle-2">{{ $t('secondary_filter') }}:&nbsp;</span>
-        <span class="text-body-2">{{ filterSecondaryText }}</span>
+        <span class="text-subtitle-1">{{ $t('secondary_filter') }}:&nbsp;</span>
+        <span class="text-body-1">{{ filterSecondaryText }}</span>
       </v-col>
 
       <v-col

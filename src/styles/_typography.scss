@@ -72,8 +72,8 @@
         line-height: 32px;
       }
       @if (ends-with($typoOption, '-title')) {
-        font-weight: 500 !important;
-        font-size: 14px;
+        font-weight: 500;
+        font-size: $font-size-root + 2px;
         line-height: 20px;
       }
       @if (ends-with($typoOption, '-subtitle-1')) {
@@ -96,7 +96,7 @@
       }
       @if (ends-with($typoOption, '-button')) {
         font-weight: 500 !important;
-        font-size: 14px !important;
+        font-size: $font-size-root !important;
         line-height: 20px;
         text-transform: none !important;
       }
