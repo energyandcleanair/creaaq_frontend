@@ -279,8 +279,7 @@ export default class MapChart extends Vue {
       const markers = this.getMapMarkers()
 
       const chunkSize = 300
-      // const numTimes = markers.length / chunkSize
-      const numTimes = 2
+      const numTimes = markers.length / chunkSize
       const delay = 100
 
       await _runIteration(
