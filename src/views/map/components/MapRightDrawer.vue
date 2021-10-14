@@ -82,7 +82,8 @@
         </v-col>
       </v-row>
 
-      <v-row no-gutters>
+      <!-- TODO: not in use -->
+      <!-- <v-row no-gutters>
         <v-col
           class="text-subtitle-1"
           cols="12"
@@ -97,7 +98,7 @@
             @click="onClickExport"
           />
         </v-col>
-      </v-row>
+      </v-row> -->
     </v-form>
   </PageDrawer>
 </template>
