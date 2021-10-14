@@ -282,6 +282,13 @@ export default class MapChart extends Vue {
       const numTimes = markers.length / chunkSize
       const delay = 100
 
+      if (markers.length > chunkSize) {
+        this.$dialog.message.info(
+          this.$t('msg.rendering_n_items', {n: markers.length}) + '...',
+          {position: 'bottom-left', timeout: 3000}
+        )
+      }
+
       await _runIteration(
         (index: number) => {
           const _markers = markers.slice(
@@ -298,7 +305,7 @@ export default class MapChart extends Vue {
       setTimeout(() => this.fitAllMarkers(), 100)
       this.$emit('markers:added')
       this.isLoading = false
-    }, 800)
+    }, 1000)
   }
 
   private selectStation(stationId: Station['id']) {

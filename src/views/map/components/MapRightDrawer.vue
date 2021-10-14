@@ -48,34 +48,13 @@
             :label="item.label"
             color="primary"
             hide-details
-            :disabled="queryParams.pollutants.length <= 1
-              && queryParams.pollutants.includes(item.id)
+            :disabled="loading || (queryParams.pollutants.length <= 1
+              && queryParams.pollutants.includes(item.id))
             "
             @change="onChangeForm('pollutants', $event)"
           />
         </v-col>
       </v-row>
-
-      <!-- <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('pollutants') }}</v-col>
-
-        <v-col
-          class="d-flex pl-1"
-          cols="12"
-        >
-
-          <v-checkbox
-            v-for="pollutant of pollutants"
-            :key="pollutant.id"
-            :value="queryPollutantsMap[pollutant.id]"
-            :label="pollutant.label"
-            hide-details
-          />
-        </v-col>
-      </v-row> -->
 
       <v-row no-gutters>
         <v-col
@@ -187,14 +166,6 @@ export default class MapRightDrawer extends Vue {
   private get pollutants(): Pollutant[] {
     return this.chartData.pollutants || []
   }
-
-  // private get organizations(): Organization[] {
-  //   return this.chartData.organizations || []
-  // }
-
-  // private get targets(): Target[] {
-  //   return this.chartData.targets || []
-  // }
 
   @Emit('update:open')
   public toggle(value: boolean) {}

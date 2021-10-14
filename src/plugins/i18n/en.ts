@@ -115,6 +115,7 @@ export default {
     too_large_query: 'Too large query',
     queried_of_limit: 'Queried {queried} with the limit of {limit}',
     loaded_of_limit: 'Loaded {loaded} with the limit of {limit}',
+    rendering_n_items: 'Rendering {n} items',
   },
 
   auth: {
