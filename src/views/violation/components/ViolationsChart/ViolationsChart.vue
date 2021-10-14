@@ -257,6 +257,8 @@ export default class ViolationsChart extends Vue {
     )
     if (!Object.keys(filterTargets).length) filterTargets = null
 
+    if (!filterTargets) return []
+
     for (const violation of this.violations) {
       const cityId = violation.location_id
 
@@ -280,6 +282,10 @@ export default class ViolationsChart extends Vue {
     if (!this.queryParams.cities?.length) return []
 
     const citiesCalendars: {[cityId: string]: ViolationsCalendar} = {}
+    const queriedYear: number = moment(
+      this.queryParams.date_start || new Date(),
+      URL_DATE_FORMAT
+    ).year()
     const _tomorrow: number = moment()
       .set({hour: 0, minute: 0, second: 0, millisecond: 0})
       .add(1, 'day')
@@ -321,7 +327,11 @@ export default class ViolationsChart extends Vue {
         title: city.name,
         cols: [],
       }
-      const violationsCalendar: ViolationsCalendar = citiesCalendars[city.id]
+      let violationsCalendar: ViolationsCalendar | undefined =
+        citiesCalendars[city.id]
+
+      // draw empty calendar
+      if (!violationsCalendar) violationsCalendar = {[queriedYear]: {}}
 
       for (const year in violationsCalendar) {
         for (let month = 0; month <= 11; month++) {
@@ -393,7 +403,7 @@ export default class ViolationsChart extends Vue {
         exceeded,
         class: exceeded ? 'red--text' : 'green--text',
         title: target?.name || item.guideline || item.pollutant || '?',
-        pollutant: item.pollutant || '?',
+        pollutant: (item.pollutant || '?').toUpperCase(),
         value: value,
         target_value: target_value,
       }
