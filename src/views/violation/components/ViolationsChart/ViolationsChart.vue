@@ -462,8 +462,11 @@ function _getViolationsColor(num: number): string {
   return PALETTE_COLORS[Math.round(VIOLATIONS_PALETTE_SIZE * scaleVal)]
 }
 
-function _valuePassesFilter(key: any, filterMap: MapFilter | null): boolean {
-  return !filterMap || (key && filterMap[key])
+function _valuePassesFilter(
+  filterKey: any,
+  filterMap: MapFilter | null
+): boolean {
+  return !filterMap || (filterKey && filterMap[filterKey])
 }
 </script>
 

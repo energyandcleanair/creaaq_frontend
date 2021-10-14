@@ -134,8 +134,8 @@
             color="primary"
             hide-details
             :disabled="queryParams.pollutants.length <= 1
-            && queryParams.pollutants.includes(item.id)
-          "
+              && queryParams.pollutants.includes(item.id)
+            "
             @change="onChangeForm('pollutants', $event)"
           />
         </v-col>

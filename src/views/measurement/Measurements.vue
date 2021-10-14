@@ -174,6 +174,8 @@ import URLQuery, {URLQueryRaw, URLQueryStations} from './types/URLQuery'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
+const _queryToArray = (itm: string | string[] | undefined) =>
+  (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
 @Component({
   components: {
@@ -201,8 +203,6 @@ export default class ViewMeasurements extends Vue {
 
   private get urlQuery(): URLQuery {
     const q: URLQueryRaw = {...this.$route.query}
-    const _toArray = (itm: string | string[] | undefined) =>
-      (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
     // TODO: delete
     // fallback for old URL format
@@ -217,10 +217,10 @@ export default class ViewMeasurements extends Vue {
     if (!q.cols && (q as any).chart_cols) q.cols = (q as any).chart_cols
 
     return {
-      cities: _toArray(q.ct),
-      sources: _toArray(q.sr),
-      pollutants: _toArray(q.pl),
-      stations: _toArray(q.st),
+      cities: _queryToArray(q.ct),
+      sources: _queryToArray(q.sr),
+      pollutants: _queryToArray(q.pl),
+      stations: _queryToArray(q.st),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
       date_end: q.end ? toURLStringDate(q.end as string) : '',
       display_mode: q.dspl

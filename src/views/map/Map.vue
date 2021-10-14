@@ -76,6 +76,9 @@ import {URLQueryRaw as MeasurementPageURLQueryRaw} from '@/views/measurement/typ
 import {ExportFileType} from '@/components/ExportBtn.vue'
 import Pollutant from '@/entities/Pollutant'
 
+const _queryToArray = (itm: string | string[] | undefined) =>
+  (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
+
 @Component({
   components: {
     SelectBoxCities,
@@ -110,6 +113,7 @@ export default class ViewMap extends Vue {
     return {
       level: _toLowerString(q.lvl) as MapChartLevel | undefined,
       basemap: _toLowerString(q.bmap) as MapChartBasemap | undefined,
+      pollutants: _queryToArray(q.pl),
     }
   }
 
@@ -117,6 +121,7 @@ export default class ViewMap extends Vue {
     const query: URLQueryRaw = {
       lvl: inputQuery.level,
       bmap: inputQuery.basemap,
+      pl: inputQuery.pollutants,
     }
 
     for (const _key in query) {
@@ -188,8 +193,6 @@ export default class ViewMap extends Vue {
 
     await this.setUrlQueryDefaults()
 
-    // let pollutants: Pollutant[] = []
-
     if (this.urlQuery.level === MapChartLevel.city) {
       const cities = await this.fetchCities()
       this.chartData.cities = cities
@@ -197,25 +200,25 @@ export default class ViewMap extends Vue {
     } else if (this.urlQuery.level === MapChartLevel.station) {
       const stations = await this.fetchStations()
       this.chartData.stations = stations
-      // this.chartData.pollutants = this.execPollutantsFromItems(stations)
+      this.chartData.pollutants = this.execPollutantsFromItems(stations)
     }
 
     // filter only existing pollutants
-    const pollutantsIdsMap =
-      this.urlQuery.pollutants?.reduce(
-        (memo: {[id: string]: number}, id: Pollutant['id']) => {
-          memo[id] = 1
-          return memo
-        },
-        {}
-      ) || {}
-    const existingPollutants = Object.keys(pollutantsIdsMap).length
-      ? this.chartData.pollutants.filter((itm) => pollutantsIdsMap[itm.id])
+    const queryPollutantsIdsMap = (this.urlQuery.pollutants || []).reduce(
+      (memo: {[id: string]: number}, id: Pollutant['id']) => {
+        memo[id] = 1
+        return memo
+      },
+      {}
+    )
+    let visiblePollutants = Object.keys(queryPollutantsIdsMap).length
+      ? this.chartData.pollutants.filter((itm) => queryPollutantsIdsMap[itm.id])
       : []
+    if (!visiblePollutants.length) visiblePollutants = this.chartData.pollutants
 
     await this.setUrlQuery({
       ...this.urlQuery,
-      pollutants: existingPollutants.map((i) => i.id),
+      pollutants: visiblePollutants.map((i) => i.id),
     })
 
     this.$map?.refreshMapMarkers()
@@ -264,16 +267,33 @@ export default class ViewMap extends Vue {
     return items || []
   }
 
-  private execPollutantsFromItems(items: City[]): Pollutant[] {
+  private execPollutantsFromItems(items: (City | Station)[]): Pollutant[] {
     const map = this.execPollutantsMapFromItems(items)
     const pollutants = _orderBy(Object.values(map), 'id')
     return pollutants
   }
 
-  private execPollutantsMapFromItems(items: City[]): {
+  private execPollutantsMapFromItems(items: (City | Station)[] = []): {
     [pollutantId: string]: Pollutant
   } {
-    return {}
+    return items.reduce(
+      (memo: {[pollutantId: string]: Pollutant}, item: Station | City) => {
+        const pollutantsIds: string[] = item.pollutants || []
+
+        for (const _pollutantId of pollutantsIds) {
+          const pollutantId = _pollutantId?.toLowerCase() || ''
+          if (pollutantId && !memo[pollutantId]) {
+            memo[pollutantId] = {
+              id: pollutantId,
+              label: pollutantId.toUpperCase(),
+            }
+          }
+        }
+
+        return memo
+      },
+      {}
+    )
   }
 
   private async onChangeQuery(query: URLQuery) {

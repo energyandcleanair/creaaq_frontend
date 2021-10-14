@@ -29,6 +29,33 @@
         </v-col>
       </v-row>
 
+      <v-row no-gutters>
+        <v-col
+          class="text-subtitle-1"
+          cols="12"
+        >{{ $t('pollutants') }}</v-col>
+
+        <v-col
+          v-if="pollutants.length"
+          class="pl-1"
+          cols="12"
+        >
+          <v-checkbox
+            v-for="item of pollutants"
+            :input-value="queryParams.pollutants"
+            :key="item.id"
+            :value="item.id"
+            :label="item.label"
+            color="primary"
+            hide-details
+            :disabled="queryParams.pollutants.length <= 1
+              && queryParams.pollutants.includes(item.id)
+            "
+            @change="onChangeForm('pollutants', $event)"
+          />
+        </v-col>
+      </v-row>
+
       <!-- <v-row no-gutters>
         <v-col
           class="text-subtitle-1"

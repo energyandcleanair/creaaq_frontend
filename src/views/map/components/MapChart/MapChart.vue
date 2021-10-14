@@ -40,6 +40,7 @@
               :key="marker.id"
               :lat-lng="marker.coordinates"
               :icon="selectedMarkersIds.includes(marker.id) ? iconSelected : iconPrimary"
+              rise-on-hover
               @click="onClickMapMarker(marker.id)"
             >
               <l-popup
@@ -101,9 +102,10 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import _set from 'lodash.set'
+import _debounce from 'lodash.debounce'
 import _orderBy from 'lodash.orderby'
 import Leaflet, {Icon, LatLngBounds} from 'leaflet'
-import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
+import {Component, Vue, Prop, Ref, Watch} from 'vue-property-decorator'
 import {LMap, LTileLayer, LMarker, LTooltip, LPopup} from 'vue2-leaflet'
 import Vue2LeafletMarkerCluster from 'vue2-leaflet-markercluster'
 import {mdiArrowExpandAll} from '@mdi/js'
@@ -114,6 +116,7 @@ import URLQuery from '../../types/URLQuery'
 import ChartData from './MapChartData'
 import {_runIteration} from '@/utils'
 import moment from 'moment'
+import Pollutant from '@/entities/Pollutant'
 
 type D = Icon.Default & {_getIconUrl?: string}
 delete (Icon.Default.prototype as D)._getIconUrl
@@ -157,6 +160,10 @@ interface MapMarker {
     title: string
     params: Record<string, any>
   }
+}
+
+interface MapFilter {
+  [id: string]: number
 }
 
 @Component({
@@ -260,31 +267,39 @@ export default class MapChart extends Vue {
     // }
   }
 
-  public async refreshMapMarkers() {
-    this.isLoading = true
-    this.mapMarkers = []
-    const markers = this.getMapMarkers()
+  @Watch('queryParams.pollutants')
+  private onFilterChanged() {
+    this.refreshMapMarkers()
+  }
 
-    const chunkSize = 300
-    const numTimes = markers.length / chunkSize
-    const delay = 100
+  public get refreshMapMarkers() {
+    return _debounce(async () => {
+      this.isLoading = true
+      this.mapMarkers = []
+      const markers = this.getMapMarkers()
 
-    await _runIteration(
-      (index: number) => {
-        const _markers = markers.slice(
-          index * chunkSize,
-          index * chunkSize + chunkSize
-        )
-        this.mapMarkers.push(..._markers)
-        if (index % 3 === 0) this.fitAllMarkers()
-      },
-      numTimes,
-      delay
-    )
+      const chunkSize = 300
+      // const numTimes = markers.length / chunkSize
+      const numTimes = 2
+      const delay = 100
 
-    setTimeout(() => this.fitAllMarkers(), 100)
-    this.$emit('markers:added')
-    this.isLoading = false
+      await _runIteration(
+        (index: number) => {
+          const _markers = markers.slice(
+            index * chunkSize,
+            index * chunkSize + chunkSize
+          )
+          this.mapMarkers.push(..._markers)
+          if (index % 3 === 0) this.fitAllMarkers()
+        },
+        numTimes,
+        delay
+      )
+
+      setTimeout(() => this.fitAllMarkers(), 100)
+      this.$emit('markers:added')
+      this.isLoading = false
+    }, 800)
   }
 
   private selectStation(stationId: Station['id']) {
@@ -297,14 +312,30 @@ export default class MapChart extends Vue {
     const cities = this.chartData.cities
     const stations = this.chartData.stations
 
+    let filterPollutants: MapFilter | null = (
+      this.queryParams.pollutants || []
+    ).reduce(
+      (memo: MapFilter, id: Pollutant['id']) => (memo[id] = 1) && memo,
+      {}
+    )
+    if (!Object.keys(filterPollutants).length) filterPollutants = null
+
+    const filterCb = (item: City | Station | null): boolean => {
+      if (!item || !filterPollutants) return false
+      for (const pollutantId of item.pollutants || []) {
+        if (!_valuePassesFilter(pollutantId, filterPollutants)) return false
+      }
+      return true
+    }
+
     if (this.queryParams.level === 'city') {
       return cities
-        .map((itm) => this._genMarker('city', itm))
-        .filter((i) => i) as MapMarker[]
+        .filter(filterCb)
+        .map((itm) => this._genMarker('city', itm)) as MapMarker[]
     } else if (this.queryParams.level === 'station') {
       return stations
-        .map((itm) => this._genMarker('station', itm))
-        .filter((i) => i) as MapMarker[]
+        .filter(filterCb)
+        .map((itm) => this._genMarker('station', itm)) as MapMarker[]
     } else {
       return []
     }
@@ -432,6 +463,13 @@ export default class MapChart extends Vue {
     this.selectStation(station.id)
     this.mapMoveToStation(station.id)
   }
+}
+
+function _valuePassesFilter(
+  filterKey: any,
+  filterMap: MapFilter | null
+): boolean {
+  return !filterMap || (filterKey && filterMap[filterKey])
 }
 </script>
 

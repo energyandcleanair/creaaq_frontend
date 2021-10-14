@@ -26,4 +26,7 @@ export interface URLQueryRaw {
 
   // basemap
   bmap?: string
+
+  // pollutants
+  pl?: string[]
 }
