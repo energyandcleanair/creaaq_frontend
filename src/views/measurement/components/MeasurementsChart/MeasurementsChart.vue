@@ -234,7 +234,7 @@ export default class MeasurementsChart extends Vue {
   }
 
   // TODO: to improve the performance we can separate the data and display opts
-  // TODO: add chaching of traces that were not updated
+  // TODO: add caching of traces that were not updated
   private get chartsRows(): ChartRow[] {
     if (this.loading) return []
 
@@ -412,10 +412,10 @@ export default class MeasurementsChart extends Vue {
     const dateStartYear: number = dateStart ? moment(dateStart).year() : 0
     const dateEnd: number = toNumberDate(this.queryParams.date_end || '') || 0
     let rangeBox: RangeBox = {
-      x0: -Infinity,
-      y0: -Infinity,
-      x1: Infinity,
-      y1: Infinity,
+      x0: -0,
+      y0: -0,
+      x1: 0,
+      y1: 0,
     }
 
     const tracesMap: {[location_id: string]: ChartTracePoint[]} = {
@@ -825,10 +825,10 @@ function _mergeItemsRangeBoxes(
   propName: string = 'rangeBox'
 ): RangeBox {
   const rangeBox: RangeBox = {
-    x0: -Infinity,
-    y0: -Infinity,
-    x1: Infinity,
-    y1: Infinity,
+    x0: -0,
+    y0: -0,
+    x1: 0,
+    y1: 0,
   }
 
   for (const item of items) {
