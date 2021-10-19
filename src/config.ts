@@ -1,4 +1,9 @@
-interface ConfigParams {
+export interface MapLayerConfig {
+  url: string
+  attribution?: string
+}
+
+export interface ConfigParams {
   NODE_ENV: string
   APP_NAME: string
   APP_PUBLIC_NAME: string
@@ -8,6 +13,10 @@ interface ConfigParams {
   FIREBASE_PROJECT_ID: string
   FIREBASE_APP_ID: string
   LIMIT_FETCH_ITEMS_FROM_API: string
+  MAP_LAYERS: {
+    SATELLITE: MapLayerConfig
+    TERRAIN: MapLayerConfig
+  }
 }
 
 export default class ConfigProvider {
@@ -22,10 +31,21 @@ export default class ConfigProvider {
       FIREBASE_PROJECT_ID: '$FIREBASE_PROJECT_ID',
       FIREBASE_APP_ID: '$FIREBASE_APP_ID',
       LIMIT_FETCH_ITEMS_FROM_API: '$LIMIT_FETCH_ITEMS_FROM_API',
+      MAP_LAYERS: {
+        SATELLITE: {
+          url:
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          attribution:
+            'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        },
+        TERRAIN: {
+          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        },
+      },
     }
   }
 
-  public static get(name: keyof ConfigParams): string | undefined {
+  public static get(name: keyof ConfigParams): string | any | undefined {
     if (!(name in this.CONFIG)) {
       return
     }
@@ -36,7 +56,7 @@ export default class ConfigProvider {
       return
     }
 
-    if (value.startsWith('$')) {
+    if (typeof value === 'string' && value.startsWith('$')) {
       const envName = value.substr(1)
       const envValue = process.env[envName]
       const envValue2 = process.env['VUE_APP_' + envName]

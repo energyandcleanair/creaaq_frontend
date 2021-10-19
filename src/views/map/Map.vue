@@ -298,9 +298,8 @@ export default class ViewMap extends Vue {
 
   private async onChangeQuery(query: URLQuery) {
     const changedLvl = this.urlQuery.level !== query.level
-    const changedBasemap = this.urlQuery.basemap !== query.basemap
     await this.setUrlQuery(query)
-    if (changedLvl || changedBasemap) this.onClickRefresh()
+    if (changedLvl) this.onClickRefresh()
   }
 
   private async onClickMapMarkerAction(item: City | Station) {

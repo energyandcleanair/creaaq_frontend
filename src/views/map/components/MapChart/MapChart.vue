@@ -31,7 +31,15 @@
           :options="mapOptions"
           @ready="onMapInitialized"
         >
-          <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <l-tile-layer
+            v-if="basemap === 'satellite'"
+            :url="MAP_LAYERS.SATELLITE.url"
+            :attribution="MAP_LAYERS.SATELLITE.attribution"
+          />
+          <l-tile-layer
+            v-else
+            :url="MAP_LAYERS.TERRAIN.url"
+          />
 
           <v-marker-cluster>
             <l-marker
@@ -108,11 +116,12 @@ import Leaflet, {Icon, LatLngBounds} from 'leaflet'
 import {Component, Vue, Prop, Ref, Watch} from 'vue-property-decorator'
 import {LMap, LTileLayer, LMarker, LTooltip, LPopup} from 'vue2-leaflet'
 import Vue2LeafletMarkerCluster from 'vue2-leaflet-markercluster'
+import config, {MapLayerConfig} from '@/config'
 import {mdiArrowExpandAll} from '@mdi/js'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import Coordinates from '@/entities/Coordinates'
-import URLQuery from '../../types/URLQuery'
+import URLQuery, {MapChartBasemap} from '../../types/URLQuery'
 import ChartData from './MapChartData'
 import {_runIteration} from '@/utils'
 import moment from 'moment'
@@ -214,6 +223,14 @@ export default class MapChart extends Vue {
     this.privateisLoading = val
   }
 
+  private get basemap(): MapChartBasemap {
+    return this.queryParams?.basemap || MapChartBasemap.terrain
+  }
+
+  private get MAP_LAYERS(): MapLayerConfig {
+    return config.get('MAP_LAYERS')
+  }
+
   private get selectedMarkersIds(): Station['id'][] {
     return [
       ...(this.queryParams.cities || []),
@@ -268,8 +285,10 @@ export default class MapChart extends Vue {
   }
 
   @Watch('queryParams.pollutants')
-  private onFilterChanged() {
-    this.refreshMapMarkers()
+  private onFilterChanged(newVal: string[], oldVal: string[]) {
+    const val1 = newVal?.join(',')
+    const val2 = oldVal?.join(',')
+    if (val1 !== val2) this.refreshMapMarkers()
   }
 
   public get refreshMapMarkers() {

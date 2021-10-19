@@ -68,7 +68,6 @@
         >
           <v-radio-group
             :value="queryBasemap"
-            disabled
             hide-details
             @change="onChangeForm('basemap', $event)"
           >

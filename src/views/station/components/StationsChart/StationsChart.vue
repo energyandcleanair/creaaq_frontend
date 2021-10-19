@@ -61,7 +61,7 @@
             :options="mapOptions"
             @ready="onMapInitialized"
           >
-            <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <l-tile-layer :url="MAP_LAYERS.TERRAIN.url" />
 
             <l-marker
               :ref="`marker--${marker.id}`"
@@ -121,6 +121,7 @@ import _orderBy from 'lodash.orderby'
 import moment from 'moment'
 import json2csv from 'json2csv'
 import {saveAs} from 'file-saver'
+import config, {MapLayerConfig} from '@/config'
 import Leaflet, {Icon, LatLngBounds} from 'leaflet'
 import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
 import {LMap, LTileLayer, LMarker, LTooltip} from 'vue2-leaflet'
@@ -217,6 +218,10 @@ export default class StationsChart extends Vue {
       ...this.queryParams,
       stations,
     })
+  }
+
+  private get MAP_LAYERS(): MapLayerConfig {
+    return config.get('MAP_LAYERS')
   }
 
   private get cities(): City[] {
