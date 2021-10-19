@@ -15,7 +15,6 @@ export enum MeasurementLevels {
   city = 'city',
 }
 
-// TODO: approve the schema
 export default class Violation {
   public id!: string
   public name!: string
