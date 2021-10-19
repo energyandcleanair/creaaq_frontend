@@ -39,6 +39,9 @@ export const colors = {
   darkPurple: {
     base: '#741b47',
   },
+  grey: {
+    base: '#ccc',
+  },
 }
 
 export default {

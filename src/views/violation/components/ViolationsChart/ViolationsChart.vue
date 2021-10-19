@@ -169,6 +169,7 @@ interface TooltipParams {
   subtitle: string
   tableHeaders: any[]
   tableItems: any[]
+  numExceedViolations: number
 }
 
 const TOOLTIP_DEFAULTS = {
@@ -178,6 +179,7 @@ const TOOLTIP_DEFAULTS = {
   subtitle: '',
   tableHeaders: [],
   tableItems: [],
+  numExceedViolations: 0,
 }
 
 @Component({
@@ -358,17 +360,26 @@ export default class ViolationsChart extends Vue {
               key.replace(/-/g, '.')
             ) as any as Violation[] | undefined
 
-            const violationsNum: number =
-              +$date >= _tomorrow ? -1 : dateViolations?.length || -1
+            const tooltipParams = this.genDateTooltipParams(
+              $date,
+              dateViolations || [],
+              this.chartData.targets || []
+            )
+
+            let violationsNum: number | undefined
+
+            if (dateViolations?.length) {
+              if (+$date >= _tomorrow) {
+                violationsNum = -1
+              } else {
+                violationsNum = tooltipParams.numExceedViolations || 0
+              }
+            }
 
             col.dates[date] = {
               color: _getViolationsColor(violationsNum),
               violations: dateViolations || [],
-              tooltip: this.genDateTooltipParams(
-                $date,
-                dateViolations || [],
-                this.chartData.targets || []
-              ),
+              tooltip: tooltipParams,
             }
           }
 
@@ -391,14 +402,14 @@ export default class ViolationsChart extends Vue {
     violations: Violation[],
     targets: Target[]
   ): TooltipParams {
-    let numRedViolations = 0
+    let numExceedViolations = 0
 
     const tableItems = violations.map((item) => {
       const target = targets.find((i) => i.id === item.target_id)
       const value = Math.round(item.value || 0)
       const target_value = Math.round(item.target_value || 0)
       const exceeded = value > target_value
-      if (exceeded) numRedViolations++
+      if (exceeded) numExceedViolations++
       return {
         exceeded,
         class: exceeded ? 'red--text' : 'green--text',
@@ -409,13 +420,16 @@ export default class ViolationsChart extends Vue {
       }
     })
 
-    const tooltipParams: any = {
+    const tooltipParams: TooltipParams = {
       title: (
-        numRedViolations +
+        numExceedViolations +
         ' ' +
-        (numRedViolations <= 1 ? this.$t('violation') : this.$t('violations'))
+        (numExceedViolations <= 1
+          ? this.$t('violation')
+          : this.$t('violations'))
       ).toLowerCase(),
       subtitle: $date.format('D MMMM YYYY'),
+      numExceedViolations,
       tableHeaders: [
         {
           text: '',
@@ -453,9 +467,17 @@ const VIOLATIONS_SCALE = chroma.scale([
 const PALETTE_COLORS = VIOLATIONS_SCALE.mode('lch').colors(
   VIOLATIONS_PALETTE_SIZE + 1
 )
-function _getViolationsColor(num: number): string {
+function _getViolationsColor(num: undefined | number): string {
+  // no data
+  if (num === undefined) return theme.colors.grey.base
+
+  // transparent (in the future for example)
   if (num === -1) return ''
+
+  // no violations
   if (num === 0) return theme.colors.green.base
+
+  // there are violations
   const percentage = num / (VIOLATIONS_HIGHEST_AMOUNT / 100)
   const scaleVal =
     num >= VIOLATIONS_HIGHEST_AMOUNT ? 1 : Math.min(1, percentage / 100)
