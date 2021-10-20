@@ -352,6 +352,8 @@ export default class StationsChart extends Vue {
       this.tableMoveToStation(this.selectedStationsIds[0])
       this.mapMoveToStation(this.selectedStationsIds[0])
       this.selectStation(this.selectedStationsIds[0])
+    } else {
+      this.fitAllMarkers()
     }
   }
 
