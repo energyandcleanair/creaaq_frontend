@@ -216,7 +216,7 @@ export default class ViewViolations extends Vue {
     this.$loader.on()
     this.isChartLoading = true
 
-    this.setUrlQueryDefaults()
+    await this.setUrlQueryDefaults()
 
     const cities = await this.fetchCities()
     this.chartData.cities = cities
@@ -423,7 +423,7 @@ export default class ViewViolations extends Vue {
     date_from?: string
     sort_by?: string
   }): Promise<Violation[]> {
-    const $startDate = moment(query.date_from)
+    const $startDate = moment(query.date_from || toURLStringDate(JAN_1))
     const q = {
       ...query,
       date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT),
