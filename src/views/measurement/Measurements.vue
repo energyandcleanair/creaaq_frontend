@@ -744,7 +744,7 @@ export default class ViewMeasurements extends Vue {
       const blob = new Blob([csv], {type: 'application/csvcharset=utf-8'})
       saveAs(blob, filename)
       this.$loader.off()
-    } catch (err) {
+    } catch (err: any) {
       this.$loader.off()
       console.error(err)
       this.$dialog.notify.error(

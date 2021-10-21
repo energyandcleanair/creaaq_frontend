@@ -1,3 +1,5 @@
+import chroma from 'chroma-js'
+
 export const colors = {
   darkBlue: {
     base: '#35416C',
@@ -46,4 +48,28 @@ export const colors = {
 
 export default {
   colors,
+  leafletMapCircleMarkerProps: {
+    primary: {
+      radius: 6,
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.5,
+      fillColor: colors.darkBlue.base,
+      color: colors.darkBlue.base,
+    },
+    primarySelected: {
+      radius: 10,
+      weight: 3,
+      opacity: 1,
+      fillOpacity: 0.4,
+      fillColor: chroma(colors.darkBlue.base)
+        .brighten(2)
+        .saturate(3)
+        .toString(),
+      color: chroma(colors.darkBlue.base)
+        .brighten(2)
+        .saturate(3)
+        .toString(),
+    },
+  },
 }

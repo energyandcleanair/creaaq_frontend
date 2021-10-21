@@ -29,6 +29,10 @@ export function getAverage(arr: number[]): number {
   return arr.reduce((acc, val) => acc + val, 0) / arr.length
 }
 
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export function _runIteration(
   fn: any,
   numTimes: number,

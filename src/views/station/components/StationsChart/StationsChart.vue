@@ -38,7 +38,7 @@
             :items="tableItems"
             :options.sync="tableOptions"
             :items-per-page="5"
-            :item-class="(item) => selectedStationsIds.includes(item.id) && 'selected-row'"
+            :item-class="(item) => selectedMarkersIdsMap[item.id] && 'selected-row'"
             @click:row="onClickTableRow"
           />
 
@@ -63,22 +63,22 @@
           >
             <l-tile-layer :url="MAP_LAYERS.TERRAIN.url" />
 
-            <l-marker
+            <l-circle-marker
               :ref="`marker--${marker.id}`"
               v-for="marker of mapMarkers"
               :key="marker.id"
               :lat-lng="marker.coordinates"
-              :icon="selectedStationsIds.includes(marker.station.id) ? iconSelected : iconPrimary"
+              v-bind="selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary"
               @click="onClickMapMarker(marker.station.id)"
             >
               <l-tooltip
-                :class="{'tooltip--selected': selectedStationsIds.includes(marker.station.id)}"
+                :class="{'tooltip--selected': selectedMarkersIdsMap[marker.id]}"
                 :options="{
-                permanent: permanentTooltipOnSelected,
-                interactive: false,
-                direction: 'top',
-                offset: {x: 0, y: -41}
-              }"
+                  permanent: permanentTooltipOnSelected,
+                  interactive: false,
+                  direction: 'top',
+                  offset: {x: 0, y: -iconSelected.radius}
+                }"
               >
                 <div class="pb-2">
                   <b class="text-title font-weight-bold">
@@ -95,7 +95,7 @@
                 </div>
 
               </l-tooltip>
-            </l-marker>
+            </l-circle-marker>
 
             <div class="leaflet-bottom leaflet-left">
               <v-btn
@@ -121,50 +121,18 @@ import _orderBy from 'lodash.orderby'
 import moment from 'moment'
 import json2csv from 'json2csv'
 import {saveAs} from 'file-saver'
-import config, {MapLayerConfig} from '@/config'
-import Leaflet, {Icon, LatLngBounds} from 'leaflet'
-import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
-import {LMap, LTileLayer, LMarker, LTooltip} from 'vue2-leaflet'
 import {mdiArrowExpandAll} from '@mdi/js'
+import Leaflet, {LatLngBounds} from 'leaflet'
+import {LMap, LTileLayer, LCircleMarker, LTooltip} from 'vue2-leaflet'
+import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
+import theme from '@/theme'
+import config, {MapLayerConfig} from '@/config'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
+import Coordinates from '@/entities/Coordinates'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import URLQuery from '../../types/URLQuery'
 import ChartData from './ChartData'
-import Coordinates from '@/entities/Coordinates'
-
-type D = Icon.Default & {_getIconUrl?: string}
-delete (Icon.Default.prototype as D)._getIconUrl
-
-Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
-})
-
-const iconPrimary = new Leaflet.Icon({
-  className: 'icon-primary',
-  iconUrl:
-    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
-  shadowUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  tooltipAnchor: [1, 0],
-  shadowSize: [41, 41],
-})
-
-const iconSelected = new Leaflet.Icon({
-  className: 'icon-selected',
-  iconUrl:
-    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  tooltipAnchor: [1, 0],
-  shadowSize: [41, 41],
-})
 
 interface MapMarker {
   id: string
@@ -176,7 +144,7 @@ interface MapMarker {
   components: {
     LMap,
     LTileLayer,
-    LMarker,
+    LCircleMarker,
     LTooltip,
     ExportBtn,
   },
@@ -201,8 +169,8 @@ export default class StationsChart extends Vue {
   public readonly permanentTooltipOnSelected!: boolean
 
   private mdiArrowExpandAll = mdiArrowExpandAll
-  private iconPrimary = iconPrimary
-  private iconSelected = iconSelected
+  private iconPrimary = theme.leafletMapCircleMarkerProps.primary
+  private iconSelected = theme.leafletMapCircleMarkerProps.primarySelected
   private tableOptions = {
     page: 1,
     itemsPerPage: 5,
@@ -218,6 +186,15 @@ export default class StationsChart extends Vue {
       ...this.queryParams,
       stations,
     })
+  }
+  private get selectedMarkersIdsMap(): Record<Station['id'], number> {
+    return this.selectedStationsIds.reduce(
+      (map: Record<Station['id'], number>, id: Station['id']) => {
+        map[id] = 1
+        return map
+      },
+      {}
+    )
   }
 
   private get MAP_LAYERS(): MapLayerConfig {
@@ -401,7 +378,7 @@ export default class StationsChart extends Vue {
     if (!stationId) return
     if (!this.$map?.mapObject) return
 
-    const $refs = this.$refs[`marker--${stationId}`] as LMarker[]
+    const $refs = this.$refs[`marker--${stationId}`] as LCircleMarker[]
     const $marker = $refs?.[0]?.mapObject
     if (!$marker) return
 
@@ -461,7 +438,7 @@ export default class StationsChart extends Vue {
       const blob = new Blob([csv], {type: 'application/csvcharset=utf-8'})
       saveAs(blob, filename)
       this.$loader.off()
-    } catch (err) {
+    } catch (err: any) {
       this.$loader.off()
       console.error(err)
       this.$dialog.notify.error(
