@@ -84,7 +84,6 @@
           </v-tooltip>
 
           <Plotly
-            class-name="ooops"
             :ref="`chart:${col.id}`"
             :id="`chart:${col.id}`"
             :data="col.data"
