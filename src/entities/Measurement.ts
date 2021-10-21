@@ -10,6 +10,7 @@ export enum MeasurementProcesses {
 
 export enum MeasurementLevels {
   city = 'city',
+  station = 'station',
 }
 
 // TODO: approve the schema

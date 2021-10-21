@@ -1,5 +1,6 @@
 import City from '@/entities/City'
 import Pollutant from '@/entities/Pollutant'
+import Source from '@/entities/Source'
 import Station from '@/entities/Station'
 
 export enum MapChartLevel {
@@ -18,6 +19,7 @@ export default interface URLQuery {
   pollutants?: Pollutant['id'][]
   cities?: City['id'][]
   stations?: Station['id'][]
+  sources?: Source['id'][]
 }
 
 export interface URLQueryRaw {
@@ -29,4 +31,7 @@ export interface URLQueryRaw {
 
   // pollutants
   pl?: string[]
+
+  // sources
+  sr?: string[]
 }

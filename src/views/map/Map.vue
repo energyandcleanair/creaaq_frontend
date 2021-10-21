@@ -45,7 +45,7 @@
         class="fill-height"
         :queryParams="urlQuery"
         :chartData="chartData"
-        :loading="isChartLoading"
+        :loading="isChartLoading || isLoading"
         @click:markerAction="onClickMapMarkerAction"
         @update:queryParams="onChangeQuery"
       />
@@ -56,9 +56,11 @@
 <script lang="ts">
 import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
+import _debounce from 'lodash.debounce'
 import _difference from 'lodash.difference'
 import {Component, Ref, Vue} from 'vue-property-decorator'
 import config from '@/config'
+import {sleep} from '@/utils'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import CityAPI from '@/api/CityAPI'
@@ -75,6 +77,8 @@ import URLQuery, {
 import {URLQueryRaw as MeasurementPageURLQueryRaw} from '@/views/measurement/types/URLQuery'
 import {ExportFileType} from '@/components/ExportBtn.vue'
 import Pollutant from '@/entities/Pollutant'
+import Source from '@/entities/Source'
+import {MeasurementLevels} from '@/entities/Measurement'
 
 const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
@@ -101,6 +105,7 @@ export default class ViewMap extends Vue {
     cities: [],
     stations: [],
     pollutants: [],
+    sources: [],
   }
 
   private get urlQuery(): URLQuery {
@@ -114,6 +119,7 @@ export default class ViewMap extends Vue {
       level: _toLowerString(q.lvl) as MapChartLevel | undefined,
       basemap: _toLowerString(q.bmap) as MapChartBasemap | undefined,
       pollutants: _queryToArray(q.pl),
+      sources: _queryToArray(q.sr),
     }
   }
 
@@ -122,6 +128,7 @@ export default class ViewMap extends Vue {
       lvl: inputQuery.level,
       bmap: inputQuery.basemap,
       pl: inputQuery.pollutants,
+      sr: inputQuery.sources,
     }
 
     for (const _key in query) {
@@ -201,6 +208,7 @@ export default class ViewMap extends Vue {
       const stations = await this.fetchStations()
       this.chartData.stations = stations
       this.chartData.pollutants = this.execPollutantsFromItems(stations)
+      this.chartData.sources = this.execSourcesFromStations(stations)
     }
 
     // filter only existing pollutants
@@ -216,9 +224,25 @@ export default class ViewMap extends Vue {
       : []
     if (!visiblePollutants.length) visiblePollutants = this.chartData.pollutants
 
+    // filter only existing sources
+    const querySourcesIdsMap = (this.urlQuery.sources || []).reduce(
+      (memo: {[id: string]: number}, id: Pollutant['id']) => {
+        memo[id] = 1
+        return memo
+      },
+      {}
+    )
+    let visibleSources = Object.keys(querySourcesIdsMap).length
+      ? this.chartData.sources.filter((itm) => querySourcesIdsMap[itm.id])
+      : []
+    if (!visibleSources.length && this.chartData.sources[0]) {
+      visibleSources = [this.chartData.sources[0]]
+    }
+
     await this.setUrlQuery({
       ...this.urlQuery,
       pollutants: visiblePollutants.map((i) => i.id),
+      sources: visibleSources.map((i) => i.id),
     })
 
     this.$map?.refreshMapMarkers()
@@ -296,10 +320,52 @@ export default class ViewMap extends Vue {
     )
   }
 
-  private async onChangeQuery(query: URLQuery) {
-    const changedLvl = this.urlQuery.level !== query.level
-    await this.setUrlQuery(query)
-    if (changedLvl) this.onClickRefresh()
+  private execSourcesFromStations(items: Station[]): Source[] {
+    const map = this.execSourcesMapFromStations(items)
+    const sources = _orderBy(Object.values(map), 'id')
+    return sources
+  }
+
+  private execSourcesMapFromStations(items: Station[] = []): {
+    [sourceId: string]: Source
+  } {
+    return items.reduce((memo: {[sourceId: string]: Source}, item: Station) => {
+      const sourceId: Source['id'] | undefined = item.source?.toLowerCase()
+
+      if (sourceId && !memo[sourceId]) {
+        memo[sourceId] = {
+          id: sourceId,
+          label: item.source?.toUpperCase() || '?',
+          cityId: item.city_id,
+          level: MeasurementLevels.station,
+        }
+      }
+
+      return memo
+    }, {})
+  }
+
+  private get onChangeQuery() {
+    return _debounce(async (query: URLQuery) => {
+      this.isChartLoading = true
+
+      await sleep(0)
+
+      const changedLvl = this.urlQuery.level !== query.level
+      const changedSources =
+        this.urlQuery.sources?.join(',') !== query.sources?.join(',')
+
+      await this.setUrlQuery(query)
+
+      if (changedLvl) {
+        await this.onClickRefresh()
+      } else if (changedSources) {
+        await this.$map?.refreshMapMarkers()
+      }
+
+      await sleep(100)
+      this.isChartLoading = false
+    }, 300)
   }
 
   private async onClickMapMarkerAction(item: City | Station) {

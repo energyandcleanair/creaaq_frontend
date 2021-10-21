@@ -29,6 +29,36 @@
         </v-col>
       </v-row>
 
+      <v-row
+        v-if="queryLevel === 'station'"
+        no-gutters
+      >
+        <v-col
+          class="text-subtitle-1"
+          cols="12"
+        >{{ $t('sources') }}</v-col>
+
+        <v-col
+          v-if="chartData.sources.length"
+          class="d-flex pl-1"
+          cols="12"
+        >
+          <v-radio-group
+            :value="queryParams.sources && queryParams.sources[0]"
+            color="primary"
+            hide-details
+            @change="onChangeForm('sources', [$event])"
+          >
+            <v-radio
+              v-for="item of chartData.sources"
+              :key="item.id"
+              :label="item.label"
+              :value="item.id"
+            />
+          </v-radio-group>
+        </v-col>
+      </v-row>
+
       <v-row no-gutters>
         <v-col
           class="text-subtitle-1"

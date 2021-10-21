@@ -41,54 +41,52 @@
             :url="MAP_LAYERS.TERRAIN.url"
           />
 
-          <v-marker-cluster>
-            <template v-for="markers of mapMarkersChunks">
-              <l-circle-marker
-                :ref="`marker--${marker.id}`"
-                v-for="marker of markers"
-                :key="marker.id"
-                :lat-lng="marker.coordinates"
-                rise-on-hover
-                v-bind="selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary"
-                @click="onClickMapMarker(marker.id)"
-              >
-                <l-popup
-                  v-if="marker.tooltip"
-                  :class="{'tooltip--selected': selectedMarkersIdsMap[marker.id]}"
-                  :options="{
+          <v-marker-cluster ref="clustersLayer">
+            <l-circle-marker
+              :ref="`marker--${marker.id}`"
+              v-for="marker of mapMarkers"
+              :key="marker.id"
+              :lat-lng="marker.coordinates"
+              rise-on-hover
+              v-bind="selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary"
+              @click="onClickMapMarker(marker.id)"
+            >
+              <l-popup
+                v-if="marker.tooltip"
+                :class="{'tooltip--selected': selectedMarkersIdsMap[marker.id]}"
+                :options="{
                 permanent: true,
                 interactive: true,
                 direction: 'top',
                 offset: {x: 0, y: 0}
               }"
-                >
-                  <b class="text-title font-weight-bold">
-                    {{ marker.tooltip.title }}
-                  </b>
+              >
+                <b class="text-title font-weight-bold">
+                  {{ marker.tooltip.title }}
+                </b>
 
-                  <div class="mt-3">
-                    <div
-                      class="text-body-2"
-                      v-for="(val, key) of marker.tooltip.params"
-                      :key="key"
-                    >
-                      <b>{{key}}:</b> {{ val }}
-                    </div>
-                  </div>
-
-                  <v-btn
-                    class="mt-3"
-                    color="primary"
-                    block
-                    depressed
-                    dense
-                    @click="onClickMarkerTooltipButton(marker)"
+                <div class="mt-3">
+                  <div
+                    class="text-body-2"
+                    v-for="(val, key) of marker.tooltip.params"
+                    :key="key"
                   >
-                    {{ $t('go_to_measurements') }}
-                  </v-btn>
-                </l-popup>
-              </l-circle-marker>
-            </template>
+                    <b>{{key}}:</b> {{ val }}
+                  </div>
+                </div>
+
+                <v-btn
+                  class="mt-3"
+                  color="primary"
+                  block
+                  depressed
+                  dense
+                  @click="onClickMarkerTooltipButton(marker)"
+                >
+                  {{ $t('go_to_measurements') }}
+                </v-btn>
+              </l-popup>
+            </l-circle-marker>
           </v-marker-cluster>
 
           <div class="leaflet-bottom leaflet-left">
@@ -127,8 +125,9 @@ import Station from '@/entities/Station'
 import Coordinates from '@/entities/Coordinates'
 import {sleep, _runIteration} from '@/utils'
 import Pollutant from '@/entities/Pollutant'
-import URLQuery, {MapChartBasemap} from '../../types/URLQuery'
+import URLQuery, {MapChartBasemap, MapChartLevel} from '../../types/URLQuery'
 import ChartData from './MapChartData'
+import Source from '@/entities/Source'
 
 interface MapMarker {
   id: City['id'] | Station['id']
@@ -176,7 +175,6 @@ export default class MapChart extends Vue {
 
   private privateisLoading: boolean = false
   private mapMarkers: MapMarker[] = []
-  private mapMarkersChunks: MapMarker[][] = []
   private mdiArrowExpandAll = mdiArrowExpandAll
   private iconPrimary = theme.leafletMapCircleMarkerProps.primary
   private iconSelected = theme.leafletMapCircleMarkerProps.primarySelected
@@ -280,8 +278,11 @@ export default class MapChart extends Vue {
   public get refreshMapMarkers() {
     return _debounce(async () => {
       this.isLoading = true
+
+      // let the loader appear
+      await sleep(10)
+
       this.mapMarkers = []
-      this.mapMarkersChunks = []
       const markers = this.getMapMarkers()
 
       this.$dialog.message.info(
@@ -290,21 +291,24 @@ export default class MapChart extends Vue {
       )
 
       // let the message above appear
-      await sleep(50)
+      await sleep(10)
 
       const firstChunkSize = 500
       const chunk1 = markers.slice(0, firstChunkSize)
-      this.mapMarkersChunks.push(chunk1)
+      this.mapMarkers.push(...chunk1)
 
-      setTimeout(() => {
-        this.fitAllMarkers()
-        const chunk2 = markers.slice(firstChunkSize)
-        this.mapMarkersChunks.push(chunk2)
+      // let the first chunk render
+      await sleep(10)
 
-        setTimeout(() => this.fitAllMarkers(), 100)
-        this.$emit('markers:added')
-        this.isLoading = false
-      }, 10)
+      this.fitAllMarkers()
+      const chunk2 = markers.slice(firstChunkSize)
+      this.mapMarkers.push(...chunk2)
+
+      await sleep(100)
+
+      this.fitAllMarkers()
+      this.$emit('markers:added')
+      this.isLoading = false
 
       // TODO: not in use. It's slower in 1.5 times than the solution above
       // const chunkSize = 3000
@@ -316,7 +320,7 @@ export default class MapChart extends Vue {
       //       index * chunkSize,
       //       index * chunkSize + chunkSize
       //     )
-      //     this.mapMarkersChunks.push(_markers)
+      //     this.mapMarkers.push(..._markers)
       //     if (index === 0 || index % 3 === 0) this.fitAllMarkers()
       //   },
       //   numTimes,
@@ -346,37 +350,56 @@ export default class MapChart extends Vue {
     )
     if (!Object.keys(filterPollutants).length) filterPollutants = null
 
+    let filterSources: MapFilter | null = null
+    if (this.queryParams.level === MapChartLevel.station) {
+      filterSources = (this.queryParams.sources || []).reduce(
+        (memo: MapFilter, id: Source['id']) => (memo[id] = 1) && memo,
+        {}
+      )
+      if (!Object.keys(filterSources).length) filterPollutants = null
+    }
+
     const filterCb = (item: City | Station | null): boolean => {
       if (!item || !filterPollutants) return false
+      const sourceId = (item as Station).source
+      if (sourceId) {
+        if (!_valuePassesFilter(sourceId, filterSources)) return false
+      }
       for (const pollutantId of item.pollutants || []) {
         if (!_valuePassesFilter(pollutantId, filterPollutants)) return false
       }
       return true
     }
 
-    if (this.queryParams.level === 'city') {
-      return cities
-        .filter(filterCb)
-        .map((itm) => this._genMarker('city', itm)) as MapMarker[]
-    } else if (this.queryParams.level === 'station') {
-      return stations
-        .filter(filterCb)
-        .map((itm) => this._genMarker('station', itm)) as MapMarker[]
+    if (this.queryParams.level === MapChartLevel.city) {
+      return cities.filter(filterCb).reduce((arr: MapMarker[], itm) => {
+        const marker = this._genMarker(MapChartLevel.city, itm)
+        if (marker) arr.push(marker)
+        return arr
+      }, [])
+    } else if (this.queryParams.level === MapChartLevel.station) {
+      return stations.filter(filterCb).reduce((arr: MapMarker[], itm) => {
+        const marker = this._genMarker(MapChartLevel.station, itm)
+        if (marker) arr.push(marker)
+        return arr
+      }, [])
     } else {
       return []
     }
   }
 
   private _genMarker(
-    type: 'city' | 'station',
+    type: MapChartLevel,
     item: City | Station
   ): MapMarker | null {
     if (!item) return null
 
     let coordinates: Coordinates | undefined
 
-    if (type === 'city') coordinates = (item as City).geometry
-    if (type === 'station') coordinates = (item as Station).coordinates
+    if (type === MapChartLevel.city) coordinates = (item as City).geometry
+    if (type === MapChartLevel.station) {
+      coordinates = (item as Station).coordinates
+    }
 
     if (!coordinates) return null
 
