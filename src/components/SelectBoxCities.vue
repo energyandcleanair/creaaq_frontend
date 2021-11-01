@@ -5,7 +5,7 @@
     </div>
 
     <treeselect
-      ref="input"
+      ref="tree"
       :value="value"
       :cacheOptions="false"
       :defaultOptions="filteredCountries"
@@ -55,7 +55,15 @@ import Treeselect, {ASYNC_SEARCH} from '@riophae/vue-treeselect'
 import _orderBy from 'lodash.orderby'
 import _sortBy from 'lodash.sortby'
 import CountryFlag from 'vue-country-flag'
-import {Vue, Component, Model, Prop, Emit, Watch} from 'vue-property-decorator'
+import {
+  Vue,
+  Component,
+  Model,
+  Prop,
+  Emit,
+  Watch,
+  Ref,
+} from 'vue-property-decorator'
 import City from '@/entities/City'
 import {_runIteration} from '@/utils'
 
@@ -66,6 +74,9 @@ import {_runIteration} from '@/utils'
   },
 })
 export default class SelectBoxCities extends Vue {
+  @Ref('tree')
+  readonly $tree!: any
+
   @Model('input', {type: Array})
   readonly value!: any[]
 
@@ -138,16 +149,14 @@ export default class SelectBoxCities extends Vue {
   @Emit('input')
   private onChangeValue(value: any) {
     setTimeout(() => {
-      const $input: any = this.$refs.input
-      $input?.initialize()
+      this.$tree?.initialize()
     }, 300)
   }
 
   @Watch('items')
   private onChangeValue2(value: any) {
     setTimeout(() => {
-      const $input: any = this.$refs.input
-      $input?.initialize()
+      this.$tree?.initialize()
     }, 300)
   }
 
