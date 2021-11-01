@@ -372,7 +372,7 @@ export default class MeasurementsChart extends Vue {
       case 'md':
         return 2
       case 'lg':
-        return 3
+        return 2
       case 'xl':
         return 4
       default:
@@ -662,6 +662,7 @@ export default class MeasurementsChart extends Vue {
       margin,
       xaxis: {
         visible: !isEmpty,
+        showline: false,  // conflicts with yaxis zeroline. Using css instead
         linecolor: '#eee',
         linewidth: 1,
         mirror: true,
@@ -681,9 +682,12 @@ export default class MeasurementsChart extends Vue {
           color: '#212121',
         },
         showticklabels: true,
+        showline: true,
         linecolor: '#eee',
         linewidth: 1,
         mirror: true,
+        zeroline: true,
+        zerolinecolor: '#212121',
       },
       ...(!isEmpty
         ? {}
@@ -771,7 +775,7 @@ function _alignColsGridRange(
     dateEnd || rangeBox.x1 + MARGIN,
   ]
   const generalRangeY = [
-    -1, // always start from 0
+    0, // always start from 0
     rangeBox.y1 + MARGIN,
   ]
 
