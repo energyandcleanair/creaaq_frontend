@@ -9,7 +9,7 @@
       offset-y
       right
     >
-      <template v-slot:activator="{ on, attrs }">
+      <template v-slot:activator="{on, attrs}">
         <div class="caption grey--text text--darken-2">
           {{ $t('dates_interval.title') }}
         </div>
@@ -48,10 +48,7 @@
                 </v-row>
 
                 <v-row class="mt-0">
-                  <v-col
-                    cols="12"
-                    sm="6"
-                  >
+                  <v-col cols="12" sm="6">
                     <v-menu
                       v-model="isMenuDateStartOpen"
                       :close-on-content-click="false"
@@ -60,9 +57,11 @@
                       offset-y
                       right
                     >
-                      <template v-slot:activator="{ on, attrs }">
+                      <template v-slot:activator="{on, attrs}">
                         <v-text-field
-                          :value="privateInterval === 'all' ? '' : dateStartFormat"
+                          :value="
+                            privateInterval === 'all' ? '' : dateStartFormat
+                          "
                           :label="$t('from')"
                           :prepend-icon="mdiCalendar"
                           :disabled="disabled"
@@ -77,18 +76,17 @@
                         :value="dateStartFormat"
                         :min="datePickersRules.start.min"
                         :max="datePickersRules.start.max"
-                        @input="($e) => {
-                        onChange({dateStart: +new Date($e), dateEnd});
-                        isMenuDateStartOpen = false;
-                      }"
+                        @input="
+                          ($e) => {
+                            onChange({dateStart: +new Date($e), dateEnd})
+                            isMenuDateStartOpen = false
+                          }
+                        "
                       />
                     </v-menu>
                   </v-col>
 
-                  <v-col
-                    cols="12"
-                    sm="6"
-                  >
+                  <v-col cols="12" sm="6">
                     <v-menu
                       v-model="isMenuDateEndOpen"
                       :close-on-content-click="false"
@@ -97,9 +95,11 @@
                       offset-y
                       right
                     >
-                      <template v-slot:activator="{ on, attrs }">
+                      <template v-slot:activator="{on, attrs}">
                         <v-text-field
-                          :value="privateInterval === 'all' ? '' : dateEndFormat"
+                          :value="
+                            privateInterval === 'all' ? '' : dateEndFormat
+                          "
                           :label="$t('to')"
                           :prepend-icon="mdiCalendar"
                           :disabled="disabled"
@@ -114,10 +114,12 @@
                         :value="dateEndFormat"
                         :min="datePickersRules.end.min"
                         :max="datePickersRules.end.max"
-                        @input="($e) => {
-                        onChange({dateStart, dateEnd: +new Date($e)});
-                        isMenuDateEndOpen = false;
-                      }"
+                        @input="
+                          ($e) => {
+                            onChange({dateStart, dateEnd: +new Date($e)})
+                            isMenuDateEndOpen = false
+                          }
+                        "
                       />
                     </v-menu>
                   </v-col>
@@ -266,7 +268,11 @@ export default class DatesIntervalInput extends Vue {
 
     const regYear = /^year:(.+)/
     const _today = today ? moment.utc(today) : moment.utc()
-    _today.hours(0).minutes(0).seconds(0).milliseconds(0)
+    _today
+      .hours(0)
+      .minutes(0)
+      .seconds(0)
+      .milliseconds(0)
 
     if (regYear.test(interval)) {
       const res = regYear.exec(interval)

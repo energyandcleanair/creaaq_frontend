@@ -4,7 +4,6 @@
     class="fill-height overflow-y-auto px-8 pb-16 pt-16"
     v-model="isValid"
   >
-
     <router-link
       class="d-inline-flex black--text"
       v-text="$t('back')"

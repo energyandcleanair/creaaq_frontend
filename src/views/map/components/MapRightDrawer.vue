@@ -1,19 +1,10 @@
 <template>
-  <PageDrawer
-    :open="open"
-    @input="toggle($event)"
-  >
+  <PageDrawer :open="open" @input="toggle($event)">
     <v-form>
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('level') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('level') }}</v-col>
 
-        <v-col
-          class="d-flex pl-1"
-          cols="12"
-        >
+        <v-col class="d-flex pl-1" cols="12">
           <v-radio-group
             :value="queryLevel"
             hide-details
@@ -29,20 +20,10 @@
         </v-col>
       </v-row>
 
-      <v-row
-        v-if="queryLevel === 'station'"
-        no-gutters
-      >
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('sources') }}</v-col>
+      <v-row v-if="queryLevel === 'station'" no-gutters>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('sources') }}</v-col>
 
-        <v-col
-          v-if="chartData.sources.length"
-          class="d-flex pl-1"
-          cols="12"
-        >
+        <v-col v-if="chartData.sources.length" class="d-flex pl-1" cols="12">
           <v-radio-group
             :value="queryParams.sources && queryParams.sources[0]"
             color="primary"
@@ -60,16 +41,9 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('pollutants') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('pollutants') }}</v-col>
 
-        <v-col
-          v-if="pollutants.length"
-          class="pl-1"
-          cols="12"
-        >
+        <v-col v-if="pollutants.length" class="pl-1" cols="12">
           <v-checkbox
             v-for="item of pollutants"
             :input-value="queryParams.pollutants"
@@ -78,8 +52,10 @@
             :label="item.label"
             color="primary"
             hide-details
-            :disabled="loading || (queryParams.pollutants.length <= 1
-              && queryParams.pollutants.includes(item.id))
+            :disabled="
+              loading ||
+                (queryParams.pollutants.length <= 1 &&
+                  queryParams.pollutants.includes(item.id))
             "
             @change="onChangeForm('pollutants', $event)"
           />
@@ -87,15 +63,9 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('basemap') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('basemap') }}</v-col>
 
-        <v-col
-          class="d-flex pl-1"
-          cols="12"
-        >
+        <v-col class="d-flex pl-1" cols="12">
           <v-radio-group
             :value="queryBasemap"
             hide-details

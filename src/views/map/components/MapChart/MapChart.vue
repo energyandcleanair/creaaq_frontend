@@ -1,24 +1,14 @@
 <template>
-  <v-container
-    class="map-chart"
-    fluid
-  >
+  <v-container class="map-chart" fluid>
     <div
       v-if="isLoading"
       class="map-chart__loader d-flex justify-center align-center"
     >
-      <v-progress-circular
-        indeterminate
-        color="primary"
-        size="80"
-      />
+      <v-progress-circular indeterminate color="primary" size="80" />
     </div>
 
     <template v-if="!isLoading && !entities.length">
-      <v-alert
-        class="fill-width text-center ma-12"
-        color="grey lighten-3"
-      >
+      <v-alert class="fill-width text-center ma-12" color="grey lighten-3">
         {{ $t('msg.no_data') }}
       </v-alert>
     </template>
@@ -36,10 +26,7 @@
             :url="MAP_LAYERS.SATELLITE.url"
             :attribution="MAP_LAYERS.SATELLITE.attribution"
           />
-          <l-tile-layer
-            v-else
-            :url="MAP_LAYERS.TERRAIN.url"
-          />
+          <l-tile-layer v-else :url="MAP_LAYERS.TERRAIN.url" />
 
           <v-marker-cluster ref="clustersLayer">
             <l-circle-marker
@@ -48,18 +35,20 @@
               :key="marker.id"
               :lat-lng="marker.coordinates"
               rise-on-hover
-              v-bind="selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary"
+              v-bind="
+                selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary
+              "
               @click="onClickMapMarker(marker.id)"
             >
               <l-popup
                 v-if="marker.tooltip"
                 :class="{'tooltip--selected': selectedMarkersIdsMap[marker.id]}"
                 :options="{
-                permanent: true,
-                interactive: true,
-                direction: 'top',
-                offset: {x: 0, y: 0}
-              }"
+                  permanent: true,
+                  interactive: true,
+                  direction: 'top',
+                  offset: {x: 0, y: 0},
+                }"
               >
                 <b class="text-title font-weight-bold">
                   {{ marker.tooltip.title }}
@@ -71,7 +60,7 @@
                     v-for="(val, key) of marker.tooltip.params"
                     :key="key"
                   >
-                    <b>{{key}}:</b> {{ val }}
+                    <b>{{ key }}:</b> {{ val }}
                   </div>
                 </div>
 
@@ -416,9 +405,9 @@ export default class MapChart extends Vue {
         .toUpperCase()
     }
     if ((item as Station).source) {
-      tooltipParams['' + this.$t('source')] = (
-        item as Station
-      ).source?.toUpperCase()
+      tooltipParams[
+        '' + this.$t('source')
+      ] = (item as Station).source?.toUpperCase()
     }
 
     const marker: MapMarker = {

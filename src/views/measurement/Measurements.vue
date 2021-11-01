@@ -1,19 +1,8 @@
 <template>
-  <div
-    class="view-measurements fill-height"
-    style="overflow: auto;"
-  >
-    <v-container
-      class="pt-10 pt-md-4 px-8"
-      fluid
-    >
+  <div class="view-measurements fill-height" style="overflow: auto">
+    <v-container class="pt-10 pt-md-4 px-8" fluid>
       <v-row>
-        <v-col
-          cols="12"
-          md="5"
-          lg="6"
-          xl="6"
-        >
+        <v-col cols="12" md="5" lg="6" xl="6">
           <SelectBoxCities
             :value="urlQuery.cities"
             :label="$t('cities')"
@@ -29,11 +18,13 @@
             :dateEnd="toNumberDate(urlQuery.date_end)"
             format="YYYY-MM-DD"
             :disabled="isLoading"
-            @input="onChangeQuery({
-            ...urlQuery,
-            date_start: toURLStringDate($event.dateStart),
-            date_end: toURLStringDate($event.dateEnd),
-          })"
+            @input="
+              onChangeQuery({
+                ...urlQuery,
+                date_start: toURLStringDate($event.dateStart),
+                date_end: toURLStringDate($event.dateEnd),
+              })
+            "
           />
         </v-col>
 
@@ -53,10 +44,7 @@
       </v-row>
     </v-container>
 
-    <v-container
-      class="mt-4 px-8"
-      fluid
-    >
+    <v-container class="mt-4 px-8" fluid>
       <MeasurementsRightDrawer
         :queryParams="urlQuery"
         :chartData="chartData"
@@ -67,57 +55,59 @@
         @click:export="onClickExport"
       />
 
-      <template v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API">
-        <v-alert
-          class="text-center my-12 px-12"
-          color="warning lighten-2"
-        >
+      <template
+        v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+      >
+        <v-alert class="text-center my-12 px-12" color="warning lighten-2">
           <div class="d-flex justify-center">
-            {{ $t('msg.limit_exceeded__server_cannot_process_amount__reduce_query') }}
+            {{
+              $t(
+                'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
+              )
+            }}
           </div>
 
           <b class="d-flex justify-center pt-2">
             {{
-              $t(
-                'msg.queried_of_limit',
-                {
-                  queried: `${urlQuery.cities.length} ${$t('cities').toLowerCase()}`,
-                  limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities').toLowerCase()}`,
-                }
-              )
+              $t('msg.queried_of_limit', {
+                queried: `${urlQuery.cities.length} ${$t(
+                  'cities'
+                ).toLowerCase()}`,
+                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t(
+                  'cities'
+                ).toLowerCase()}`,
+              })
             }}
           </b>
         </v-alert>
       </template>
 
-      <template v-else-if="urlQuery && urlQuery.cities.length > LIMIT_RENDER_ITEMS">
-        <v-alert
-          class="text-center my-12 px-12"
-          color="warning lighten-3"
-        >
+      <template
+        v-else-if="urlQuery && urlQuery.cities.length > LIMIT_RENDER_ITEMS"
+      >
+        <v-alert class="text-center my-12 px-12" color="warning lighten-3">
           <div class="d-flex justify-center">
-            {{ $t('msg.limit_exceeded__app_cannot_render_amount__you_can_export_file') }}
+            {{
+              $t(
+                'msg.limit_exceeded__app_cannot_render_amount__you_can_export_file'
+              )
+            }}
           </div>
 
           <b class="d-flex justify-center pt-2">
             {{
-              $t(
-                'msg.loaded_of_limit',
-                {
-                  loaded: `${urlQuery.cities.length} ${$t('cities').toLowerCase()}`,
-                  limit: `${LIMIT_RENDER_ITEMS} ${$t('cities').toLowerCase()}`,
-                }
-              )
+              $t('msg.loaded_of_limit', {
+                loaded: `${urlQuery.cities.length} ${$t(
+                  'cities'
+                ).toLowerCase()}`,
+                limit: `${LIMIT_RENDER_ITEMS} ${$t('cities').toLowerCase()}`,
+              })
             }}
           </b>
         </v-alert>
 
         <v-row class="justify-center">
-          <ExportBtn
-            class="d-flex"
-            :value="'CSV'"
-            @click="onClickExport"
-          />
+          <ExportBtn class="d-flex" :value="'CSV'" @click="onClickExport" />
         </v-row>
       </template>
 
@@ -744,7 +734,7 @@ export default class ViewMeasurements extends Vue {
       const blob = new Blob([csv], {type: 'application/csvcharset=utf-8'})
       saveAs(blob, filename)
       this.$loader.off()
-    } catch (err: any) {
+    } catch (err) {
       this.$loader.off()
       console.error(err)
       this.$dialog.notify.error(

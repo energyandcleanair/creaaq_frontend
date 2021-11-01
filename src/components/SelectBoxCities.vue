@@ -1,9 +1,6 @@
 <template>
   <div>
-    <div
-      v-if="$props.label"
-      class="caption grey--text text--darken-2"
-    >
+    <div v-if="$props.label" class="caption grey--text text--darken-2">
       {{ $props.label }}
     </div>
 
@@ -26,17 +23,11 @@
       async
       @input="onChangeValue"
     >
-      <div
-        slot="value-label"
-        slot-scope="{ node }"
-      >
+      <div slot="value-label" slot-scope="{node}">
         {{ node.raw.name }}
       </div>
 
-      <div
-        slot="option-label"
-        slot-scope="{ node }"
-      >
+      <div slot="option-label" slot-scope="{node}">
         <span class="pl-1">
           <CountryFlag
             v-if="node.raw.type === 'country'"
@@ -45,7 +36,7 @@
           />
         </span>
         <span class="grey--text text--base">
-          &nbsp;&nbsp;{{ node.raw.name  }}
+          &nbsp;&nbsp;{{ node.raw.name }}
         </span>
         <span
           v-if="node.raw.type === 'country' && node.raw.childrenLength"

@@ -1,8 +1,5 @@
 <template>
-  <v-container
-    class="view-profile"
-    fluid
-  >
+  <v-container class="view-profile" fluid>
     <h1 class="d-block text-center my-5">
       {{ $t('profile') }}
     </h1>
@@ -10,11 +7,7 @@
     <v-container class="mt-5">
       <v-row>
         <v-col>
-          <v-btn
-            color="primary"
-            :loading="isLoading"
-            @click="changePassword"
-          >
+          <v-btn color="primary" :loading="isLoading" @click="changePassword">
             {{ $t('auth.change_password') }}
           </v-btn>
         </v-col>
@@ -22,11 +15,7 @@
 
       <v-row>
         <v-col>
-          <v-btn
-            color="primary"
-            :loading="isLoading"
-            @click="clearCache"
-          >
+          <v-btn color="primary" :loading="isLoading" @click="clearCache">
             {{ $t('clear_cache') }}
           </v-btn>
         </v-col>
@@ -55,5 +44,4 @@ export default class ViewProfile extends Vue {
 }
 </script>
 
-<style lang="scss">
-</style>
+<style lang="scss"></style>

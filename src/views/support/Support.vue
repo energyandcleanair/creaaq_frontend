@@ -1,25 +1,12 @@
 <template>
-  <v-container
-    class="view-support"
-    fluid
-  >
-    <h1
-      class="d-block text-center my-5"
-      style="display: none !important;"
-    >
+  <v-container class="view-support" fluid>
+    <h1 class="d-block text-center my-5" style="display: none !important;">
       {{ $t('help_n_support') }}
     </h1>
 
-    <v-container
-      class="mt-5"
-      fluid
-    >
+    <v-container class="mt-5" fluid>
       <v-row justify="start">
-        <v-col
-          sm="12"
-          md="8"
-          lg="6"
-        >
+        <v-col sm="12" md="8" lg="6">
           <iframe
             title="Feedback Form"
             class="freshwidget-embedded-form"

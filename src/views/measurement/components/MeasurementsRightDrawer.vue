@@ -1,19 +1,12 @@
 <template>
-  <PageDrawer
-    :open="open"
-    @input="toggle($event)"
-  >
+  <PageDrawer :open="open" @input="toggle($event)">
     <v-form>
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('display_mode') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{
+          $t('display_mode')
+        }}</v-col>
 
-        <v-col
-          class="d-flex justify-center"
-          cols="12"
-        >
+        <v-col class="d-flex justify-center" cols="12">
           <v-select
             class="mt-0 pt-2"
             :value="displayMode"
@@ -27,15 +20,11 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('running_average') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{
+          $t('running_average')
+        }}</v-col>
 
-        <v-col
-          class="d-flex justify-center mt-2"
-          cols="12"
-        >
+        <v-col class="d-flex justify-center mt-2" cols="12">
           <v-btn-toggle
             :value="runningAverage"
             color="primary"
@@ -57,15 +46,11 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('chart_columns') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{
+          $t('chart_columns')
+        }}</v-col>
 
-        <v-col
-          class="d-flex justify-center mt-2"
-          cols="12"
-        >
+        <v-col class="d-flex justify-center mt-2" cols="12">
           <v-slider
             :value="chartCols"
             color="primary"
@@ -80,7 +65,7 @@
             :thumb-size="18"
             @change="onChangeForm('chart_cols', CHART_SIZE_LABELS[$event])"
           >
-            <template v-slot:thumb-label="{ value }">
+            <template v-slot:thumb-label="{value}">
               {{ CHART_SIZE_LABELS[value] }}
             </template>
           </v-slider>
@@ -88,16 +73,9 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('sources') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('sources') }}</v-col>
 
-        <v-col
-          v-if="chartData.sources.length"
-          class="d-flex pl-1"
-          cols="12"
-        >
+        <v-col v-if="chartData.sources.length" class="d-flex pl-1" cols="12">
           <v-radio-group
             :value="queryParams.sources && queryParams.sources[0]"
             color="primary"
@@ -115,16 +93,9 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('pollutants') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('pollutants') }}</v-col>
 
-        <v-col
-          v-if="chartData.pollutants.length"
-          class="pl-1"
-          cols="12"
-        >
+        <v-col v-if="chartData.pollutants.length" class="pl-1" cols="12">
           <v-checkbox
             v-for="item of chartData.pollutants"
             :input-value="queryParams.pollutants"
@@ -133,8 +104,9 @@
             :label="item.label"
             color="primary"
             hide-details
-            :disabled="queryParams.pollutants.length <= 1
-              && queryParams.pollutants.includes(item.id)
+            :disabled="
+              queryParams.pollutants.length <= 1 &&
+                queryParams.pollutants.includes(item.id)
             "
             @change="onChangeForm('pollutants', $event)"
           />
@@ -142,10 +114,7 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1 d-flex align-center"
-          cols="12"
-        >
+        <v-col class="text-subtitle-1 d-flex align-center" cols="12">
           <label
             class="d-inline-flex"
             :class="{'text-decoration-line-through': disabledStations}"
@@ -165,11 +134,7 @@
           />
         </v-col>
 
-        <v-col
-          v-if="_isShowStations"
-          class="pl-2"
-          cols="12"
-        >
+        <v-col v-if="_isShowStations" class="pl-2" cols="12">
           <SelectBox
             class="mt-4"
             v-for="(group, cityId) of stationsGroupedByCity"
@@ -193,19 +158,10 @@
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('export') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('export') }}</v-col>
 
-        <v-col
-          class="d-flex justify-center"
-          cols="12"
-        >
-          <ExportBtn
-            :value="'CSV'"
-            @click="onClickExport"
-          />
+        <v-col class="d-flex justify-center" cols="12">
+          <ExportBtn :value="'CSV'" @click="onClickExport" />
         </v-col>
       </v-row>
     </v-form>

@@ -1,12 +1,11 @@
 <template>
-  <v-container
-    class="stations-chart"
-    fluid
-  >
+  <v-container class="stations-chart" fluid>
     <template v-if="loading">
       <v-row class="px-2">
         <v-col cols="6">
-          <v-skeleton-loader type="table-thead, table-row-divider@3, table-tfoot" />
+          <v-skeleton-loader
+            type="table-thead, table-row-divider@3, table-tfoot"
+          />
         </v-col>
         <v-col cols="6">
           <v-skeleton-loader type="image" />
@@ -15,22 +14,14 @@
     </template>
 
     <template v-else-if="!stations.length">
-      <v-alert
-        class="text-center ma-12"
-        color="grey lighten-3"
-      >
+      <v-alert class="text-center ma-12" color="grey lighten-3">
         {{ $t('msg.no_data') }}
       </v-alert>
     </template>
 
     <template v-else>
       <v-row class="stations-chart__content pb-14">
-        <v-col
-          cols="12"
-          md="7"
-          order="2"
-          order-md="1"
-        >
+        <v-col cols="12" md="7" order="2" order-md="1">
           <v-data-table
             ref="table"
             class="elevation-1"
@@ -38,23 +29,16 @@
             :items="tableItems"
             :options.sync="tableOptions"
             :items-per-page="5"
-            :item-class="(item) => selectedMarkersIdsMap[item.id] && 'selected-row'"
+            :item-class="
+              (item) => selectedMarkersIdsMap[item.id] && 'selected-row'
+            "
             @click:row="onClickTableRow"
           />
 
-          <ExportBtn
-            class="ml-1 mt-2"
-            :value="'CSV'"
-            @click="onClickExport"
-          />
+          <ExportBtn class="ml-1 mt-2" :value="'CSV'" @click="onClickExport" />
         </v-col>
 
-        <v-col
-          cols="12"
-          md="5"
-          order="1"
-          order-md="2"
-        >
+        <v-col cols="12" md="5" order="1" order-md="2">
           <l-map
             ref="map"
             class="elevation-1"
@@ -68,7 +52,9 @@
               v-for="marker of mapMarkers"
               :key="marker.id"
               :lat-lng="marker.coordinates"
-              v-bind="selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary"
+              v-bind="
+                selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary
+              "
               @click="onClickMapMarker(marker.station.id)"
             >
               <l-tooltip
@@ -77,7 +63,7 @@
                   permanent: permanentTooltipOnSelected,
                   interactive: false,
                   direction: 'top',
-                  offset: {x: 0, y: -iconSelected.radius}
+                  offset: {x: 0, y: -iconSelected.radius},
                 }"
               >
                 <div class="pb-2">
@@ -91,9 +77,8 @@
                   v-for="header of tooltipInfoHeaders"
                   :key="header.value"
                 >
-                  <b>{{header.text}}:</b> {{ marker.station[header.value] }}
+                  <b>{{ header.text }}:</b> {{ marker.station[header.value] }}
                 </div>
-
               </l-tooltip>
             </l-circle-marker>
 
@@ -438,7 +423,7 @@ export default class StationsChart extends Vue {
       const blob = new Blob([csv], {type: 'application/csvcharset=utf-8'})
       saveAs(blob, filename)
       this.$loader.off()
-    } catch (err: any) {
+    } catch (err) {
       this.$loader.off()
       console.error(err)
       this.$dialog.notify.error(
