@@ -338,14 +338,6 @@ export default class ViewMeasurements extends Vue {
     const cities = await this.fetchCities()
     this.chartData.cities = cities
 
-    // set from cache
-    if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
-      await this.setUrlQuery({
-        ...this.urlQuery,
-        cities: this.queryFormCached?.cities || [],
-      })
-    }
-
     if (this.urlQuery.cities.length) {
       // filter only existing cities
       const idsMap = this.urlQuery.cities.reduce(
@@ -378,6 +370,11 @@ export default class ViewMeasurements extends Vue {
 
   private async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
+
+    // set from cache
+    if (!urlQuery.cities.length && this.queryFormCached?.cities.length) {
+      urlQuery.cities = this.queryFormCached.cities
+    }
 
     if (!urlQuery.chart_cols) {
       urlQuery.chart_cols = MeasurementsChart.getMaxChartCols(

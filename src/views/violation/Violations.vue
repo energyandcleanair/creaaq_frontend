@@ -1,5 +1,5 @@
 <template>
-  <div class="view-violations fill-height" style="overflow: auto;">
+  <div class="view-violations fill-height" style="overflow: auto">
     <v-container class="pt-10 pt-md-4 px-8" fluid>
       <v-row>
         <v-col cols="12" sm="8" md="6">
@@ -207,14 +207,6 @@ export default class ViewViolations extends Vue {
     const cities = await this.fetchCities()
     this.chartData.cities = cities
 
-    // set from cache
-    if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
-      await this.setUrlQuery({
-        ...this.urlQuery,
-        cities: this.queryFormCached?.cities || [],
-      })
-    }
-
     if (this.urlQuery.cities.length) {
       // filter only existing cities
       const idsMap = this.urlQuery.cities.reduce(
@@ -247,6 +239,11 @@ export default class ViewViolations extends Vue {
 
   private async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
+
+    // set from cache
+    if (!urlQuery.cities.length && this.queryFormCached?.cities.length) {
+      urlQuery.cities = this.queryFormCached.cities
+    }
 
     if (!urlQuery.date_start) {
       urlQuery.date_start = toURLStringDate(JAN_1)
@@ -412,10 +409,7 @@ export default class ViewViolations extends Vue {
     const $startDate = moment(query.date_from || toURLStringDate(JAN_1))
     const q = {
       ...query,
-      date_to: $startDate
-        .month(11)
-        .date(31)
-        .format(URL_DATE_FORMAT),
+      date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT),
     }
 
     const [err, items] = await to(ViolationAPI.findAll(toQueryString(q)))

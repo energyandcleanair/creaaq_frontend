@@ -1,5 +1,5 @@
 <template>
-  <div class="view-stations fill-height" style="overflow: auto;">
+  <div class="view-stations fill-height" style="overflow: auto">
     <v-container class="toolbar pt-10 pt-md-4 px-8" fluid>
       <v-row>
         <v-col cols="12" sm="8" md="6">
@@ -199,16 +199,10 @@ export default class ViewStations extends Vue {
     this.$loader.on()
     this.isChartLoading = true
 
+    await this.setUrlQueryDefaults()
+
     const cities = await this.fetchCities()
     this.chartData.cities = cities
-
-    // set from cache
-    if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
-      await this.setUrlQuery({
-        ...this.urlQuery,
-        cities: this.queryFormCached?.cities || [],
-      })
-    }
 
     if (this.urlQuery.cities.length) {
       // filter only existing cities
@@ -266,6 +260,17 @@ export default class ViewStations extends Vue {
     if (!this.urlQuery.stations?.length) {
       this.$stationsChart?.fitAllMarkers()
     }
+  }
+
+  private async setUrlQueryDefaults(): Promise<void> {
+    const urlQuery = {...this.urlQuery}
+
+    // set from cache
+    if (!urlQuery.cities.length && this.queryFormCached?.cities.length) {
+      urlQuery.cities = this.queryFormCached.cities
+    }
+
+    await this.setUrlQuery(urlQuery)
   }
 
   private async fetchCities(): Promise<City[]> {
