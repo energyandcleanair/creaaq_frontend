@@ -274,9 +274,9 @@ export default class MapChart extends Vue {
       this.mapMarkers = []
       const markers = this.getMapMarkers()
 
-      this.$dialog.message.info(
+      this.$dialog.notify.info(
         this.$t('msg.rendering_n_items', {n: markers.length}) + '...',
-        {position: 'bottom-left', timeout: 3000}
+        {position: 'bottom-left', timeout: 3000, dismissible: false}
       )
 
       // let the message above appear
@@ -405,9 +405,9 @@ export default class MapChart extends Vue {
         .toUpperCase()
     }
     if ((item as Station).source) {
-      tooltipParams[
-        '' + this.$t('source')
-      ] = (item as Station).source?.toUpperCase()
+      tooltipParams['' + this.$t('source')] = (
+        item as Station
+      ).source?.toUpperCase()
     }
 
     const marker: MapMarker = {

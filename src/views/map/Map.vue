@@ -1,5 +1,5 @@
 <template>
-  <div class="view-map fill-height" style="overflow: auto;">
+  <div class="view-map fill-height" style="overflow: auto">
     <v-container class="page-content fill-height pa-0" fluid>
       <MapRightDrawer
         :queryParams="urlQuery"
@@ -13,8 +13,8 @@
       <template
         v-if="
           urlQuery &&
-            urlQuery.pollutants &&
-            urlQuery.pollutants.length > LIMIT_FETCH_ITEMS_FROM_API
+          urlQuery.pollutants &&
+          urlQuery.pollutants.length > LIMIT_FETCH_ITEMS_FROM_API
         "
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
@@ -299,9 +299,7 @@ export default class ViewMap extends Vue {
     return pollutants
   }
 
-  private execPollutantsMapFromItems(
-    items: (City | Station)[] = []
-  ): {
+  private execPollutantsMapFromItems(items: (City | Station)[] = []): {
     [pollutantId: string]: Pollutant
   } {
     return items.reduce(
@@ -330,9 +328,7 @@ export default class ViewMap extends Vue {
     return sources
   }
 
-  private execSourcesMapFromStations(
-    items: Station[] = []
-  ): {
+  private execSourcesMapFromStations(items: Station[] = []): {
     [sourceId: string]: Source
   } {
     return items.reduce((memo: {[sourceId: string]: Source}, item: Station) => {
@@ -362,6 +358,15 @@ export default class ViewMap extends Vue {
         this.urlQuery.sources?.join(',') !== query.sources?.join(',')
 
       await this.setUrlQuery(query)
+
+      if (!query.sources?.length) {
+        this.$dialog.notify.info(
+          this.$t('msg.no_items_selected', {
+            items: this.$t('sources').toString().toLocaleLowerCase(),
+          }).toString(),
+          {position: 'bottom-left', timeout: 3000, dismissible: false}
+        )
+      }
 
       if (changedLvl) {
         await this.onClickRefresh()
