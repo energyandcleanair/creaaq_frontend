@@ -6,10 +6,12 @@
 
     <treeselect
       ref="tree"
+      v-custom-should-expand-handler
       :value="value"
-      :cacheOptions="false"
-      :defaultOptions="filteredCountries"
+      :cache-options="false"
+      :default-options="sortedCountries"
       :load-options="loadItems"
+      async
       :limitText="(count) => `(+${count})`"
       :noResultsText="$t('msg.no_results_found')"
       :searchPromptText="$t('msg.type_to_search')"
@@ -20,26 +22,25 @@
       searchable
       clearable
       multiple
-      async
       @input="onChangeValue"
     >
       <div slot="value-label" slot-scope="{node}">
-        {{ node.raw.name }}
+        {{ node.label }}
       </div>
 
       <div slot="option-label" slot-scope="{node}">
         <span class="pl-1">
           <CountryFlag
-            v-if="node.raw.type === 'country'"
-            :country="(node.raw.country_id || '').toLowerCase()"
+            v-if="node.raw.level === 'country'"
+            :country="(node.raw.id || '').toLowerCase()"
             size="small"
           />
         </span>
         <span class="grey--text text--base">
-          &nbsp;&nbsp;{{ node.raw.name }}
+          &nbsp;&nbsp;{{ node.label }}
         </span>
         <span
-          v-if="node.raw.type === 'country' && node.raw.childrenLength"
+          v-if="node.raw.level === 'country' && node.raw.childrenLength"
           class="caption grey--text text--lighten-1"
         >
           &nbsp;({{ node.raw.childrenLength }})
@@ -66,8 +67,32 @@ import {
 } from 'vue-property-decorator'
 import City from '@/entities/City'
 import {_runIteration} from '@/utils'
+import Country from '@/entities/Country'
+
+interface CityOption extends City {
+  label: City['name']
+}
+
+interface CountryOption extends Country {
+  label: Country['name']
+  children: CityOption[]
+  childrenLength: number
+  isDefaultExpanded?: boolean
+}
+
+const customShouldExpandHandler = {
+  inserted(_: any, __: any, vnode: any) {
+    const self = vnode.componentInstance
+    self.__shouldExpand = self.shouldExpand
+    self.shouldExpand = (node: any): boolean =>
+      !!self.trigger.searchQuery || self.__shouldExpand(node)
+  },
+}
 
 @Component({
+  directives: {
+    customShouldExpandHandler,
+  },
   components: {
     Treeselect,
     CountryFlag,
@@ -92,26 +117,34 @@ export default class SelectBoxCities extends Vue {
   private searchQuery: string = ''
   private privateItems: any[] = []
 
-  get countries(): any[] {
-    const map = this.items.reduce((memo: any, city: City) => {
-      if (memo[city.country_id]) {
-        memo[city.country_id].children.push(city)
-        memo[city.country_id].childrenLength++
-      } else {
-        memo[city.country_id] = {
-          id: city.country_id,
-          country_id: city.country_id,
-          name: city.country_name,
-          type: 'country',
-          children: [city],
-          childrenLength: 1,
-          isDefaultExpanded: false,
+  get countries(): CountryOption[] {
+    const map = this.items.reduce(
+      (memo: Record<string, CountryOption>, city: City) => {
+        if (!memo[city.country_id]) {
+          memo[city.country_id] = {
+            id: city.country_id,
+            name: city.country_name,
+            label: city.country_name,
+            level: 'country',
+            children: [],
+            childrenLength: 0,
+            isDefaultExpanded: false,
+          }
         }
-      }
-      return memo
-    }, {})
 
-    return _orderBy(Object.values(map), 'name')
+        const cityOption: CityOption = {
+          ...city,
+          label: city.name,
+        }
+
+        memo[city.country_id].children?.push(cityOption)
+        memo[city.country_id].childrenLength++
+        return memo
+      },
+      {}
+    )
+
+    return _orderBy(Object.values(map), 'label')
   }
 
   get selectedCountriesIds(): string[] {
@@ -127,7 +160,7 @@ export default class SelectBoxCities extends Vue {
     return countriesIds
   }
 
-  get selectedCountries(): any[] {
+  get selectedCountries(): CountryOption[] {
     const countriesIds: string[] = this.selectedCountriesIds
     const countries = this.countries.filter((country) =>
       countriesIds.includes(country.id)
@@ -135,10 +168,10 @@ export default class SelectBoxCities extends Vue {
     return countries
   }
 
-  get filteredCountries(): any[] {
+  get sortedCountries(): CountryOption[] {
     const countriesIds: string[] = this.selectedCountriesIds
     const lastIndex = this.countries.length
-    const sortedArr = _sortBy([...this.countries], (item) => {
+    const sortedArr = _sortBy(this.countries, (item) => {
       const i = countriesIds.indexOf(item.id)
       if (i !== -1) item.isDefaultExpanded = true
       return i !== -1 ? i : lastIndex
@@ -161,61 +194,58 @@ export default class SelectBoxCities extends Vue {
   }
 
   private async loadItems({action, searchQuery, callback}: any): Promise<void> {
-    if (action === ASYNC_SEARCH) {
-      if (!searchQuery) {
-        callback(null, this.filteredCountries)
-        return
-      }
+    if (action !== ASYNC_SEARCH) return undefined
 
-      const chunkSize = 5
-      const numTimes = this.filteredCountries.length / chunkSize
-      const delay = 100
-      const results: any[] = []
+    if (!searchQuery) {
+      callback(null, this.sortedCountries)
+      return
+    }
 
-      await _runIteration(
-        (index: number) => {
-          const _query = searchQuery.trim().toLocaleLowerCase()
+    const chunkSize = 5
+    const numTimes = this.sortedCountries.length / chunkSize
+    const delay = 100
+    const results: any[] = []
 
-          const countries = this.filteredCountries.slice(
-            index * chunkSize,
-            index * chunkSize + chunkSize
-          )
+    await _runIteration(
+      (index: number) => {
+        const _query = searchQuery.trim().toLocaleLowerCase()
 
-          for (const country of countries) {
-            const name = country.name?.toLocaleLowerCase() || ''
+        const countries = this.sortedCountries.slice(
+          index * chunkSize,
+          index * chunkSize + chunkSize
+        )
 
-            if (name.indexOf(_query) > -1) {
+        for (const country of countries) {
+          const name = country.name?.toLocaleLowerCase() || ''
+
+          if (name.indexOf(_query) > -1) {
+            results.push(country)
+            return
+          }
+
+          if (country.children) {
+            const cities: any[] = []
+            for (const city of country.children) {
+              const nameCity = city.name?.toLocaleLowerCase() || ''
+              if (nameCity.indexOf(_query) > -1) cities.push(city)
+            }
+
+            if (cities.length) {
               results.push({
                 ...country,
-                isDefaultExpanded: true,
+                label: country.name,
+                children: cities,
+                childrenLength: cities.length,
               })
-              return
-            }
-
-            if (country.children) {
-              const cities: any[] = []
-              for (const city of country.children) {
-                const nameCity = city.name?.toLocaleLowerCase() || ''
-                if (nameCity.indexOf(_query) > -1) cities.push(city)
-              }
-
-              if (cities.length) {
-                results.push({
-                  ...country,
-                  children: cities,
-                  childrenLength: cities.length,
-                  isDefaultExpanded: true,
-                })
-              }
             }
           }
-        },
-        numTimes,
-        delay
-      )
+        }
+      },
+      numTimes,
+      delay
+    )
 
-      callback(null, results)
-    }
+    callback(null, results)
   }
 }
 </script>
