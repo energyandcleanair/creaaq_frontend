@@ -96,6 +96,17 @@ const routes: Array<RouteConfig> = [
     },
   },
   {
+    path: '/download',
+    name: 'download',
+    component: () =>
+      import(
+        /* webpackChunkName: "download" */ '@/views/download/Download.vue'
+      ),
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
     path: '/profile',
     name: 'profile',
     component: () =>

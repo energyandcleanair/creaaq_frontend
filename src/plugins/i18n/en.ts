@@ -26,6 +26,7 @@ export default {
   satellite: 'Satellite',
   terrain: 'Terrain',
   map: 'Map',
+  download: 'Download',
   success: 'Success',
   fail: 'Fail',
   save: 'Save',

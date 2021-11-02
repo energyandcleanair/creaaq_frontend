@@ -359,7 +359,7 @@ export default class ViewMap extends Vue {
 
       await this.setUrlQuery(query)
 
-      if (!query.sources?.length) {
+      if (query.level === MapChartLevel.station && !query.sources?.length) {
         this.$dialog.notify.info(
           this.$t('msg.no_items_selected', {
             items: this.$t('sources').toString().toLocaleLowerCase(),

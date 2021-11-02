@@ -46,6 +46,7 @@ import {
   mdiMapMarkerRadius,
   mdiCalendarMonth,
   mdiFactory,
+  mdiFileDownloadOutline,
 } from '@mdi/js'
 import {Location} from 'vue-router'
 import pkg from '../../package.json'
@@ -91,6 +92,11 @@ export default class AppDrawer extends Vue {
         label: this.$t('map').toString(),
         icon: mdiMapMarkerRadius,
         to: {name: 'map'},
+      },
+      {
+        label: this.$t('download').toString(),
+        icon: mdiFileDownloadOutline,
+        to: {name: 'download'},
       },
     ]
   }

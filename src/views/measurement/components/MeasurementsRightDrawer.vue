@@ -39,7 +39,7 @@
               :value="val"
               v-text="val"
               small
-              style="text-transform: none;"
+              style="text-transform: none"
             />
           </v-btn-toggle>
         </v-col>
@@ -106,7 +106,7 @@
             hide-details
             :disabled="
               queryParams.pollutants.length <= 1 &&
-                queryParams.pollutants.includes(item.id)
+              queryParams.pollutants.includes(item.id)
             "
             @change="onChangeForm('pollutants', $event)"
           />
@@ -177,10 +177,10 @@ import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import Station from '@/entities/Station'
 import City from '@/entities/City'
 import RunningAverageEnum from '../types/RunningAverageEnum'
+import URLQuery, {URLQueryStations} from '../types/URLQuery'
 import ChartColumnSize, {
   CHART_COLUMN_SIZES,
 } from './MeasurementsChart/ChartColumnSize'
-import URLQuery, {URLQueryStations} from '../types/URLQuery'
 import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
 import ChartData from './MeasurementsChart/ChartData'
 import MeasurementsChart from './MeasurementsChart/MeasurementsChart.vue'
