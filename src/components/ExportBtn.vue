@@ -1,11 +1,6 @@
 <template>
   <v-sheet class="export-btn">
-    <v-select
-      class="mt-0 pt-2"
-      v-model="value"
-      :items="fileTypes"
-      hide-details
-    >
+    <v-select class="mt-0 pt-2" v-model="value" :items="fileTypes" hide-details>
       <template v-slot:append-outer>
         <v-btn
           v-bind="$props"

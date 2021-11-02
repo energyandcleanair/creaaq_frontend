@@ -1,18 +1,8 @@
 <template>
-  <div
-    class="view-violations fill-height"
-    style="overflow: auto;"
-  >
-    <v-container
-      class="pt-10 pt-md-4 px-8"
-      fluid
-    >
+  <div class="view-violations fill-height" style="overflow: auto">
+    <v-container class="pt-10 pt-md-4 px-8" fluid>
       <v-row>
-        <v-col
-          cols="12"
-          sm="8"
-          md="6"
-        >
+        <v-col cols="12" sm="8" md="6">
           <SelectBoxCities
             :value="urlQuery.cities"
             :label="$t('cities')"
@@ -22,12 +12,7 @@
           />
         </v-col>
 
-        <v-col
-          class="d-flex justify-end align-center"
-          cols="12"
-          sm="4"
-          md="6"
-        >
+        <v-col class="d-flex justify-end align-center" cols="12" sm="4" md="6">
           <v-btn
             class="ml-2"
             :disabled="isLoading"
@@ -41,10 +26,7 @@
       </v-row>
     </v-container>
 
-    <v-container
-      class="mt-4 px-8"
-      fluid
-    >
+    <v-container class="mt-4 px-8" fluid>
       <ViolationsRightDrawer
         :queryParams="urlQuery"
         :chartData="chartData"
@@ -53,24 +35,28 @@
         @update:queryParams="onChangeQuery"
       />
 
-      <template v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API">
-        <v-alert
-          class="text-center my-12 px-12"
-          color="warning lighten-2"
-        >
+      <template
+        v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+      >
+        <v-alert class="text-center my-12 px-12" color="warning lighten-2">
           <div class="d-flex justify-center">
-            {{ $t('msg.limit_exceeded__server_cannot_process_amount__reduce_query') }}
+            {{
+              $t(
+                'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
+              )
+            }}
           </div>
 
           <b class="d-flex justify-center pt-2">
             {{
-              $t(
-                'msg.queried_of_limit',
-                {
-                  queried: `${urlQuery.cities.length} ${$t('cities').toLowerCase()}`,
-                  limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities').toLowerCase()}`,
-                }
-              )
+              $t('msg.queried_of_limit', {
+                queried: `${urlQuery.cities.length} ${$t(
+                  'cities'
+                ).toLowerCase()}`,
+                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t(
+                  'cities'
+                ).toLowerCase()}`,
+              })
             }}
           </b>
         </v-alert>
@@ -221,14 +207,6 @@ export default class ViewViolations extends Vue {
     const cities = await this.fetchCities()
     this.chartData.cities = cities
 
-    // set from cache
-    if (!this.urlQuery.cities.length && this.queryFormCached?.cities.length) {
-      await this.setUrlQuery({
-        ...this.urlQuery,
-        cities: this.queryFormCached?.cities || [],
-      })
-    }
-
     if (this.urlQuery.cities.length) {
       // filter only existing cities
       const idsMap = this.urlQuery.cities.reduce(
@@ -261,6 +239,11 @@ export default class ViewViolations extends Vue {
 
   private async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
+
+    // set from cache
+    if (!urlQuery.cities.length && this.queryFormCached?.cities.length) {
+      urlQuery.cities = this.queryFormCached.cities
+    }
 
     if (!urlQuery.date_start) {
       urlQuery.date_start = toURLStringDate(JAN_1)

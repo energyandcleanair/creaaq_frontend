@@ -4,7 +4,6 @@
     class="fill-height overflow-y-auto px-8 pb-16 pt-16"
     v-model="isValid"
   >
-
     <div class="text-h5 font-weight-bold black--text mb-5">
       {{ $t('auth.login') }}
     </div>
@@ -82,7 +81,6 @@
       block
       large
     >
-
       <v-img
         class="ml-2"
         src="/img/google.svg"
@@ -104,7 +102,6 @@
       :height="70"
       absolute
     >
-
       <div class="font-weight-600">
         {{ $t('auth.dont_have_account_question') }}
       </div>

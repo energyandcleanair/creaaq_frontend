@@ -1,5 +1,5 @@
 export default {
-  // $vuetify: require('vuetify/src/locale/en').default,
+  $vuetify: require('vuetify/src/locale/en').default,
 
   brand_name: 'CREA',
   email: 'Email',
@@ -116,6 +116,7 @@ export default {
     queried_of_limit: 'Queried {queried} with the limit of {limit}',
     loaded_of_limit: 'Loaded {loaded} with the limit of {limit}',
     rendering_n_items: 'Rendering {n} items',
+    no_items_selected: 'No {items} selected',
   },
 
   auth: {

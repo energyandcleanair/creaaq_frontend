@@ -1,19 +1,10 @@
 <template>
-  <PageDrawer
-    :open="open"
-    @input="toggle($event)"
-  >
+  <PageDrawer :open="open" @input="toggle($event)">
     <v-form>
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('year') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('year') }}</v-col>
 
-        <v-col
-          class="d-flex justify-center"
-          cols="12"
-        >
+        <v-col class="d-flex justify-center" cols="12">
           <v-select
             class="mt-0 pt-2"
             :value="queryParams.date_start"

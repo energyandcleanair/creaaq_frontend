@@ -7,15 +7,11 @@
       clipped-right
       dark
       app
-      style="z-index: 100;"
+      style="z-index: 100"
     >
       <div class="d-flex align-center">
         <RouterLink to="/">
-          <v-badge
-            class="logo-badge"
-            bottom
-            content="beta"
-          >
+          <v-badge class="logo-badge" bottom content="beta">
             <v-img
               alt="Vuetify Logo"
               class="shrink mr-2"
@@ -37,12 +33,8 @@
         :max-width="250"
         offset-x
       >
-        <template v-slot:activator="{ on, attrs }">
-          <v-list-item
-            style="max-width: fit-content;"
-            v-bind="attrs"
-            v-on="on"
-          >
+        <template v-slot:activator="{on, attrs}">
+          <v-list-item style="max-width: fit-content" v-bind="attrs" v-on="on">
             <v-list-item-content>
               <v-list-item-title
                 class="grey--text text--darken-2"
@@ -51,15 +43,8 @@
             </v-list-item-content>
 
             <v-list-item-avatar>
-              <v-img
-                v-if="userPhoto"
-                :alt="userName"
-                :src="userPhoto"
-              />
-              <v-icon
-                v-else
-                class="grey--text text--lighten-2"
-              >
+              <v-img v-if="userPhoto" :alt="userName" :src="userPhoto" />
+              <v-icon v-else class="grey--text text--lighten-2">
                 {{ mdiAccountCircle }}
               </v-icon>
             </v-list-item-avatar>
@@ -69,15 +54,8 @@
         <v-list>
           <v-list-item>
             <v-list-item-avatar>
-              <v-img
-                v-if="userPhoto"
-                :alt="userName"
-                :src="userPhoto"
-              />
-              <v-icon
-                v-else
-                class="grey--text text--lighten-2"
-              >
+              <v-img v-if="userPhoto" :alt="userName" :src="userPhoto" />
+              <v-icon v-else class="grey--text text--lighten-2">
                 {{ mdiAccountCircle }}
               </v-icon>
             </v-list-item-avatar>

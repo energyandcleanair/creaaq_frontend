@@ -10,16 +10,17 @@
     v-bind="$props"
     v-on="$listeners"
   >
-    <template v-slot:selection="{ item, index }">
+    <template v-slot:selection="{item, index}">
       <v-chip v-if="index + 1 <= visibleChips">
         <span>
-          <slot
-            name="item-title"
-            v-bind:item="item"
-          >
-            <span v-html="typeof $props.itemText === 'function'
-              ? $props.itemText(item)
-              : item[$props.itemText || 'name']" />
+          <slot name="item-title" v-bind:item="item">
+            <span
+              v-html="
+                typeof $props.itemText === 'function'
+                  ? $props.itemText(item)
+                  : item[$props.itemText || 'name']
+              "
+            />
           </slot>
         </span>
 
@@ -27,16 +28,10 @@
           v-if="showSubtitleInChip && $scopedSlots['item-subtitle']"
           class="pl-1"
         >
-          <slot
-            name="item-subtitle"
-            v-bind:item="item"
-          />
+          <slot name="item-subtitle" v-bind:item="item" />
         </span>
       </v-chip>
-      <span
-        v-if="index === visibleChips"
-        class="grey--text text-caption"
-      >
+      <span v-if="index === visibleChips" class="grey--text text-caption">
         (+{{ value.length - visibleChips }})
       </span>
     </template>
@@ -45,11 +40,7 @@
       v-if="items.length && (isShowSelectAll || isShowDeselectAll)"
       v-slot:prepend-item
     >
-      <v-list-item
-        aria-selected="true"
-        role="option"
-        @click="toggleSelected"
-      >
+      <v-list-item aria-selected="true" role="option" @click="toggleSelected">
         <v-list-item-action>
           <v-icon :color="isSelectedSome ? 'indigo darken-4' : ''">
             {{ generalSelectorButtonIcon }}
@@ -63,12 +54,8 @@
       <v-divider class="mt-2"></v-divider>
     </template>
 
-    <template v-slot:item="{ on, attrs, item }">
-      <v-list-item
-        v-bind="attrs"
-        v-on="on"
-        @click="$emit('click:item', item)"
-      >
+    <template v-slot:item="{on, attrs, item}">
+      <v-list-item v-bind="attrs" v-on="on" @click="$emit('click:item', item)">
         <v-list-item-action>
           <v-simple-checkbox
             class="pointer-events-none"
@@ -78,20 +65,18 @@
 
         <v-list-item-content>
           <v-list-item-title>
-            <slot
-              name="item-title"
-              v-bind:item="item"
-            >
-              <span v-html="typeof $props.itemText === 'function'
-                ? $props.itemText(item)
-                : item[$props.itemText || 'name']" />
+            <slot name="item-title" v-bind:item="item">
+              <span
+                v-html="
+                  typeof $props.itemText === 'function'
+                    ? $props.itemText(item)
+                    : item[$props.itemText || 'name']
+                "
+              />
             </slot>
           </v-list-item-title>
           <v-list-item-subtitle v-if="$scopedSlots['item-subtitle']">
-            <slot
-              name="item-subtitle"
-              v-bind:item="item"
-            />
+            <slot name="item-subtitle" v-bind:item="item" />
           </v-list-item-subtitle>
         </v-list-item-content>
       </v-list-item>

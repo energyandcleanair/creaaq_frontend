@@ -1,17 +1,10 @@
 <template>
-  <v-container
-    class="violations-chart"
-    fluid
-  >
+  <v-container class="violations-chart" fluid>
     <template v-if="loading">
-      <v-skeleton-loader
-        class="mb-2"
-        type="image"
-        style="height: 64px;"
-      />
+      <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
 
       <v-row class="px-2">
-        <template v-for="i of (12 / vCols)">
+        <template v-for="i of 12 / vCols">
           <v-col :key="i">
             <v-skeleton-loader type="text, image" />
           </v-col>
@@ -20,21 +13,13 @@
     </template>
 
     <template v-else-if="!violations.length">
-      <v-alert
-        class="text-center ma-12"
-        color="grey lighten-3"
-      >
+      <v-alert class="text-center ma-12" color="grey lighten-3">
         {{ $t('msg.no_data') }}
       </v-alert>
     </template>
 
     <template v-else>
-      <v-row
-        v-for="row of chartRows"
-        :key="row.id"
-        class="chart-row"
-      >
-
+      <v-row v-for="row of chartRows" :key="row.id" class="chart-row">
         <v-list-item
           class="chart-row__title grey lighten-4 primary--text mb-6"
           two-line
@@ -72,7 +57,7 @@
               </span>
             </template>
 
-            <template v-slot:day="{ day, outside, future }">
+            <template v-slot:day="{day, outside, future}">
               <template v-if="outside">
                 <!-- empty -->
               </template>
@@ -98,7 +83,7 @@
                 internal-activator
                 z-index="110"
               >
-                <template v-slot:activator="{ on, attrs }">
+                <template v-slot:activator="{on, attrs}">
                   <v-btn
                     v-if="!outside"
                     :color="col.dates[day].color || 'white'"
@@ -302,17 +287,17 @@ export default class ViolationsChart extends Vue {
       const $date = moment(violation.date, URL_DATE_FORMAT)
       const calendarProp = $date.format('YYYY.MM.DD')
 
-      let violations: Violation[] | undefined = _get(
+      let violations: Violation[] | undefined = (_get(
         violationsCalendar,
         calendarProp
-      ) as any as Violation[] | undefined
+      ) as any) as Violation[] | undefined
 
       if (!violations) {
         _set<Violation[]>(violationsCalendar, calendarProp, [])
-        violations = _get(
+        violations = (_get(
           violationsCalendar,
           calendarProp
-        ) as any as Violation[]
+        ) as any) as Violation[]
       }
       violations.push(violation)
     }
@@ -354,10 +339,10 @@ export default class ViolationsChart extends Vue {
             const dateStr = date < 10 ? `0${date}` : String(date)
             const key = `${y_m}-${dateStr}`
             const $date = moment(key, 'YYYY-MM-DD')
-            const dateViolations: Violation[] | undefined = _get(
+            const dateViolations: Violation[] | undefined = (_get(
               violationsCalendar,
               key.replace(/-/g, '.')
-            ) as any as Violation[] | undefined
+            ) as any) as Violation[] | undefined
 
             const tooltipParams = this.genDateTooltipParams(
               $date,

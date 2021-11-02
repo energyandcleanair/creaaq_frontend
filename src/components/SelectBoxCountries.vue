@@ -10,13 +10,8 @@
     v-on="$listeners"
   >
     <template v-slot:item-title="{item}">
-      <CountryFlag
-        :country="(item.id || '').toLowerCase()"
-        size="small"
-      />
-      <span>
-        &nbsp;&nbsp;{{ item.name }}
-      </span>
+      <CountryFlag :country="(item.id || '').toLowerCase()" size="small" />
+      <span> &nbsp;&nbsp;{{ item.name }} </span>
     </template>
   </SelectBox>
 </template>

@@ -2,21 +2,16 @@
   <v-container
     class="measurements-chart"
     :class="{
-    'measurements-chart--dense': dense
-  }"
+      'measurements-chart--dense': dense,
+    }"
     fluid
     v-resize="onResize"
   >
-
     <template v-if="loading">
-      <v-skeleton-loader
-        class="mb-2"
-        type="image"
-        style="height: 64px;"
-      />
+      <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
 
       <v-row class="px-2">
-        <template v-for="i of (cols || 2)">
+        <template v-for="i of cols || 2">
           <v-col :key="i">
             <v-skeleton-loader type="text, image" />
           </v-col>
@@ -25,10 +20,7 @@
     </template>
 
     <template v-else-if="!measurements.length">
-      <v-alert
-        class="fill-width text-center my-12"
-        color="grey lighten-3"
-      >
+      <v-alert class="fill-width text-center my-12" color="grey lighten-3">
         {{ $t('msg.no_data') }}
       </v-alert>
     </template>
@@ -39,12 +31,11 @@
         :key="row.id"
         class="chart-row"
         :class="{
-        [`chart-row--cols-${vCols}`]: true,
-        [`col col-${vCols}`]: dense,
-        'chart-row--hidden': !checkPollutantVisibility(row.pollutantId)
-      }"
+          [`chart-row--cols-${vCols}`]: true,
+          [`col col-${vCols}`]: dense,
+          'chart-row--hidden': !checkPollutantVisibility(row.pollutantId),
+        }"
       >
-
         <v-list-item
           class="chart-row__title white lighten-4 primary--text"
           two-line
@@ -69,7 +60,7 @@
           :cols="vCols"
         >
           <v-tooltip bottom>
-            <template v-slot:activator="{ on, attrs }">
+            <template v-slot:activator="{on, attrs}">
               <v-list-item
                 class="chart-col__title blue"
                 v-bind="attrs"
@@ -92,7 +83,9 @@
             :double-click="false"
             :displaylogo="false"
             :display-mode-bar="col.isEmpty ? false : 'hover'"
-            @relayout="onRelayout(row.id, col.id, $refs[`chart:${col.id}`][0], $event)"
+            @relayout="
+              onRelayout(row.id, col.id, $refs[`chart:${col.id}`][0], $event)
+            "
           />
         </v-col>
       </v-row>
@@ -386,8 +379,9 @@ export default class MeasurementsChart extends Vue {
     pollutantsLength: number = 0
   ): ChartColumnSize {
     const rowItemsLength = citiesLength === 1 ? pollutantsLength : citiesLength
-    const defaultChartCols =
-      MeasurementsChart.getDefaultChartColsBasedOnWindow($vuetify)
+    const defaultChartCols = MeasurementsChart.getDefaultChartColsBasedOnWindow(
+      $vuetify
+    )
     let _defaultCols: number = rowItemsLength
       ? rowItemsLength
       : defaultChartCols
@@ -715,8 +709,9 @@ function _setLineStylesToChartTraces(traces: ChartTrace[]): ChartTrace[] {
     0
   )
 
-  const PALETTE_COLORS =
-    PRIMARY_TRACE_COLOR_SCALE.mode('lab').colors(citiesTracesNumber)
+  const PALETTE_COLORS = PRIMARY_TRACE_COLOR_SCALE.mode('lab').colors(
+    citiesTracesNumber
+  )
 
   let counterCitiesTraces = 0
   const widthStep = PRIMARY_LINE_STYLE.widthStep

@@ -2,15 +2,11 @@
   <div
     class="view-auth fill-height"
     :class="{
-    'mode--mobile': $vuetify.breakpoint.xs
-  }"
+      'mode--mobile': $vuetify.breakpoint.xs,
+    }"
   >
-
     <v-container class="fill-height justify-center pa-0">
-      <v-card
-        class="page-content fill-height"
-        flat
-      >
+      <v-card class="page-content fill-height" flat>
         <v-card-text class="px-0 fill-height">
           <component
             :is="formComponentName"

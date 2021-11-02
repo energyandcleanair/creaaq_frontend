@@ -9,7 +9,6 @@
     mobile-breakpoint="960"
     @input="toggle($event)"
   >
-
     <template v-slot:prepend>
       <v-btn
         class="drawer-handler"
@@ -22,17 +21,10 @@
         <v-icon>{{ mdiTune }}</v-icon>
       </v-btn>
 
-      <v-toolbar
-        height="40"
-        flat
-      >
+      <v-toolbar height="40" flat>
         <v-spacer />
 
-        <v-btn
-          icon
-          small
-          @click="toggle(!open)"
-        >
+        <v-btn icon small @click="toggle(!open)">
           <v-icon small>{{ mdiClose }}</v-icon>
         </v-btn>
       </v-toolbar>

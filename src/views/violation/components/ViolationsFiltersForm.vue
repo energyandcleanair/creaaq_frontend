@@ -9,11 +9,7 @@
         <span class="text-body-1">{{ $t(filterPrimary) }}</span>
       </v-col>
 
-      <v-col
-        v-if="primaryFilterTree.length"
-        class="pl-1"
-        cols="12"
-      >
+      <v-col v-if="primaryFilterTree.length" class="pl-1" cols="12">
         <v-treeview
           ref="primaryFilterTree"
           class="v-treeview--hide-children v-treeview--hide-toggle"
@@ -31,12 +27,8 @@
         >
           <template v-slot:label="{item}">
             <v-tooltip bottom>
-              <template v-slot:activator="{ on, attrs }">
-                <span
-                  v-bind="attrs"
-                  v-on="on"
-                  v-text="item.name"
-                />
+              <template v-slot:activator="{on, attrs}">
+                <span v-bind="attrs" v-on="on" v-text="item.name" />
               </template>
               <span>{{ item.name }}</span>
             </v-tooltip>
@@ -51,11 +43,7 @@
         <span class="text-body-1">{{ filterSecondaryText }}</span>
       </v-col>
 
-      <v-col
-        v-if="secondaryFilterTree.length"
-        class="pl-1"
-        cols="12"
-      >
+      <v-col v-if="secondaryFilterTree.length" class="pl-1" cols="12">
         <v-treeview
           ref="secondaryFilterTree"
           :value="secondaryFilterValue"
@@ -71,12 +59,8 @@
         >
           <template v-slot:label="{item}">
             <v-tooltip bottom>
-              <template v-slot:activator="{ on, attrs }">
-                <span
-                  v-bind="attrs"
-                  v-on="on"
-                  v-text="item.name"
-                />
+              <template v-slot:activator="{on, attrs}">
+                <span v-bind="attrs" v-on="on" v-text="item.name" />
               </template>
               <span>{{ item.description || item.name }}</span>
             </v-tooltip>

@@ -1,12 +1,6 @@
 <template>
-  <div
-    class="view-map fill-height"
-    style="overflow: auto;"
-  >
-    <v-container
-      class="page-content fill-height pa-0"
-      fluid
-    >
+  <div class="view-map fill-height" style="overflow: auto">
+    <v-container class="page-content fill-height pa-0" fluid>
       <MapRightDrawer
         :queryParams="urlQuery"
         :chartData="chartData"
@@ -16,24 +10,32 @@
         @click:export="onClickExport"
       />
 
-      <template v-if="urlQuery && urlQuery.pollutants && urlQuery.pollutants.length > LIMIT_FETCH_ITEMS_FROM_API">
-        <v-alert
-          class="text-center my-12 px-12"
-          color="warning lighten-2"
-        >
+      <template
+        v-if="
+          urlQuery &&
+          urlQuery.pollutants &&
+          urlQuery.pollutants.length > LIMIT_FETCH_ITEMS_FROM_API
+        "
+      >
+        <v-alert class="text-center my-12 px-12" color="warning lighten-2">
           <div class="d-flex justify-center">
-            {{ $t('msg.limit_exceeded__server_cannot_process_amount__reduce_query') }}
+            {{
+              $t(
+                'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
+              )
+            }}
           </div>
 
           <b class="d-flex justify-center pt-2">
             {{
-              $t(
-                'msg.queried_of_limit',
-                {
-                  queried: `${urlQuery.pollutants.length} ${$t('pollutants').toLowerCase()}`,
-                  limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('pollutants').toLowerCase()}`,
-                }
-              )
+              $t('msg.queried_of_limit', {
+                queried: `${urlQuery.pollutants.length} ${$t(
+                  'pollutants'
+                ).toLowerCase()}`,
+                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t(
+                  'pollutants'
+                ).toLowerCase()}`,
+              })
             }}
           </b>
         </v-alert>
@@ -356,6 +358,15 @@ export default class ViewMap extends Vue {
         this.urlQuery.sources?.join(',') !== query.sources?.join(',')
 
       await this.setUrlQuery(query)
+
+      if (!query.sources?.length) {
+        this.$dialog.notify.info(
+          this.$t('msg.no_items_selected', {
+            items: this.$t('sources').toString().toLocaleLowerCase(),
+          }).toString(),
+          {position: 'bottom-left', timeout: 3000, dismissible: false}
+        )
+      }
 
       if (changedLvl) {
         await this.onClickRefresh()

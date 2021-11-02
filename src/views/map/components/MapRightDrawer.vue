@@ -1,19 +1,10 @@
 <template>
-  <PageDrawer
-    :open="open"
-    @input="toggle($event)"
-  >
+  <PageDrawer :open="open" @input="toggle($event)">
     <v-form>
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('level') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('level') }}</v-col>
 
-        <v-col
-          class="d-flex pl-1"
-          cols="12"
-        >
+        <v-col class="d-flex pl-1" cols="12">
           <v-radio-group
             :value="queryLevel"
             hide-details
@@ -29,73 +20,56 @@
         </v-col>
       </v-row>
 
-      <v-row
-        v-if="queryLevel === 'station'"
-        no-gutters
-      >
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('sources') }}</v-col>
+      <v-row v-if="queryLevel === 'station'" no-gutters>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('sources') }}</v-col>
 
-        <v-col
-          v-if="chartData.sources.length"
-          class="d-flex pl-1"
-          cols="12"
-        >
-          <v-radio-group
-            :value="queryParams.sources && queryParams.sources[0]"
-            color="primary"
+        <v-col v-if="chartData.sources.length" class="d-flex pl-1" cols="12">
+          <SelectBox
+            class="mt-0"
+            :value="queryParams.sources"
+            :items="chartData.sources"
+            :disabled="loading"
+            item-text="label"
+            item-value="id"
+            has-select-all
+            has-deselect-all
             hide-details
-            @change="onChangeForm('sources', [$event])"
-          >
-            <v-radio
-              v-for="item of chartData.sources"
-              :key="item.id"
-              :label="item.label"
-              :value="item.id"
-            />
-          </v-radio-group>
-        </v-col>
-      </v-row>
-
-      <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('pollutants') }}</v-col>
-
-        <v-col
-          v-if="pollutants.length"
-          class="pl-1"
-          cols="12"
-        >
-          <v-checkbox
-            v-for="item of pollutants"
-            :input-value="queryParams.pollutants"
-            :key="item.id"
-            :value="item.id"
-            :label="item.label"
-            color="primary"
-            hide-details
-            :disabled="loading || (queryParams.pollutants.length <= 1
-              && queryParams.pollutants.includes(item.id))
-            "
-            @change="onChangeForm('pollutants', $event)"
+            clearable
+            multiple
+            @input="onChangeForm('sources', $event)"
           />
         </v-col>
       </v-row>
 
       <v-row no-gutters>
-        <v-col
-          class="text-subtitle-1"
-          cols="12"
-        >{{ $t('basemap') }}</v-col>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('pollutants') }}</v-col>
 
-        <v-col
-          class="d-flex pl-1"
-          cols="12"
-        >
+        <v-col v-if="pollutants.length" class="pl-1" cols="12">
+          <SelectBox
+            class="mt-0"
+            :value="queryParams.pollutants"
+            :items="pollutants"
+            :disabled="
+              loading ||
+              (queryParams.pollutants.length <= 1 &&
+                queryParams.pollutants.includes(item.id))
+            "
+            item-text="label"
+            item-value="id"
+            has-select-all
+            has-deselect-all
+            hide-details
+            clearable
+            multiple
+            @input="onChangeForm('pollutants', $event)"
+          />
+        </v-col>
+      </v-row>
+
+      <v-row no-gutters>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('basemap') }}</v-col>
+
+        <v-col class="d-flex pl-1" cols="12">
           <v-radio-group
             :value="queryBasemap"
             hide-details
@@ -135,8 +109,8 @@
 <script lang="ts">
 import _difference from 'lodash.difference'
 import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
-// import {toURLStringDate} from '@/utils'
 import PageDrawer from '@/components/PageDrawer.vue'
+import SelectBox from '@/components/SelectBox.vue'
 import Pollutant from '@/entities/Pollutant'
 import URLQuery, {MapChartBasemap, MapChartLevel} from '../types/URLQuery'
 import ChartData from './MapChart/MapChartData'
@@ -146,6 +120,7 @@ import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
   components: {
     PageDrawer,
     ExportBtn,
+    SelectBox,
   },
 })
 export default class MapRightDrawer extends Vue {

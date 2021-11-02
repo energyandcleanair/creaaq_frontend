@@ -20,7 +20,7 @@ import _get from 'lodash.get'
 
 export default {
   name: 'Loader',
-  data () {
+  data() {
     return {
       isLoading: false,
       PROGRESS_STEP_PERCENTS: 10,
@@ -34,27 +34,27 @@ export default {
       color: 'primary',
       top: 0,
       height: 4,
-      active: true
+      active: true,
     }
   },
   computed: {
-    isInIframe () {
+    isInIframe() {
       return window.location !== window.parent.location
     },
     isLoadingProcess: {
-      get () {
+      get() {
         return this.isLoading
       },
-      set (value) {
+      set(value) {
         this.isLoading = value
-      }
-    }
+      },
+    },
   },
-  created () {
+  created() {
     this.isLoadingProcess = false
   },
   methods: {
-    getTopPosition () {
+    getTopPosition() {
       const $appBar = document.getElementsByClassName('v-app-bar')[0]
       return _get($appBar, 'offsetHeight', 0)
     },
@@ -62,7 +62,7 @@ export default {
     /**
      * @param {LoaderOptions} options
      */
-    on (options) {
+    on(options) {
       this.top = this.getTopPosition()
 
       if (this.isLoadingProcess) {
@@ -76,7 +76,7 @@ export default {
     /**
      * @param {boolean} isForce - force stop loader without animation
      */
-    off (isForce) {
+    off(isForce) {
       if (!this.isLoadingProcess) return
 
       this.finish()
@@ -97,20 +97,21 @@ export default {
       }
     },
 
-    finish () {
+    finish() {
       this.progressValue = 100
     },
 
-    startProgress () {
+    startProgress() {
       this.stopProgress()
 
       const FIRST_LIMIT_PERCENTS = 80
       const LAST_LIMIT_PERCENTS = 97
 
       this.interval = setInterval(() => {
-        if (this.progressValue >= FIRST_LIMIT_PERCENTS &&
-          this.progressValue < LAST_LIMIT_PERCENTS) {
-
+        if (
+          this.progressValue >= FIRST_LIMIT_PERCENTS &&
+          this.progressValue < LAST_LIMIT_PERCENTS
+        ) {
           this.progressValue += 1
           return
         }
@@ -130,13 +131,13 @@ export default {
       }, this.PROGRESS_STEP_SEC * 1000)
     },
 
-    stopProgress () {
+    stopProgress() {
       this.progressValue = 0
       clearInterval(this.interval)
-      this.timeouts.forEach(t => t && clearTimeout(t))
+      this.timeouts.forEach((t) => t && clearTimeout(t))
       this.timeouts = []
-    }
-  }
+    },
+  },
 }
 </script>
 
