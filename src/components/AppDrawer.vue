@@ -9,23 +9,27 @@
   >
     <v-container class="d-flex flex-column fill-height pa-0" fluid>
       <v-list class="fill-width" dense>
-        <v-list-item
-          :class="{'grey--text text--darken-1': item.disabled}"
-          v-for="item in menuItems"
-          :key="item.title"
-          :to="item.to"
-          :disabled="item.disabled"
-        >
-          <v-list-item-icon class="mr-4">
-            <v-icon>{{ item.icon }}</v-icon>
-          </v-list-item-icon>
+        <v-list-item-group :value="selectedItemIndex" color="primary">
+          <v-list-item
+            :class="{
+              'grey--text text--darken-1': item.disabled,
+            }"
+            v-for="(item, i) in menuItems"
+            :key="i"
+            :to="item.to"
+            :disabled="item.disabled || selectedItemIndex === i"
+          >
+            <v-list-item-icon class="mr-4">
+              <v-icon>{{ item.icon }}</v-icon>
+            </v-list-item-icon>
 
-          <v-list-item-content>
-            <v-list-item-title class="text-body-1">{{
-              item.label
-            }}</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
+            <v-list-item-content>
+              <v-list-item-title class="text-body-1">{{
+                item.label
+              }}</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list-item-group>
       </v-list>
 
       <v-sheet class="mt-auto fill-width d-flex justify-center pl-0">
@@ -60,31 +64,33 @@ export default class AppDrawer extends Vue {
 
   private version: string = pkg.version
 
+  private get selectedItemIndex(): number {
+    return this.menuItems.findIndex(
+      (item) => item?.to?.name === this.$route.name
+    )
+  }
+
   private get menuItems(): MenuItem[] {
     return [
       {
         label: this.$t('measurements').toString(),
         icon: mdiChartLine,
         to: {name: 'measurements'},
-        disabled: false,
       },
       {
         label: this.$t('violations').toString(),
         icon: mdiCalendarMonth,
         to: {name: 'violations'},
-        disabled: false,
       },
       {
         label: this.$t('stations').toString(),
         icon: mdiFactory,
         to: {name: 'stations'},
-        disabled: false,
       },
       {
         label: this.$t('map').toString(),
         icon: mdiMapMarkerRadius,
         to: {name: 'map'},
-        disabled: false,
       },
     ]
   }
