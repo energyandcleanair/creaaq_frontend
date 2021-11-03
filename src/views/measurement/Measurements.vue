@@ -1,5 +1,10 @@
 <template>
-  <div class="view-measurements fill-height" style="overflow: auto">
+  <div
+    class="view-measurements fill-height"
+    :class="{
+      'right-panel-open': isRightPanelOpen,
+    }"
+  >
     <v-container class="pt-10 pt-md-4 px-8" fluid>
       <v-row>
         <v-col cols="12" md="5" lg="6" xl="6">
@@ -45,16 +50,6 @@
     </v-container>
 
     <v-container class="mt-4 px-8" fluid>
-      <MeasurementsRightDrawer
-        :queryParams="urlQuery"
-        :chartData="chartData"
-        :open.sync="isRightPanelOpen"
-        :loading="isChartLoading"
-        :disabledStations="false"
-        @update:queryParams="onChangeQuery"
-        @click:export="onClickExport"
-      />
-
       <template
         v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
       >
@@ -126,6 +121,16 @@
         :loading="isChartLoading"
       />
     </v-container>
+
+    <MeasurementsRightDrawer
+      :queryParams="urlQuery"
+      :chartData="chartData"
+      :open.sync="isRightPanelOpen"
+      :loading="isChartLoading"
+      :disabledStations="false"
+      @update:queryParams="onChangeQuery"
+      @click:export="onClickExport"
+    />
   </div>
 </template>
 
@@ -754,3 +759,15 @@ export default class ViewMeasurements extends Vue {
   }
 }
 </script>
+
+<style lang="scss">
+$right_panel--width: 250px;
+
+.view-measurements {
+  overflow: auto;
+
+  &.right-panel-open {
+    width: calc(100% - #{$right_panel--width});
+  }
+}
+</style>

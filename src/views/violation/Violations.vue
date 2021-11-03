@@ -1,5 +1,10 @@
 <template>
-  <div class="view-violations fill-height" style="overflow: auto">
+  <div
+    class="view-violations fill-height"
+    :class="{
+      'right-panel-open': isRightPanelOpen,
+    }"
+  >
     <v-container class="pt-10 pt-md-4 px-8" fluid>
       <v-row>
         <v-col cols="12" sm="8" md="6">
@@ -27,14 +32,6 @@
     </v-container>
 
     <v-container class="mt-4 px-8" fluid>
-      <ViolationsRightDrawer
-        :queryParams="urlQuery"
-        :chartData="chartData"
-        :open.sync="isRightPanelOpen"
-        :loading="isLoading || isChartLoading"
-        @update:queryParams="onChangeQuery"
-      />
-
       <template
         v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
       >
@@ -69,6 +66,14 @@
         :loading="isChartLoading"
       />
     </v-container>
+
+    <ViolationsRightDrawer
+      :queryParams="urlQuery"
+      :chartData="chartData"
+      :open.sync="isRightPanelOpen"
+      :loading="isLoading || isChartLoading"
+      @update:queryParams="onChangeQuery"
+    />
   </div>
 </template>
 
@@ -457,3 +462,16 @@ export default class ViewViolations extends Vue {
   }
 }
 </script>
+
+
+<style lang="scss">
+$right_panel--width: 250px;
+
+.view-violations {
+  overflow: auto;
+
+  &.right-panel-open {
+    width: calc(100% - #{$right_panel--width});
+  }
+}
+</style>

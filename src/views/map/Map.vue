@@ -1,15 +1,11 @@
 <template>
-  <div class="view-map fill-height" style="overflow: auto">
+  <div
+    class="view-map fill-height"
+    :class="{
+      'right-panel-open': isRightPanelOpen,
+    }"
+  >
     <v-container class="page-content fill-height pa-0" fluid>
-      <MapRightDrawer
-        :queryParams="urlQuery"
-        :chartData="chartData"
-        :open.sync="isRightPanelOpen"
-        :loading="isChartLoading"
-        @update:queryParams="onChangeQuery"
-        @click:export="onClickExport"
-      />
-
       <template
         v-if="
           urlQuery &&
@@ -52,6 +48,15 @@
         @update:queryParams="onChangeQuery"
       />
     </v-container>
+
+    <MapRightDrawer
+      :queryParams="urlQuery"
+      :chartData="chartData"
+      :open.sync="isRightPanelOpen"
+      :loading="isChartLoading"
+      @update:queryParams="onChangeQuery"
+      @click:export="onClickExport"
+    />
   </div>
 </template>
 
@@ -359,15 +364,6 @@ export default class ViewMap extends Vue {
 
       await this.setUrlQuery(query)
 
-      if (query.level === MapChartLevel.station && !query.sources?.length) {
-        this.$dialog.notify.info(
-          this.$t('msg.no_items_selected', {
-            items: this.$t('sources').toString().toLocaleLowerCase(),
-          }).toString(),
-          {position: 'bottom-left', timeout: 3000, dismissible: false}
-        )
-      }
-
       if (changedLvl) {
         await this.onClickRefresh()
       } else if (changedSources) {
@@ -494,7 +490,11 @@ export default class ViewMap extends Vue {
 </script>
 
 <style lang="scss">
+$right_panel--width: 250px;
+
 .view-map {
+  overflow: auto;
+
   > .toolbar {
     position: relative;
     z-index: 5;
@@ -503,6 +503,10 @@ export default class ViewMap extends Vue {
   > .page-content {
     position: relative;
     z-index: 1;
+  }
+
+  &.right-panel-open {
+    width: calc(100% - #{$right_panel--width});
   }
 }
 </style>

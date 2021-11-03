@@ -58,7 +58,7 @@ export default {
       color: colors.darkBlue.base,
     },
     primarySelected: {
-      radius: 10,
+      radius: 8,
       weight: 3,
       opacity: 1,
       fillOpacity: 0.4,
