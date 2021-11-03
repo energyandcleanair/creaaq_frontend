@@ -26,7 +26,11 @@
             :url="MAP_LAYERS.SATELLITE.url"
             :attribution="MAP_LAYERS.SATELLITE.attribution"
           />
-          <l-tile-layer v-else :url="MAP_LAYERS.TERRAIN.url" />
+          <l-tile-layer
+            v-else
+            :url="MAP_LAYERS.TERRAIN.url"
+            :attribution="MAP_LAYERS.TERRAIN.attribution"
+          />
 
           <div class="leaflet-bottom leaflet-left">
             <v-btn

@@ -45,7 +45,10 @@
             :options="mapOptions"
             @ready="onMapInitialized"
           >
-            <l-tile-layer :url="MAP_LAYERS.TERRAIN.url" />
+            <l-tile-layer
+              :url="MAP_LAYERS.TERRAIN.url"
+              :attribution="MAP_LAYERS.TERRAIN.attribution"
+            />
 
             <l-circle-marker
               :ref="`marker--${marker.id}`"
