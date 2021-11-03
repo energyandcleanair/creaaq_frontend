@@ -17,7 +17,7 @@ export const toURLStringDate = (d: string | number): string =>
 export const toNumberDate = (d: string): number =>
   d === '0' ? 0 : moment.utc(d, URL_DATE_FORMAT).valueOf()
 
-export const toQueryString = (obj: {[key: string]: any}): string => {
+export const toQueryString = (obj: Record<string, any>): string => {
   const searchParams = new URLSearchParams()
   Object.keys(obj).forEach(
     (key) => obj[key] !== undefined && searchParams.append(key, obj[key])
@@ -25,9 +25,28 @@ export const toQueryString = (obj: {[key: string]: any}): string => {
   return searchParams.toString()
 }
 
+export const parseQueryString = <T>(
+  querystring: string
+): T | Record<string, string | string[] | null> => {
+  const params = new URLSearchParams(querystring)
+  const obj: Record<string, string | string[] | null> = {}
+  params.forEach((_, key) => {
+    if (obj[key]) return
+    if (params.getAll(key).length > 1) obj[key] = params.getAll(key)
+    else obj[key] = params.get(key)
+  })
+  return obj
+}
+
+export const toCompactArray = <T>(itm: any): T[] =>
+  (Array.isArray(itm) ? itm : [itm]).filter((i) => i)
+
 export function getAverage(arr: number[]): number {
   return arr.reduce((acc, val) => acc + val, 0) / arr.length
 }
+
+export const enumHas = (_enum: any, val: any): boolean =>
+  Object.values(_enum).includes(val)
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))

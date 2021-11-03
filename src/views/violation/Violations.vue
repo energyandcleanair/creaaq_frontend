@@ -93,7 +93,12 @@ import CityAPI from '@/api/CityAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import {toURLStringDate, toQueryString, URL_DATE_FORMAT} from '@/utils'
+import {
+  toURLStringDate,
+  toQueryString,
+  URL_DATE_FORMAT,
+  toCompactArray,
+} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
@@ -127,22 +132,11 @@ export default class ViewViolations extends Vue {
 
   private get urlQuery(): URLQuery {
     const q: URLQueryRaw = this.$route.query
-    const _toArray = (itm: string | string[] | undefined) =>
-      (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
-
-    // TODO: delete
-    // fallback for old URL format
-    if (!q.ct && (q as any).cities) q.ct = (q as any).cities
-    if (!q.pl && (q as any).pollutants) q.pl = (q as any).pollutants
-    if (!q.tg && (q as any).targets) q.tg = (q as any).targets
-    if (!q.gl && (q as any).guidelines) q.gl = (q as any).guidelines
-    if (!q.start && (q as any).date_start) q.start = (q as any).date_start
-
     return {
-      cities: _toArray(q.ct),
-      pollutants: _toArray(q.pl),
-      targets: _toArray(q.tg),
-      guidelines: _toArray(q.gl),
+      cities: toCompactArray(q.ct),
+      pollutants: toCompactArray(q.pl),
+      targets: toCompactArray(q.tg),
+      guidelines: toCompactArray(q.gl),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
     }
   }

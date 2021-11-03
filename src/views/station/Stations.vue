@@ -78,7 +78,7 @@ import Station from '@/entities/Station'
 import CityAPI from '@/api/CityAPI'
 import StationAPI from '@/api/StationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import {toQueryString} from '@/utils'
+import {toCompactArray, toQueryString} from '@/utils'
 import StationsChart from './components/StationsChart/StationsChart.vue'
 import ChartData from './components/StationsChart/ChartData'
 import URLQuery, {URLQueryRaw} from './types/URLQuery'
@@ -107,17 +107,9 @@ export default class ViewStations extends Vue {
 
   private get urlQuery(): URLQuery {
     const q: URLQueryRaw = this.$route.query
-    const _toArray = (itm: string | string[] | undefined) =>
-      (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
-
-    // TODO: delete
-    // fallback for old URL format
-    if (!q.ct && (q as any).cities) q.ct = (q as any).cities
-    if (!q.st && (q as any).stations) q.st = (q as any).stations
-
     return {
-      cities: _toArray(q.ct),
-      stations: _toArray(q.st),
+      cities: toCompactArray(q.ct),
+      stations: toCompactArray(q.st),
     }
   }
 

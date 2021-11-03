@@ -2,9 +2,11 @@ import City from '@/entities/City'
 import Pollutant from '@/entities/Pollutant'
 import Source from '@/entities/Source'
 import Station from '@/entities/Station'
+import RunningAverageEnum from '@/entities/RunningAverageEnum'
 import ChartDisplayModes from '../components/MeasurementsChart/ChartDisplayModes'
 import ChartColumnSize from '../components/MeasurementsChart/ChartColumnSize'
-import RunningAverageEnum from './RunningAverageEnum'
+
+export type yyyymmdd = string
 
 enum URLQueryStations {
   all = 'all',
@@ -16,8 +18,8 @@ export default interface URLQuery {
   sources: Source['id'][]
   pollutants: Pollutant['id'][]
   stations?: Station['id'][] | URLQueryStations.all[]
-  date_start?: string
-  date_end?: string
+  date_start?: yyyymmdd
+  date_end?: yyyymmdd
   display_mode?: ChartDisplayModes
   running_average?: RunningAverageEnum
   chart_cols?: ChartColumnSize | 0
@@ -37,10 +39,10 @@ export interface URLQueryRaw {
   st?: string[]
 
   // date_start
-  start?: string
+  start?: yyyymmdd
 
   // date_end
-  end?: string
+  end?: yyyymmdd
 
   // display_mode
   dspl?: string

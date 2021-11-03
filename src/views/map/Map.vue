@@ -68,10 +68,15 @@ import _difference from 'lodash.difference'
 import {Component, Ref, Vue} from 'vue-property-decorator'
 import config from '@/config'
 import {sleep} from '@/utils'
-import City from '@/entities/City'
-import Station from '@/entities/Station'
 import CityAPI from '@/api/CityAPI'
 import StationAPI from '@/api/StationAPI'
+import City from '@/entities/City'
+import Station from '@/entities/Station'
+import {URLQueryRaw as MeasurementPageURLQueryRaw} from '@/views/measurement/types/URLQuery'
+import {ExportFileType} from '@/components/ExportBtn.vue'
+import Pollutant from '@/entities/Pollutant'
+import Source from '@/entities/Source'
+import {MeasurementLevels} from '@/entities/Measurement'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import MapRightDrawer from './components/MapRightDrawer.vue'
 import MapChart from './components/MapChart/MapChart.vue'
@@ -81,11 +86,6 @@ import URLQuery, {
   MapChartLevel,
   URLQueryRaw,
 } from './types/URLQuery'
-import {URLQueryRaw as MeasurementPageURLQueryRaw} from '@/views/measurement/types/URLQuery'
-import {ExportFileType} from '@/components/ExportBtn.vue'
-import Pollutant from '@/entities/Pollutant'
-import Source from '@/entities/Source'
-import {MeasurementLevels} from '@/entities/Measurement'
 
 const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)

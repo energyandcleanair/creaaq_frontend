@@ -10,9 +10,14 @@
       right
     >
       <template v-slot:activator="{on, attrs}">
-        <div class="caption grey--text text--darken-2">
-          {{ $t('dates_interval.title') }}
-        </div>
+        <label
+          v-if="label"
+          class="dates-interval-input__label caption grey--text text--darken-2"
+          v-bind="attrs"
+          v-on="on"
+        >
+          {{ label }}
+        </label>
 
         <div>
           <v-btn
@@ -150,6 +155,9 @@ export default class DatesIntervalInput extends Vue {
   @Prop({type: String, required: false})
   readonly interval!: DatesIntervals
 
+  @Prop({type: String})
+  readonly label?: string
+
   @Prop({type: Number, default: 0})
   readonly dateStart!: number
 
@@ -268,11 +276,7 @@ export default class DatesIntervalInput extends Vue {
 
     const regYear = /^year:(.+)/
     const _today = today ? moment.utc(today) : moment.utc()
-    _today
-      .hours(0)
-      .minutes(0)
-      .seconds(0)
-      .milliseconds(0)
+    _today.hours(0).minutes(0).seconds(0).milliseconds(0)
 
     if (regYear.test(interval)) {
       const res = regYear.exec(interval)
@@ -385,11 +389,23 @@ export default class DatesIntervalInput extends Vue {
 @import '~vuetify/src/styles/styles.sass';
 
 .dates-interval-input {
+  position: relative;
+  padding-top: 0.9em;
+
+  &__label {
+    position: absolute;
+    left: 0;
+    top: -0.1em;
+    z-index: 3;
+  }
+
   .main-button {
+    margin-top: 0.3em;
     min-width: 100px !important;
     border: 0 !important;
     text-transform: none !important;
     font-weight: 400;
+    letter-spacing: 0.4px !important;
 
     i {
       font-style: normal;

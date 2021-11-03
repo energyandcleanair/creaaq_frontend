@@ -21,6 +21,7 @@
           <DatesIntervalInput
             :dateStart="toNumberDate(urlQuery.date_start)"
             :dateEnd="toNumberDate(urlQuery.date_end)"
+            :label="$t('dates_interval.title')"
             format="YYYY-MM-DD"
             :disabled="isLoading"
             @input="
@@ -146,6 +147,7 @@ import {
   toURLStringDate,
   toNumberDate,
   toQueryString,
+  toCompactArray,
 } from '@/utils'
 import config from '@/config'
 import {ModuleState} from '@/store'
@@ -153,6 +155,7 @@ import City from '@/entities/City'
 import Source from '@/entities/Source'
 import Pollutant from '@/entities/Pollutant'
 import Station from '@/entities/Station'
+import RunningAverageEnum from '@/entities/RunningAverageEnum'
 import Measurement, {MeasurementProcesses} from '@/entities/Measurement'
 import CityAPI from '@/api/CityAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
@@ -164,13 +167,10 @@ import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 import ChartData from './components/MeasurementsChart/ChartData'
 import ChartColumnSize from './components/MeasurementsChart/ChartColumnSize'
-import RunningAverageEnum from './types/RunningAverageEnum'
 import URLQuery, {URLQueryRaw, URLQueryStations} from './types/URLQuery'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
-const _queryToArray = (itm: string | string[] | undefined) =>
-  (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
 @Component({
   components: {
@@ -199,23 +199,11 @@ export default class ViewMeasurements extends Vue {
   private get urlQuery(): URLQuery {
     const q: URLQueryRaw = {...this.$route.query}
 
-    // TODO: delete
-    // fallback for old URL format
-    if (!q.ct && (q as any).cities) q.ct = (q as any).cities
-    if (!q.sr && (q as any).sources) q.sr = (q as any).sources
-    if (!q.pl && (q as any).pollutants) q.pl = (q as any).pollutants
-    if (!q.st && (q as any).stations) q.st = (q as any).stations
-    if (!q.start && (q as any).date_start) q.start = (q as any).date_start
-    if (!q.end && (q as any).date_end) q.end = (q as any).date_end
-    if (!q.dspl && (q as any).display_mode) q.dspl = (q as any).display_mode
-    if (!q.avg && (q as any).running_average) q.avg = (q as any).running_average
-    if (!q.cols && (q as any).chart_cols) q.cols = (q as any).chart_cols
-
     return {
-      cities: _queryToArray(q.ct),
-      sources: _queryToArray(q.sr),
-      pollutants: _queryToArray(q.pl),
-      stations: _queryToArray(q.st),
+      cities: toCompactArray(q.ct),
+      sources: toCompactArray(q.sr),
+      pollutants: toCompactArray(q.pl),
+      stations: toCompactArray(q.st),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
       date_end: q.end ? toURLStringDate(q.end as string) : '',
       display_mode: q.dspl

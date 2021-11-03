@@ -8,7 +8,7 @@
     v-resize="onResize"
   >
     <template v-if="loading">
-      <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
+      <v-skeleton-loader class="mb-2" type="image" style="height: 64px" />
 
       <v-row class="px-2">
         <template v-for="i of cols || 2">
@@ -46,7 +46,7 @@
               <i
                 v-if="row.subtitle"
                 class="text-caption grey--text text--darken-1 pl-1"
-                style="font-size: 0.6em;"
+                style="font-size: 0.6em"
                 v-text="row.subtitle"
               />
             </v-list-item-title>
@@ -113,9 +113,9 @@ import Station from '@/entities/Station'
 import theme from '@/theme'
 import RunningAverageEnum, {
   RUNNING_AVERAGE_DAYS_MAP,
-} from '../../types/RunningAverageEnum'
-import ChartColumnSize from './ChartColumnSize'
+} from '@/entities/RunningAverageEnum'
 import URLQuery from '../../types/URLQuery'
+import ChartColumnSize from './ChartColumnSize'
 import ChartDisplayModes from './ChartDisplayModes'
 import RangeBox from './RangeBox'
 import ChartRow from './ChartRow'
@@ -379,9 +379,8 @@ export default class MeasurementsChart extends Vue {
     pollutantsLength: number = 0
   ): ChartColumnSize {
     const rowItemsLength = citiesLength === 1 ? pollutantsLength : citiesLength
-    const defaultChartCols = MeasurementsChart.getDefaultChartColsBasedOnWindow(
-      $vuetify
-    )
+    const defaultChartCols =
+      MeasurementsChart.getDefaultChartColsBasedOnWindow($vuetify)
     let _defaultCols: number = rowItemsLength
       ? rowItemsLength
       : defaultChartCols
@@ -705,9 +704,8 @@ function _setLineStylesToChartTraces(traces: ChartTrace[]): ChartTrace[] {
     0
   )
 
-  const PALETTE_COLORS = PRIMARY_TRACE_COLOR_SCALE.mode('lab').colors(
-    citiesTracesNumber
-  )
+  const PALETTE_COLORS =
+    PRIMARY_TRACE_COLOR_SCALE.mode('lab').colors(citiesTracesNumber)
 
   let counterCitiesTraces = 0
   const widthStep = PRIMARY_LINE_STYLE.widthStep

@@ -1,6 +1,132 @@
 <template>
   <div class="view-download fill-height" style="overflow: auto">
-    Will be added soon
+    <v-container class="pt-10 pt-md-10 px-8" fluid>
+      <v-row>
+        <v-col class="text-center">
+          <h1 class="text-h3 mb-4">{{ $t('download') }}</h1>
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="6">
+          <v-btn-toggle
+            class="d-flex row ma-0"
+            :value="urlQuery.entity"
+            color="secondary"
+            group
+            tile
+            :disabled="isLoading"
+            @change="onChangeQuery({...urlQuery, entity: $event})"
+          >
+            <v-btn
+              v-for="option of targetEntityOptions"
+              :key="option.value"
+              class="col col-12 col-md-4 ma-0"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </v-btn>
+          </v-btn-toggle>
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="6">
+          <div class="text-subtitle-1 mb-2">{{ $t('cities') }}</div>
+
+          <SelectBoxCities
+            :value="urlQuery.cities"
+            :items="pageData.cities"
+            :disabled="isLoading"
+            @input="onChangeQuery({...urlQuery, cities: $event})"
+          />
+        </v-col>
+      </v-row>
+
+      <v-row v-if="formHasDates">
+        <v-col cols="12" md="6">
+          <div class="text-subtitle-1 mb-2">{{ $t('dates') }}</div>
+
+          <DatesIntervalInput
+            class="pt-0"
+            :dateStart="toNumberDate(urlQuery.date_start)"
+            :dateEnd="toNumberDate(urlQuery.date_end)"
+            format="YYYY-MM-DD"
+            :disabled="isLoading"
+            @input="
+              onChangeQuery({
+                ...urlQuery,
+                date_start: toURLStringDate($event.dateStart),
+                date_end: toURLStringDate($event.dateEnd),
+              })
+            "
+          />
+        </v-col>
+      </v-row>
+
+      <v-row v-if="formHasRunningAverage">
+        <v-col cols="12" md="6">
+          <div class="text-subtitle-1 mb-2">{{ $t('averaging') }}</div>
+
+          <v-btn-toggle
+            :value="urlQuery.averaging_period"
+            color="secondary"
+            tile
+            group
+            @change="onChangeQuery({...urlQuery, averaging_period: $event})"
+          >
+            <v-btn
+              class="px-1"
+              v-for="val of AVERAGING_PERIOD_OPTIONS"
+              :key="val"
+              :value="val"
+              v-text="val"
+              small
+              style="text-transform: none"
+            />
+          </v-btn-toggle>
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="6">
+          <div class="text-subtitle-1 mb-2">{{ $t('format') }}</div>
+
+          <v-btn-toggle
+            class="d-flex row ma-0"
+            :value="urlQuery.format"
+            color="secondary"
+            group
+            tile
+            :disabled="isLoading"
+            @change="onChangeQuery({...urlQuery, format: $event})"
+          >
+            <v-btn
+              v-for="option of formatOptions"
+              :key="option.value"
+              class="col col-6 ma-0"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </v-btn>
+          </v-btn-toggle>
+        </v-col>
+      </v-row>
+
+      <v-row class="mt-8">
+        <v-col class="d-flex justify-center" cols="12" md="6">
+          <v-btn
+            color="primary"
+            :disabled="isLoading"
+            :loading="isLoading"
+            large
+            @click="onClickDownload"
+          >
+            {{ $t('download') }}
+          </v-btn>
+        </v-col>
+      </v-row>
+    </v-container>
   </div>
 </template>
 
@@ -8,252 +134,242 @@
 import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
 import _difference from 'lodash.difference'
-import {Component, Ref, Vue} from 'vue-property-decorator'
-import config from '@/config'
+import {Component, Vue} from 'vue-property-decorator'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import CityAPI from '@/api/CityAPI'
 import StationAPI from '@/api/StationAPI'
-// import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import {toQueryString} from '@/utils'
-// import StationsChart from './components/StationsChart/StationsChart.vue'
-// import ChartData from './components/StationsChart/ChartData'
-// import URLQuery, {URLQueryRaw} from './types/URLQuery'
+import SelectBoxCities from '@/components/SelectBoxCities.vue'
+import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
+import {
+  toQueryString,
+  toNumberDate,
+  toURLStringDate,
+  URL_DATE_FORMAT,
+} from '@/utils'
+import URLQuery, {
+  URLQueryAggregation,
+  URLQueryAveragingPeriod,
+  URLQueryFormat,
+  URLQueryTargetEntity,
+} from './types/URLQuery'
+import PageData from './types/PageData'
+import moment from 'moment'
+
+const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
+const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
 
 @Component({
   components: {
-    // SelectBoxCities,
-    // StationsChart,
+    SelectBoxCities,
+    DatesIntervalInput,
   },
 })
 export default class ViewDownload extends Vue {
   private isLoading: boolean = false
+  private URLQueryTargetEntity = URLQueryTargetEntity
 
-  // private get urlQuery(): URLQuery {
-  //   const q: URLQueryRaw = this.$route.query
-  //   const _toArray = (itm: string | string[] | undefined) =>
-  //     (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
+  private pageData: PageData = {
+    cities: [],
+    measurements: [],
+    pollutants: [],
+    // sources: [],
+    stations: [],
+  }
 
-  //   // TODO: delete
-  //   // fallback for old URL format
-  //   if (!q.ct && (q as any).cities) q.ct = (q as any).cities
-  //   if (!q.st && (q as any).stations) q.st = (q as any).stations
+  private get urlQuery(): URLQuery {
+    return URLQuery.parseFromURLString(this.$route.fullPath)
+  }
 
-  //   return {
-  //     cities: _toArray(q.ct),
-  //     stations: _toArray(q.st),
-  //   }
-  // }
+  private set urlQuery(queryForm: URLQuery) {
+    this.setUrlQuery(queryForm)
+  }
 
-  // private async setUrlQuery(inputQuery: URLQuery): Promise<void> {
-  //   const query: URLQueryRaw = {
-  //     ct: inputQuery.cities,
-  //     st: inputQuery.stations,
-  //   }
+  private async setUrlQuery(newQuery: URLQuery): Promise<void> {
+    const query = URLQuery.toRawQueryObject(newQuery, {positive: true})
+    const newRoute = this.$router.resolve({
+      ...(this.$route as any),
+      query,
+    })
 
-  //   for (const _key in query) {
-  //     const key: keyof URLQueryRaw = _key as any
-  //     if (!query[key]) delete query[key]
-  //   }
+    if (this.$route.fullPath !== newRoute.href) {
+      await this.$router.replace(newRoute.href)
+    }
+  }
 
-  //   let newRoute = this.$router.resolve({
-  //     ...(this.$route as any),
-  //     query,
-  //   })
+  private get formHasAggregation(): boolean {
+    return this.urlQuery.entity === URLQueryTargetEntity.measurement
+  }
 
-  //   if ((newRoute.href.length || 0) > 2000) {
-  //     const newHref = newRoute.href.slice(0, 2000).replace(/\&[^&]*$/, '')
-  //     newRoute = this.$router.resolve(newHref)
-  //     this.$dialog.notify.warning(this.$t('msg.too_large_url').toString())
-  //   }
+  private get formHasRunningAverage(): boolean {
+    return this.urlQuery.entity === URLQueryTargetEntity.measurement
+  }
 
-  //   if (this.$route.fullPath !== newRoute.href) {
-  //     const newRouteQuery: URLQueryRaw = newRoute.route.query
-  //     this.$store.commit('SET', {
-  //       key: 'queryForm.cities',
-  //       value: newRouteQuery.ct,
-  //     })
-  //     await this.$router.replace(newRoute.href)
-  //   }
-  // }
+  private get formHasDates(): boolean {
+    return (
+      this.urlQuery.entity === URLQueryTargetEntity.measurement ||
+      this.urlQuery.entity === URLQueryTargetEntity.violation
+    )
+  }
+
+  private get targetEntityOptions(): {label: string; value: string}[] {
+    return Object.values(URLQueryTargetEntity).map((value) => ({
+      label: this.$t(value).toString(),
+      value,
+    }))
+  }
+
+  private get formatOptions(): {label: string; value: string}[] {
+    return Object.values(URLQueryFormat).map((value) => ({
+      label: value.toUpperCase(),
+      value,
+    }))
+  }
+
+  private get AVERAGING_PERIOD_OPTIONS(): URLQueryAveragingPeriod[] {
+    return Object.values(URLQueryAveragingPeriod)
+  }
+
+  private get queryFormCached(): ModuleState['queryForm'] | null {
+    return this.$store.getters.GET('queryForm') || null
+  }
 
   private async beforeMount() {
     this.isLoading = true
     await this.fetch()
-    // this.isFetched = true
     this.isLoading = false
   }
 
   private async fetch() {
-    // this.$loader.on()
-    // this.isChartLoading = true
-    // await this.setUrlQueryDefaults()
-    // const cities = await this.fetchCities()
-    // this.chartData.cities = cities
-    // if (this.urlQuery.cities.length) {
-    //   // filter only existing cities
-    //   const idsMap = this.urlQuery.cities.reduce(
-    //     (memo: {[id: string]: number}, id: City['id']) => {
-    //       memo[id] = 1
-    //       return memo
-    //     },
-    //     {}
-    //   )
-    //   const existingCities = Object.keys(idsMap).length
-    //     ? cities.filter((city) => idsMap[city.id])
-    //     : []
-    //   await this.setUrlQuery({
-    //     ...this.urlQuery,
-    //     cities: existingCities.map((i) => i.id),
-    //   })
-    // } else if (cities[0]) {
-    //   await this.setUrlQuery({
-    //     ...this.urlQuery,
-    //     cities: [cities[0].id],
-    //   })
-    // }
-    // await this.refreshChartData()
-    // // filter only existing stations
-    // const stations = this.chartData.stations
-    // const stationsIdsMap = this.urlQuery.stations.reduce(
-    //   (memo: {[id: string]: number}, id: Station['id']) => {
-    //     memo[id] = 1
-    //     return memo
-    //   },
-    //   {}
-    // )
-    // const existingStations = Object.keys(stationsIdsMap).length
-    //   ? stations.filter((itm) => stationsIdsMap[itm.id])
-    //   : []
-    // await this.setUrlQuery({
-    //   ...this.urlQuery,
-    //   stations: existingStations.map((i) => i.id),
-    // })
-    // this.isChartLoading = false
-    // this.$loader.off()
+    this.$loader.on()
+
+    await this.setUrlQueryDefaults()
+
+    if (!this.pageData.cities.length) {
+      const cities = await this.fetchCities()
+      this.pageData.cities = cities
+    }
+
+    this.pageData.measurements = []
+    this.pageData.stations = []
+
+    if (this.urlQuery.cities.length) {
+      // filter only existing cities
+      const idsMap = this.urlQuery.cities.reduce(
+        (memo: {[id: string]: number}, id: City['id']) => {
+          memo[id] = 1
+          return memo
+        },
+        {}
+      )
+      const existingCities = Object.keys(idsMap).length
+        ? this.pageData.cities.filter((city) => idsMap[city.id])
+        : []
+      await this.setUrlQuery({
+        ...this.urlQuery,
+        cities: existingCities.map((i) => i.id),
+      })
+    } else if (this.pageData.cities[0]) {
+      await this.setUrlQuery({
+        ...this.urlQuery,
+        cities: [this.pageData.cities[0].id],
+      })
+    }
+
+    if (this.urlQuery.entity === URLQueryTargetEntity.station) {
+      const stations = await this.fetchStations({city: this.urlQuery.cities})
+      this.pageData.stations = stations
+    }
+
+    this.$loader.off()
   }
 
-  // private mounted() {
-  //   this.isMounted = true
-  // }
+  private async setUrlQueryDefaults(): Promise<void> {
+    const urlQuery = {...this.urlQuery}
 
-  // private mountedAfterFetch() {
-  //   if (!this.urlQuery.stations?.length) {
-  //     this.$stationsChart?.fitAllMarkers()
-  //   }
-  // }
+    // set from cache
+    if (!urlQuery.cities.length && this.queryFormCached?.cities.length) {
+      urlQuery.cities = this.queryFormCached.cities
+    }
+    if (!urlQuery.entity) {
+      urlQuery.entity = URLQueryTargetEntity.measurement
+    }
+    if (!urlQuery.format) {
+      urlQuery.format = URLQueryFormat.json
+    }
 
-  // private async setUrlQueryDefaults(): Promise<void> {
-  //   const urlQuery = {...this.urlQuery}
+    await this.setUrlQuery(urlQuery)
 
-  //   // set from cache
-  //   if (!urlQuery.cities.length && this.queryFormCached?.cities.length) {
-  //     urlQuery.cities = this.queryFormCached.cities
-  //   }
+    if (this.formHasAggregation && !urlQuery.aggregation) {
+      urlQuery.aggregation = URLQueryAggregation.city
+    }
+    if (this.formHasRunningAverage && !urlQuery.averaging_period) {
+      urlQuery.averaging_period = URLQueryAveragingPeriod['1m']
+    }
+    if (this.formHasDates && !urlQuery.date_start) {
+      urlQuery.date_start = toURLStringDate(JAN_1__THREE_YEARS_AGO)
+    }
+    if (this.formHasDates && !urlQuery.date_end) {
+      urlQuery.date_end = toURLStringDate(today)
+    }
 
-  //   await this.setUrlQuery(urlQuery)
-  // }
+    await this.setUrlQuery(urlQuery)
+  }
 
-  // private async fetchCities(): Promise<City[]> {
-  //   const [err, cities] = await to(CityAPI.findAll())
-  //   if (err) {
-  //     this.$dialog.notify.error(
-  //       err?.message || '' + this.$t('msg.something_went_wrong')
-  //     )
-  //     console.error(err)
-  //     return []
-  //   }
-  //   return _orderBy(cities || [], 'name')
-  // }
+  private async fetchCities(): Promise<City[]> {
+    const [err, cities] = await to(CityAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return _orderBy(cities || [], 'name')
+  }
 
-  // private async fetchChartData(): Promise<ChartData> {
-  //   if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
-  //     this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
-  //     throw new Error('exit')
-  //   }
+  private async fetchStations(query: {city: string[]}): Promise<Station[]> {
+    let [err, items = []] = await to(StationAPI.findAll(toQueryString(query)))
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
 
-  //   const newChartData: ChartData = {
-  //     cities: this.chartData.cities,
-  //     stations: [],
-  //   }
+  // TODO: complete
+  private async onChangeQuery(query: URLQuery) {
+    // const citiesOld = [...this.urlQuery.cities].sort().join(',')
+    // const citiesNew = [...query.cities].sort().join(',')
+    // const citiesChanged = citiesOld !== citiesNew
 
-  //   if (!this.urlQuery?.cities.length) return newChartData
+    await this.setUrlQuery(query)
 
-  //   const promise = this.fetchStations({city: this.urlQuery.cities})
+    // if (citiesChanged) this.onClickRefresh()
+  }
 
-  //   let [err, stations = []] = await to<Station[]>(promise)
+  // TODO: complete
+  private async onClickDownload() {
+    this.$loader.on()
+    this.$dialog.notify.info(this.$tc('msg.will_be_added_soon').toString())
+    // await this.refreshChartData()
+    this.$loader.off()
+  }
 
-  //   if (err) {
-  //     this.$dialog.notify.error(
-  //       err?.message || '' + this.$t('msg.something_went_wrong')
-  //     )
-  //     throw err
-  //   }
-
-  //   newChartData.stations = stations
-  //   return newChartData
-  // }
-
-  // private async refreshChartData(): Promise<void> {
-  //   this.isChartLoading = true
-
-  //   const [err, chartData] = await to(this.fetchChartData())
-  //   if (err) {
-  //     this.isChartLoading = false
-  //     if (err?.message === 'exit') return
-  //     else throw err
-  //   }
-  //   if (!chartData) {
-  //     this.isChartLoading = false
-  //     return
-  //   }
-
-  //   this.chartData = chartData
-  //   this.isChartLoading = false
-  // }
-
-  // private async fetchStations(query: {city: string[]}): Promise<Station[]> {
-  //   let [err, items = []] = await to(StationAPI.findAll(toQueryString(query)))
-  //   if (err) {
-  //     this.$dialog.notify.error(
-  //       err?.message || '' + this.$t('msg.something_went_wrong')
-  //     )
-  //     console.error(err)
-  //     return []
-  //   }
-
-  //   return items || []
-  // }
-
-  // private async onChangeQuery(query: URLQuery) {
-  //   const citiesOld = [...this.urlQuery.cities].sort().join(',')
-  //   const citiesNew = [...query.cities].sort().join(',')
-  //   const citiesChanged = citiesOld !== citiesNew
-
-  //   await this.setUrlQuery(query)
-
-  //   if (citiesChanged) this.onClickRefresh()
-  // }
-
-  // private async onClickRefresh() {
-  //   this.$loader.on()
-  //   await this.refreshChartData()
-  //   this.$loader.off()
-  // }
+  private toURLStringDate(d: number): string {
+    return toURLStringDate(d)
+  }
+  private toNumberDate(d: string): number {
+    return toNumberDate(d)
+  }
 }
 </script>
 
 <style lang="scss">
 .view-download {
-  // > .toolbar {
-  //   position: relative;
-  //   z-index: 5;
-  // }
-
-  > .page-content {
-    position: relative;
-    z-index: 1;
-  }
 }
 </style>

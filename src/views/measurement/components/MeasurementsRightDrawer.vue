@@ -176,7 +176,7 @@ import SelectBox from '@/components/SelectBox.vue'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import Station from '@/entities/Station'
 import City from '@/entities/City'
-import RunningAverageEnum from '../types/RunningAverageEnum'
+import RunningAverageEnum from '@/entities/RunningAverageEnum'
 import URLQuery, {URLQueryStations} from '../types/URLQuery'
 import ChartColumnSize, {
   CHART_COLUMN_SIZES,
