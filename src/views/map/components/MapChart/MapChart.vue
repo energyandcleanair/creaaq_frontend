@@ -28,56 +28,6 @@
           />
           <l-tile-layer v-else :url="MAP_LAYERS.TERRAIN.url" />
 
-          <v-marker-cluster ref="clustersLayer">
-            <l-circle-marker
-              :ref="`marker--${marker.id}`"
-              v-for="marker of mapMarkers"
-              :key="marker.id"
-              :lat-lng="marker.coordinates"
-              rise-on-hover
-              v-bind="
-                selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary
-              "
-              @click="onClickMapMarker(marker.id)"
-            >
-              <l-popup
-                v-if="marker.tooltip"
-                :class="{'tooltip--selected': selectedMarkersIdsMap[marker.id]}"
-                :options="{
-                  permanent: true,
-                  interactive: true,
-                  direction: 'top',
-                  offset: {x: 0, y: 0},
-                }"
-              >
-                <b class="text-title font-weight-bold">
-                  {{ marker.tooltip.title }}
-                </b>
-
-                <div class="mt-3">
-                  <div
-                    class="text-body-2"
-                    v-for="(val, key) of marker.tooltip.params"
-                    :key="key"
-                  >
-                    <b>{{ key }}:</b> {{ val }}
-                  </div>
-                </div>
-
-                <v-btn
-                  class="mt-3"
-                  color="primary"
-                  block
-                  depressed
-                  dense
-                  @click="onClickMarkerTooltipButton(marker)"
-                >
-                  {{ $t('go_to_measurements') }}
-                </v-btn>
-              </l-popup>
-            </l-circle-marker>
-          </v-marker-cluster>
-
           <div class="leaflet-bottom leaflet-left">
             <v-btn
               class="leaflet-control"
@@ -96,41 +46,42 @@
 
 <script lang="ts">
 import 'leaflet/dist/leaflet.css'
-import 'leaflet.markercluster/dist/MarkerCluster.css'
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
+import moment from 'moment'
 import _set from 'lodash.set'
 import _debounce from 'lodash.debounce'
 import _orderBy from 'lodash.orderby'
 import Leaflet, {LatLngBounds} from 'leaflet'
 import {Component, Vue, Prop, Ref, Watch} from 'vue-property-decorator'
-import {LMap, LTileLayer, LCircleMarker, LTooltip, LPopup} from 'vue2-leaflet'
-import moment from 'moment'
-import Vue2LeafletMarkerCluster from 'vue2-leaflet-markercluster'
+import {LMap, LTileLayer, LCircleMarker, LLayerGroup} from 'vue2-leaflet'
 import config, {MapLayerConfig} from '@/config'
 import {mdiArrowExpandAll} from '@mdi/js'
 import theme from '@/theme'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
+import Source from '@/entities/Source'
 import Coordinates from '@/entities/Coordinates'
 import {sleep, _runIteration} from '@/utils'
 import Pollutant from '@/entities/Pollutant'
 import URLQuery, {MapChartBasemap, MapChartLevel} from '../../types/URLQuery'
 import ChartData from './MapChartData'
-import Source from '@/entities/Source'
+import MapMarkerPopup from './MapMarkerPopup.vue'
 
 interface MapMarker {
   id: City['id'] | Station['id']
-  coordinates: number[]
+  coordinates: number[] // lat, lng
   station?: Station
   city?: City
-  tooltip?: {
-    title: string
-    params: Record<string, any>
-  }
+  genLeafletMarker?: () => Leaflet.Layer
 }
 
 interface MapFilter {
   [id: string]: number
+}
+
+// hot fix
+interface MapLayer extends Leaflet.Layer {
+  options?: Leaflet.LayerOptions & {_id: any; _type: 'marker'}
+  _popup?: any
 }
 
 @Component({
@@ -138,9 +89,7 @@ interface MapFilter {
     LMap,
     LTileLayer,
     LCircleMarker,
-    LTooltip,
-    LPopup,
-    'v-marker-cluster': Vue2LeafletMarkerCluster,
+    LLayerGroup,
   },
 })
 export default class MapChart extends Vue {
@@ -162,23 +111,15 @@ export default class MapChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly permanentTooltipOnSelected!: boolean
 
-  private privateisLoading: boolean = false
-  private mapMarkers: MapMarker[] = []
+  private privateIsLoading: boolean = false
+  private mapMarkersList: Record<string, MapMarker> = {}
   private mdiArrowExpandAll = mdiArrowExpandAll
-  private iconPrimary = theme.leafletMapCircleMarkerProps.primary
-  private iconSelected = theme.leafletMapCircleMarkerProps.primarySelected
-  private tableOptions = {
-    page: 1,
-    itemsPerPage: 5,
-    sortBy: ['id'],
-    sortDesc: [false],
-  }
 
   private get isLoading(): boolean {
-    return this.loading || this.privateisLoading
+    return this.loading || this.privateIsLoading
   }
   private set isLoading(val: boolean) {
-    this.privateisLoading = val
+    this.privateIsLoading = val
   }
 
   private get basemap(): MapChartBasemap {
@@ -187,35 +128,6 @@ export default class MapChart extends Vue {
 
   private get MAP_LAYERS(): MapLayerConfig {
     return config.get('MAP_LAYERS')
-  }
-
-  private get selectedMarkersIds(): (Station['id'] | City['id'])[] {
-    return [
-      ...(this.queryParams.cities || []),
-      ...(this.queryParams.stations || []),
-    ]
-  }
-  // TODO: complete
-  private set selectedMarkersIds(stations: Station['id'][]) {
-    // this.$emit('update:queryParams', {
-    //   ...this.queryParams,
-    //   stations,
-    // })
-  }
-  private get selectedMarkersIdsMap(): Record<
-    Station['id'] | City['id'],
-    number
-  > {
-    return this.selectedMarkersIds.reduce(
-      (
-        map: Record<Station['id'] | City['id'], number>,
-        id: Station['id'] | City['id']
-      ) => {
-        map[id] = 1
-        return map
-      },
-      {}
-    )
   }
 
   private get cities(): City[] {
@@ -231,10 +143,15 @@ export default class MapChart extends Vue {
   }
 
   private get mapOptions(): Leaflet.MapOptions {
-    const firstMarker = this.mapMarkers[0]
+    let firstMarkerId
+    for (firstMarkerId in this.mapMarkersList) break
+    const firstMarker = (firstMarkerId &&
+      this.mapMarkersList[firstMarkerId]) as MapMarker | undefined
+
     return {
       zoom: 2,
       closePopupOnClick: false,
+      preferCanvas: true,
       doubleClickZoom: 'center',
       center: new Leaflet.LatLng(
         firstMarker?.coordinates?.[0] || 0,
@@ -249,12 +166,6 @@ export default class MapChart extends Vue {
 
   private async onMapInitialized() {
     this.refreshMapMarkers()
-
-    // move to the selected station if exists
-    // if (this.selectedMarkersIds.length) {
-    //   this.mapMoveToStation(this.selectedMarkersIds[0])
-    //   this.selectStation(this.selectedMarkersIds[0])
-    // }
   }
 
   @Watch('queryParams.pollutants')
@@ -271,63 +182,64 @@ export default class MapChart extends Vue {
       // let the loader appear
       await sleep(10)
 
-      this.mapMarkers = []
-      const markers = this.getMapMarkers()
+      const {list, length} = this.getMapMarkersList()
+      this.mapMarkersList = list
+
+      if (
+        this.queryParams.level === MapChartLevel.station &&
+        !this.queryParams.sources?.length
+      ) {
+        this.$dialog.notify.info(
+          this.$t('msg.no_items_selected', {
+            items: this.$t('sources').toString().toLocaleLowerCase(),
+          }).toString(),
+          {position: 'bottom-left', timeout: 3000, dismissible: false}
+        )
+      }
 
       this.$dialog.notify.info(
-        this.$t('msg.rendering_n_items', {n: markers.length}) + '...',
+        this.$t('msg.rendering_n_items', {n: length}) + '...',
         {position: 'bottom-left', timeout: 3000, dismissible: false}
       )
 
       // let the message above appear
       await sleep(10)
 
-      const firstChunkSize = 500
-      const chunk1 = markers.slice(0, firstChunkSize)
-      this.mapMarkers.push(...chunk1)
+      if (this.$map?.mapObject) {
+        const renderedMarkersIds: Record<string, number> = {}
 
-      // let the first chunk render
+        // remove unnecessary markers
+        this.$map.mapObject.eachLayer((layer: MapLayer) => {
+          const opts = layer.options
+          if (opts?.pane !== 'markerPane' || opts._type !== 'marker') return
+          const markerId = opts._id
+          if (this.mapMarkersList[markerId]) renderedMarkersIds[markerId] = 1
+          else layer.remove()
+        })
+
+        // draw new markers
+        for (const markerId in this.mapMarkersList) {
+          if (renderedMarkersIds[markerId]) continue
+          const marker = this.mapMarkersList[markerId]
+          const lMarker = marker.genLeafletMarker?.()
+          if (lMarker) this.$map.mapObject.addLayer(lMarker)
+        }
+      }
+
       await sleep(10)
-
-      this.fitAllMarkers()
-      const chunk2 = markers.slice(firstChunkSize)
-      this.mapMarkers.push(...chunk2)
-
-      await sleep(100)
 
       this.fitAllMarkers()
       this.$emit('markers:added')
       this.isLoading = false
-
-      // TODO: not in use. It's slower in 1.5 times than the solution above
-      // const chunkSize = 3000
-      // const numTimes = markers.length / chunkSize
-      // const delay = 10
-      // await _runIteration(
-      //   (index: number) => {
-      //     const _markers = markers.slice(
-      //       index * chunkSize,
-      //       index * chunkSize + chunkSize
-      //     )
-      //     this.mapMarkers.push(..._markers)
-      //     if (index === 0 || index % 3 === 0) this.fitAllMarkers()
-      //   },
-      //   numTimes,
-      //   delay
-      // )
-      // setTimeout(() => this.fitAllMarkers(), 100)
-      // this.$emit('markers:added')
-      // this.isLoading = false
     }, 1000)
   }
 
-  private selectStation(stationId: Station['id']) {
-    // this.selectedMarkersIds = stationId ? [stationId] : []
-    // this.closeAllMapMarkerTooltips()
-    // this.openMapMarkerTooltip(stationId)
-  }
-
-  private getMapMarkers(): MapMarker[] {
+  private getMapMarkersList(): {
+    list: Record<string, MapMarker>
+    length: number
+  } {
+    let length: number = 0
+    let list: Record<string, MapMarker> = {}
     const cities = this.chartData.cities
     const stations = this.chartData.stations
 
@@ -360,20 +272,33 @@ export default class MapChart extends Vue {
       return true
     }
 
+    const _generateMarkersList = (
+      mapChartLevel: MapChartLevel,
+      items: (City | Station)[]
+    ) => {
+      return items.reduce(
+        (memo: Record<string, MapMarker>, item: City | Station) => {
+          if (!filterCb(item)) return memo
+          const marker = this._genMarker(mapChartLevel, item)
+          if (marker) {
+            memo[marker.id] = marker
+            length++
+          }
+          return memo
+        },
+        {}
+      )
+    }
+
     if (this.queryParams.level === MapChartLevel.city) {
-      return cities.filter(filterCb).reduce((arr: MapMarker[], itm) => {
-        const marker = this._genMarker(MapChartLevel.city, itm)
-        if (marker) arr.push(marker)
-        return arr
-      }, [])
+      list = _generateMarkersList(MapChartLevel.city, cities)
     } else if (this.queryParams.level === MapChartLevel.station) {
-      return stations.filter(filterCb).reduce((arr: MapMarker[], itm) => {
-        const marker = this._genMarker(MapChartLevel.station, itm)
-        if (marker) arr.push(marker)
-        return arr
-      }, [])
-    } else {
-      return []
+      list = _generateMarkersList(MapChartLevel.station, stations)
+    }
+
+    return {
+      list,
+      length,
     }
   }
 
@@ -384,49 +309,97 @@ export default class MapChart extends Vue {
     if (!item) return null
 
     let coordinates: Coordinates | undefined
-
     if (type === MapChartLevel.city) coordinates = (item as City).geometry
     if (type === MapChartLevel.station) {
       coordinates = (item as Station).coordinates
     }
-
     if (!coordinates) return null
-
-    const tooltipParams: any = {}
-
-    if (item.last_updated) {
-      tooltipParams['' + this.$t('last_updated')] = moment(
-        item.last_updated
-      ).format('DD MMMM YYYY')
-    }
-    if (Array.isArray(item.pollutants)) {
-      tooltipParams['' + this.$t('pollutants')] = item.pollutants
-        .join(', ')
-        .toUpperCase()
-    }
-    if ((item as Station).source) {
-      tooltipParams['' + this.$t('source')] = (
-        item as Station
-      ).source?.toUpperCase()
-    }
 
     const marker: MapMarker = {
       id: item.id,
       [type]: item,
       coordinates: [coordinates.latitude, coordinates.longitude],
-      tooltip: {
-        title: item.name,
-        params: tooltipParams,
-      },
+      genLeafletMarker: undefined,
+    }
+
+    marker.genLeafletMarker = () => {
+      const _openMarkerPopup = ({target}: {target: Leaflet.CircleMarker}) => {
+        const detailsList: Record<string, any> = {}
+        if (item.last_updated) {
+          detailsList['' + this.$t('last_updated')] = moment(
+            item.last_updated
+          ).format('DD MMMM YYYY')
+        }
+        if (Array.isArray(item.pollutants)) {
+          detailsList['' + this.$t('pollutants')] = item.pollutants
+            .join(', ')
+            .toUpperCase()
+        }
+        if ((item as Station).source) {
+          detailsList['' + this.$t('source')] = (
+            item as Station
+          ).source?.toUpperCase()
+        }
+
+        const popupComponent = new MapMarkerPopup({
+          propsData: {
+            title: item.name,
+            detailsList,
+          },
+          i18n: this.$i18n,
+        })
+        popupComponent.$on('click:button', () => {
+          this.$emit('click:markerAction', marker.city || marker.station)
+        })
+        popupComponent.$mount()
+
+        if (!target.getPopup?.() && popupComponent.$el) {
+          const popup = Leaflet.popup({
+            pane: 'popupPane',
+            className: 'custom-map-marker-popup',
+            autoPan: true,
+            offset: [0, 0],
+          })
+            .setContent(popupComponent.$el as HTMLElement)
+            .on('add', () => {
+              target.setStyle(theme.leafletMapCircleMarkerProps.primarySelected)
+            })
+            .on('remove', () => {
+              target.setStyle(theme.leafletMapCircleMarkerProps.primary)
+            })
+          target.bindPopup(popup)
+        }
+
+        target.openPopup()
+      }
+
+      const circleMarker = Leaflet.circleMarker(
+        marker.coordinates as Leaflet.LatLngExpression,
+        {
+          pane: 'markerPane',
+          _id: marker.id,
+          _type: 'marker',
+          ...theme.leafletMapCircleMarkerProps.primary,
+        } as MapLayer['options']
+      ).on('click', ($event: {target: Leaflet.CircleMarker}) => {
+        _openMarkerPopup($event)
+      })
+
+      return circleMarker
     }
 
     return marker
   }
 
   public fitAllMarkers() {
-    const markers = this.mapMarkers.map((marker) =>
-      Leaflet.marker([marker.coordinates[0], marker.coordinates[1]])
-    )
+    if (!this.$map?.mapObject) return
+
+    const markers: Leaflet.Layer[] = []
+    this.$map.mapObject.eachLayer((layer: MapLayer) => {
+      const opts = layer.options
+      if (opts?.pane !== 'markerPane' || opts._type !== 'marker') return
+      markers.push(layer)
+    })
 
     const group = Leaflet.featureGroup(markers)
     const bounds = group.getBounds()
@@ -447,7 +420,7 @@ export default class MapChart extends Vue {
   }
 
   private mapMoveToStation(stationId: Station['id']) {
-    const marker = this.mapMarkers.find((m) => m.station?.id === stationId)
+    const marker = this.mapMarkersList[stationId]
     if (!marker) return
 
     this.moveToPoint({
@@ -457,7 +430,7 @@ export default class MapChart extends Vue {
   }
 
   private mapMoveToCity(cityId: City['id']) {
-    const marker = this.mapMarkers.find((m) => m.city?.id === cityId)
+    const marker = this.mapMarkersList[cityId]
     if (!marker) return
 
     this.moveToPoint({
@@ -466,40 +439,12 @@ export default class MapChart extends Vue {
     })
   }
 
-  private openMapMarkerTooltip(stationId: Station['id']) {
-    if (!stationId) return
-    if (!this.$map?.mapObject) return
-
-    const $refs = this.$refs[`marker--${stationId}`] as LCircleMarker[]
-    const $marker = $refs?.[0]?.mapObject
-    if (!$marker) return
-
-    $marker.openTooltip()
-  }
-
-  private closeAllMapMarkerTooltips() {
-    this.$map?.mapObject?.eachLayer((layer: Leaflet.Layer) => {
-      if (
-        (layer as any).options.pane === 'tooltipPane' &&
-        this.$map?.mapObject
-      ) {
+  private closeAllMapMarkerPopups() {
+    this.$map?.mapObject?.eachLayer((layer: MapLayer) => {
+      if (layer.options?.pane === 'popupPane' && this.$map?.mapObject) {
         layer.removeFrom(this.$map.mapObject)
       }
     })
-  }
-
-  private onClickMarkerTooltipButton(marker: MapMarker) {
-    this.$emit('click:markerAction', marker.city || marker.station)
-  }
-
-  private onClickMapMarker(stationId: Station['id']) {
-    this.selectStation(stationId)
-    this.openMapMarkerTooltip(stationId)
-  }
-
-  private onClickTableRow(station: Station) {
-    this.selectStation(station.id)
-    this.mapMoveToStation(station.id)
   }
 }
 
@@ -536,10 +481,22 @@ $map-chart__table-footer--height: 59px;
       min-height: 100%;
       border-radius: 0;
 
-      .leaflet-tooltip {
-        // the pseudo selector :has() isn't supported yet, but soon
-        &:has(.tooltip--selected) {
-          z-index: 100;
+      .custom-map-marker-popup {
+        .leaflet-popup-content-wrapper {
+          position: relative;
+          z-index: 2;
+
+          .leaflet-popup-content {
+            margin: 0;
+          }
+        }
+
+        .leaflet-popup-tip-container {
+          z-index: 2;
+        }
+
+        .leaflet-popup-close-button {
+          z-index: 3;
         }
       }
     }
