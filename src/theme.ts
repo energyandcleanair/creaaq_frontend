@@ -50,12 +50,12 @@ export default {
   colors,
   leafletMapCircleMarkerProps: {
     primary: {
-      radius: 6,
-      weight: 2,
+      radius: 4,
+      weight: 1,
       opacity: 1,
       fillOpacity: 0.5,
-      fillColor: colors.darkBlue.base,
-      color: colors.darkBlue.base,
+      fillColor: colors.darkRed.base,
+      color: colors.darkRed.base,
     },
     primarySelected: {
       radius: 8,
