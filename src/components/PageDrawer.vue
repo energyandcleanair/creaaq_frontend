@@ -2,8 +2,6 @@
   <v-navigation-drawer
     class="page-drawer"
     :value="open"
-    app
-    clipped
     right
     width="250"
     mobile-breakpoint="960"
@@ -58,6 +56,8 @@ export default class PageDrawer extends Vue {
 <style lang="scss">
 .page-drawer {
   overflow: visible;
+  position: absolute;
+  z-index: 20;
 
   &.v-navigation-drawer--close {
     visibility: visible !important;

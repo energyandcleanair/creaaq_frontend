@@ -7,6 +7,7 @@
     multiple
     clearable
     attached
+    autocomplete="off"
     v-bind="$props"
     v-on="$listeners"
   >
