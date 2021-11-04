@@ -370,7 +370,7 @@ export default class ViewMap extends Vue {
         await this.$map?.refreshMapMarkers()
       }
 
-      await sleep(100)
+      await sleep(1000)
       this.isChartLoading = false
     }, 300)
   }

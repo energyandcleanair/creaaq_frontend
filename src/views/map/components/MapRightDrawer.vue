@@ -49,11 +49,7 @@
             class="mt-0"
             :value="queryParams.pollutants"
             :items="pollutants"
-            :disabled="
-              loading ||
-              (queryParams.pollutants.length <= 1 &&
-                queryParams.pollutants.includes(item.id))
-            "
+            :disabled="loading"
             item-text="label"
             item-value="id"
             has-select-all

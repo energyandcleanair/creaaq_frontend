@@ -195,7 +195,14 @@ export default class MapChart extends Vue {
       ) {
         this.$dialog.notify.info(
           this.$t('msg.no_items_selected', {
-            items: this.$t('sources').toString().toLocaleLowerCase(),
+            items: this.$t('sources').toString().toLowerCase(),
+          }).toString(),
+          {position: 'bottom-left', timeout: 3000, dismissible: false}
+        )
+      } else if (!this.queryParams.pollutants?.length) {
+        this.$dialog.notify.info(
+          this.$t('msg.no_items_selected', {
+            items: this.$t('pollutants').toString().toLowerCase(),
           }).toString(),
           {position: 'bottom-left', timeout: 3000, dismissible: false}
         )
