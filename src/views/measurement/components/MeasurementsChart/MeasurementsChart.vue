@@ -126,21 +126,17 @@ import ChartData from './ChartData'
 
 const COL_ID_DIVIDER = '--'
 const PRIMARY_LINE_STYLE = {
-  color: theme.colors.darkBlue.darken1,
-  width: 2,
-  minWidth: 1.5,
-  maxWidth: 3.5,
-  widthStep: 0.3,
+  color: theme.colors.darkRed.base,
+  width: 1.2,
+  minWidth: 1,
+  maxWidth: 2,
+  widthStep: 0.2,
 }
 const SECONDARY_LINE_STYLE = {color: '#ddd', width: 1}
-const PRIMARY_TRACE_COLOR_SCALE = chroma.scale([
-  theme.colors.darkBlue.darken1,
-  'blue',
-  'purple',
-  'red',
-  'orange',
-  'green',
-])
+const PRIMARY_TRACE_COLOR_SCALE = chroma.scale(
+  // Can't seem to reverse using domain([1,0]) so using this trick
+  chroma.scale('OrRd').padding([0.2, 0.1]).colors(10).reverse()
+)
 
 interface MapFilter {
   [id: string]: number
@@ -538,7 +534,7 @@ export default class MeasurementsChart extends Vue {
 
     traces = _orderBy(traces, ['level', 'zIndex'], ['desc', 'asc'])
 
-    _setLineStylesToChartTraces(traces)
+    _setLineStylesToChartTraces(traces, this.displayMode)
 
     return {
       traces,
@@ -703,7 +699,7 @@ export default class MeasurementsChart extends Vue {
   }
 }
 
-function _setLineStylesToChartTraces(traces: ChartTrace[]): ChartTrace[] {
+function _setLineStylesToChartTraces(traces: ChartTrace[], displayMode: ChartDisplayModes): ChartTrace[] {
   const citiesTracesNumber: number = traces.reduce(
     (acc, trace) => (acc += trace.level === ChartTraceLevels.CITY ? 1 : 0),
     0
@@ -724,10 +720,17 @@ function _setLineStylesToChartTraces(traces: ChartTrace[]): ChartTrace[] {
 
     if (trace.level === ChartTraceLevels.CITY) {
       const width = _lineWidthMax - counterCitiesTraces * widthStep
-      trace.line = {
-        ...PRIMARY_LINE_STYLE,
-        color: PALETTE_COLORS[counterCitiesTraces],
-        width: Math.min(width, widthMax),
+      
+      if(displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS){
+        trace.line = {
+          ...PRIMARY_LINE_STYLE,
+          color: PALETTE_COLORS[counterCitiesTraces],
+          width: Math.min(width, widthMax),
+        }
+      }else{
+        trace.line = {
+          ...PRIMARY_LINE_STYLE
+        }
       }
       counterCitiesTraces++
     } else {
