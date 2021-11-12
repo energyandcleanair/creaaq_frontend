@@ -15,7 +15,7 @@ const instance = setup({
     .toString()
     .replace(/\/$/, ''),
   withCredentials: true,
-  timeout: 30000,
+  timeout: 60000,
 
   // `axios-cache-adapter` options
   cache: {
