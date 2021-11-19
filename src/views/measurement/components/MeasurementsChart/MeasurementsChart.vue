@@ -227,6 +227,8 @@ export default class MeasurementsChart extends Vue {
   public get chartsRows(): ChartRow[] {
     if (this.loading) return []
 
+    let _dateStart: string | undefined = this.queryParams.date_start
+    const _dateEnd: string | undefined = this.queryParams.date_end
     const rows: ChartRow[] = []
     const xs = this.colWidth < 100
     const sm = this.colWidth < 160
@@ -325,13 +327,29 @@ export default class MeasurementsChart extends Vue {
         }
       }
 
-      // set one grid range to all charts in row
-      row.cols = _alignColsGridRange(row.cols, row.rangeBox, this.displayMode, {
-        dateStart: this.queryParams.date_start,
-        dateEnd: this.queryParams.date_end,
-      })
+      // set the earliest date from the data array as x0
+      // if no start date is specified
+      if (!_dateStart || _dateStart === '0') {
+        let earlierDate = NaN
+        for (const i in row.cols) {
+          const col = row.cols[i]
+          if (isNaN(earlierDate) || col.rangeBox.x0 < earlierDate) {
+            earlierDate = col.rangeBox.x0
+          }
+        }
+        _dateStart = moment(earlierDate).format(URL_DATE_FORMAT)
+      }
 
       rows.push(row)
+    }
+
+    // set one grid range to all rows
+    for (const row of rows) {
+      // set one grid range to all charts in row
+      row.cols = _alignColsGridRange(row.cols, row.rangeBox, this.displayMode, {
+        dateStart: _dateStart,
+        dateEnd: _dateEnd,
+      })
     }
 
     return rows
@@ -402,10 +420,10 @@ export default class MeasurementsChart extends Vue {
     const dateStartYear: number = dateStart ? moment(dateStart).year() : 0
     const dateEnd: number = toNumberDate(this.queryParams.date_end || '') || 0
     let rangeBox: RangeBox = {
-      x0: -0,
-      y0: -0,
-      x1: 0,
-      y1: 0,
+      x0: -NaN,
+      y0: -NaN,
+      x1: NaN,
+      y1: NaN,
     }
 
     const tracesMap: {[location_id: string]: ChartTracePoint[]} = {
@@ -831,10 +849,10 @@ function _mergeItemsRangeBoxes(
   propName: string = 'rangeBox'
 ): RangeBox {
   const rangeBox: RangeBox = {
-    x0: -0,
-    y0: -0,
-    x1: 0,
-    y1: 0,
+    x0: -NaN,
+    y0: -NaN,
+    x1: NaN,
+    y1: NaN,
   }
 
   for (const item of items) {
@@ -843,10 +861,10 @@ function _mergeItemsRangeBoxes(
     const x1 = _get(item, `${propName}.x1`)
     const y1 = _get(item, `${propName}.y1`)
 
-    if (rangeBox.x0 === -Infinity || x0 < rangeBox.x0) rangeBox.x0 = x0
-    if (rangeBox.x1 === Infinity || x1 > rangeBox.x1) rangeBox.x1 = x1
-    if (rangeBox.y0 === -Infinity || y0 < rangeBox.y0) rangeBox.y0 = y0
-    if (rangeBox.y1 === Infinity || y1 > rangeBox.y1) rangeBox.y1 = y1
+    if (isNaN(rangeBox.x0) || x0 < rangeBox.x0) rangeBox.x0 = x0
+    if (isNaN(rangeBox.x1) || x1 > rangeBox.x1) rangeBox.x1 = x1
+    if (isNaN(rangeBox.y0) || y0 < rangeBox.y0) rangeBox.y0 = y0
+    if (isNaN(rangeBox.y1) || y1 > rangeBox.y1) rangeBox.y1 = y1
   }
 
   return rangeBox
@@ -855,10 +873,10 @@ function _mergeItemsRangeBoxes(
 function _extendRangeBox(rangeBox: RangeBox, x: number, y: number): RangeBox {
   const _rangeBox = {...rangeBox}
 
-  if (_rangeBox.x0 === -Infinity || x < _rangeBox.x0) _rangeBox.x0 = x
-  if (_rangeBox.x1 === Infinity || x > _rangeBox.x1) _rangeBox.x1 = x
-  if (_rangeBox.y0 === -Infinity || y < _rangeBox.y0) _rangeBox.y0 = y
-  if (_rangeBox.y1 === Infinity || y > _rangeBox.y1) _rangeBox.y1 = y
+  if (isNaN(_rangeBox.x0) || x < _rangeBox.x0) _rangeBox.x0 = x
+  if (isNaN(_rangeBox.x1) || x > _rangeBox.x1) _rangeBox.x1 = x
+  if (isNaN(_rangeBox.y0) || y < _rangeBox.y0) _rangeBox.y0 = y
+  if (isNaN(_rangeBox.y1) || y > _rangeBox.y1) _rangeBox.y1 = y
 
   return _rangeBox
 }
