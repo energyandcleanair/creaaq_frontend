@@ -32,9 +32,9 @@ Vue.use(LoadScript)
 
 @Component
 export default class ViewProfile extends Vue {
-  private isLoading: boolean = false
+  public isLoading: boolean = false
 
-  private beforeCreate() {
+  public beforeCreate() {
     Vue.loadScript(
       'https://s3.amazonaws.com/assets.freshdesk.com/widget/freshwidget.js'
     )

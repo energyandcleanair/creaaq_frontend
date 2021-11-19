@@ -41,7 +41,7 @@ export default class SelectBoxCountries extends Vue {
   @Prop({type: Boolean, default: false})
   readonly disabled!: boolean
 
-  private inputFilter(item: any, queryText: string, itemText: string): boolean {
+  public inputFilter(item: any, queryText: string, itemText: string): boolean {
     const _query = queryText.toLocaleLowerCase()
     return itemText.toLocaleLowerCase().indexOf(_query) > -1
   }

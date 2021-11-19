@@ -29,7 +29,7 @@
             :value="queryParams.sources"
             :items="chartData.sources"
             :disabled="loading"
-            item-text="label"
+            item-text="name"
             item-value="id"
             has-select-all
             has-deselect-all
@@ -50,7 +50,7 @@
             :value="queryParams.pollutants"
             :items="pollutants"
             :disabled="loading"
-            item-text="label"
+            item-text="name"
             item-value="id"
             has-select-all
             has-deselect-all
@@ -132,25 +132,25 @@ export default class MapRightDrawer extends Vue {
   @Prop({type: Object, required: true})
   readonly chartData!: ChartData
 
-  private get LEVELS(): {label: string; value: string}[] {
+  public get LEVELS(): {label: string; value: string}[] {
     return Object.values(MapChartLevel).map((item) => ({
       label: this.$t(item).toString(),
       value: item,
     }))
   }
 
-  private get BASEMAPS(): {label: string; value: string}[] {
+  public get BASEMAPS(): {label: string; value: string}[] {
     return Object.values(MapChartBasemap).map((item) => ({
       label: this.$t(item).toString(),
       value: item,
     }))
   }
 
-  private get queryLevel(): MapChartLevel {
+  public get queryLevel(): MapChartLevel {
     return this.queryParams.level || MapChartLevel.city
   }
 
-  private get queryPollutantsMap(): Record<Pollutant['id'], number> {
+  public get queryPollutantsMap(): Record<Pollutant['id'], number> {
     return (this.queryParams?.pollutants || []).reduce(
       (memo: Record<Pollutant['id'], number>, id) => {
         memo[id] = 1
@@ -160,11 +160,11 @@ export default class MapRightDrawer extends Vue {
     )
   }
 
-  private get queryBasemap(): MapChartBasemap {
+  public get queryBasemap(): MapChartBasemap {
     return this.queryParams.basemap || MapChartBasemap.satellite
   }
 
-  private get pollutants(): Pollutant[] {
+  public get pollutants(): Pollutant[] {
     return this.chartData.pollutants || []
   }
 

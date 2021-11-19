@@ -19,8 +19,8 @@
 
         <v-col>
           <DatesIntervalInput
-            :dateStart="toNumberDate(urlQuery.date_start)"
-            :dateEnd="toNumberDate(urlQuery.date_end)"
+            :dateStart="toNumberDate(urlQuery.date_start || '')"
+            :dateEnd="toNumberDate(urlQuery.date_end || '')"
             format="YYYY-MM-DD"
             :disabled="isLoading"
             @input="
@@ -65,12 +65,12 @@
           <b class="d-flex justify-center pt-2">
             {{
               $t('msg.queried_of_limit', {
-                queried: `${urlQuery.cities.length} ${$t(
-                  'cities'
-                ).toLowerCase()}`,
-                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t(
-                  'cities'
-                ).toLowerCase()}`,
+                queried: `${urlQuery.cities.length} ${$t('cities')
+                  .toString()
+                  .toLowerCase()}`,
+                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities')
+                  .toString()
+                  .toLowerCase()}`,
               })
             }}
           </b>
@@ -92,10 +92,12 @@
           <b class="d-flex justify-center pt-2">
             {{
               $t('msg.loaded_of_limit', {
-                loaded: `${urlQuery.cities.length} ${$t(
-                  'cities'
-                ).toLowerCase()}`,
-                limit: `${LIMIT_RENDER_ITEMS} ${$t('cities').toLowerCase()}`,
+                loaded: `${urlQuery.cities.length} ${$t('cities')
+                  .toString()
+                  .toLowerCase()}`,
+                limit: `${LIMIT_RENDER_ITEMS} ${$t('cities')
+                  .toString()
+                  .toLowerCase()}`,
               })
             }}
           </b>
@@ -155,6 +157,9 @@ import Pollutant from '@/entities/Pollutant'
 import Station from '@/entities/Station'
 import Measurement, {MeasurementProcesses} from '@/entities/Measurement'
 import CityAPI from '@/api/CityAPI'
+import StationAPI from '@/api/StationAPI'
+import SourceAPI from '@/api/SourceAPI'
+import PollutantAPI from '@/api/PollutantAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
@@ -182,13 +187,13 @@ const _queryToArray = (itm: string | string[] | undefined) =>
   },
 })
 export default class ViewMeasurements extends Vue {
-  private isLoading: boolean = false
-  private isChartLoading: boolean = false
-  private readonly LIMIT_RENDER_ITEMS: number = 20
-  private readonly LIMIT_FETCH_ITEMS_FROM_API: number =
+  public isLoading: boolean = false
+  public isChartLoading: boolean = false
+  public readonly LIMIT_RENDER_ITEMS: number = 20
+  public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
-  private chartData: ChartData = {
+  public chartData: ChartData = {
     cities: [],
     measurements: [],
     pollutants: [],
@@ -196,7 +201,7 @@ export default class ViewMeasurements extends Vue {
     stations: [],
   }
 
-  private get urlQuery(): URLQuery {
+  public get urlQuery(): URLQuery {
     const q: URLQueryRaw = {...this.$route.query}
 
     // TODO: delete
@@ -226,7 +231,7 @@ export default class ViewMeasurements extends Vue {
     }
   }
 
-  private async setUrlQuery(inputQuery: URLQuery): Promise<void> {
+  public async setUrlQuery(inputQuery: URLQuery): Promise<void> {
     const query: URLQueryRaw = {
       ct: inputQuery.cities,
       sr: inputQuery.sources,
@@ -277,64 +282,64 @@ export default class ViewMeasurements extends Vue {
     }
   }
 
-  private get filterSources(): Source['id'][] {
+  public get filterSources(): Source['id'][] {
     return this.urlQuery.sources || []
   }
 
-  private get filterPollutants(): Pollutant['id'][] {
+  public get filterPollutants(): Pollutant['id'][] {
     return this.urlQuery.pollutants || []
   }
 
-  private get filterStations(): Station['id'][] {
+  public get filterStations(): Station['id'][] {
     return this.urlQuery.stations || []
   }
 
-  private get displayMode(): ChartDisplayModes | null {
+  public get displayMode(): ChartDisplayModes | null {
     return this.urlQuery.display_mode || null
   }
 
-  private get runningAverage(): RunningAverageEnum | null {
+  public get runningAverage(): RunningAverageEnum | null {
     return this.urlQuery.running_average || null
   }
 
-  private get allowDisplayStations(): boolean {
+  public get allowDisplayStations(): boolean {
     return this.displayMode !== ChartDisplayModes.SUPERIMPOSED_YEARS
   }
 
-  private get maxColHeight(): number | undefined {
+  public get maxColHeight(): number | undefined {
     const h: number = this.$parent?.$el?.clientHeight
     if (h === undefined) return h
     return h * 0.7
   }
 
-  private get chartCols(): ChartColumnSize | 0 {
+  public get chartCols(): ChartColumnSize | 0 {
     return this.urlQuery.chart_cols || 0
   }
-  private set chartCols(cols: ChartColumnSize | 0) {
+  public set chartCols(cols: ChartColumnSize | 0) {
     this.setUrlQuery({
       ...this.urlQuery,
       chart_cols: cols,
     })
   }
 
-  private get isRightPanelOpen(): boolean {
+  public get isRightPanelOpen(): boolean {
     return this.$store.getters.GET('ui.measurements.isRightPanelOpen')
   }
-  private set isRightPanelOpen(value: boolean) {
+  public set isRightPanelOpen(value: boolean) {
     this.$store.commit('SET', {key: 'ui.measurements.isRightPanelOpen', value})
   }
 
-  private get queryFormCached(): ModuleState['queryForm'] | null {
+  public get queryFormCached(): ModuleState['queryForm'] | null {
     return this.$store.getters.GET('queryForm') || null
   }
 
-  private async beforeMount() {
+  public async beforeMount() {
     this.isLoading = true
     await this.fetch()
     this.isLoading = false
   }
 
-  private async fetch() {
+  public async fetch() {
     this.$loader.on()
     this.isChartLoading = true
 
@@ -373,7 +378,7 @@ export default class ViewMeasurements extends Vue {
     this.$loader.off()
   }
 
-  private async setUrlQueryDefaults(): Promise<void> {
+  public async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
 
     // set from cache
@@ -408,7 +413,7 @@ export default class ViewMeasurements extends Vue {
     await this.setUrlQuery(urlQuery)
   }
 
-  private async fetchCities(): Promise<City[]> {
+  public async fetchCities(): Promise<City[]> {
     const [err, cities] = await to(CityAPI.findAll())
     if (err) {
       this.$dialog.notify.error(
@@ -420,7 +425,7 @@ export default class ViewMeasurements extends Vue {
     return _orderBy(cities || [], 'name')
   }
 
-  private async fetchChartData(): Promise<ChartData> {
+  public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
       throw new Error('exit')
@@ -448,7 +453,25 @@ export default class ViewMeasurements extends Vue {
     const dateEnd =
       this.urlQuery.date_end === '0' ? undefined : this.urlQuery.date_end
 
-    const promises = []
+    let sources: Source[] = []
+    let stations: Station[] = []
+    let pollutants: Pollutant[] = []
+    let measurementsByCities: Measurement[] = []
+    let measurementsByStations: Measurement[] = []
+
+    const promises: Promise<any>[] = []
+
+    promises.push(
+      this.fetchSources().then((items) => (sources = _orderBy(items, 'id')))
+    )
+
+    promises.push(
+      this.fetchStations({city: this.urlQuery.cities}).then(
+        (items) => (stations = _orderBy(items, 'id'))
+      )
+    )
+
+    promises.push(this.fetchPollutants().then((items) => (pollutants = items)))
 
     promises.push(
       this.fetchMeasurements({
@@ -457,7 +480,7 @@ export default class ViewMeasurements extends Vue {
         date_to: dateEnd,
         process: MeasurementProcesses.city_day_mad,
         sort_by: 'asc(pollutant),asc(date)',
-      })
+      }).then((items) => (measurementsByCities = items))
     )
 
     if (this.filterStations.length) {
@@ -468,80 +491,38 @@ export default class ViewMeasurements extends Vue {
           date_to: dateEnd,
           process: MeasurementProcesses.station_day_mad,
           sort_by: 'asc(pollutant),asc(date)',
-        })
+        }).then((items) => (measurementsByStations = items))
       )
     }
 
-    const [err, arrays = []] = await to<Measurement[][]>(Promise.all(promises))
-
+    const [err] = await to(Promise.all(promises))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
       throw err
     }
-
-    const measurementsByCities = arrays[0] || []
-    const measurementsByStations = arrays[1] || []
     const measurements = measurementsByCities.concat(measurementsByStations)
 
-    const pollutantsMap = measurementsByCities.reduce(
-      (memo: {[pollutantId: string]: Pollutant}, meas: Measurement) => {
-        const pollutantId = meas.pollutant?.toLowerCase() || ''
-        if (pollutantId && !memo[pollutantId]) {
-          memo[pollutantId] = {
-            id: pollutantId,
-            label: pollutantId.toUpperCase(),
-            unit: meas.unit,
-          }
-        }
+    const usedPollutantsMap = measurementsByCities.reduce(
+      (memo: {[pollutantId: string]: number}, meas: Measurement) => {
+        const pollutantId = meas.pollutant
+        if (pollutantId && !memo[pollutantId]) memo[pollutantId] = 1
         return memo
       },
       {}
     )
-    const pollutants = _orderBy(Object.values(pollutantsMap), 'id')
+    pollutants = pollutants.filter((item) => usedPollutantsMap[item.id])
 
-    const sourcesMap = measurementsByCities.reduce(
-      (memo: {[sourceId: string]: Source}, meas: Measurement) => {
-        if (!meas.source) return memo
-        if (memo[meas.source]) {
-          memo[meas.source]._measurementsNumber =
-            1 + (memo[meas.source]?._measurementsNumber || 0)
-        } else {
-          memo[meas.source] = {
-            id: meas.source,
-            label: meas.source,
-            cityId: meas.city_id,
-            level: meas.level,
-            _measurementsNumber: 0,
-          }
-        }
+    const usedSourcesMap = measurementsByCities.reduce(
+      (memo: {[sourceId: string]: number}, meas: Measurement) => {
+        const sourceId = meas.source
+        if (sourceId && !memo[sourceId]) memo[sourceId] = 1
         return memo
       },
       {}
     )
-    const sources = _orderBy(Object.values(sourcesMap), 'id')
-
-    const stationsMap = measurementsByStations.reduce(
-      (memo: {[stationId: string]: Station}, meas: Measurement) => {
-        if (!meas.source) return memo
-        if (memo[meas.location_id]) {
-          memo[meas.location_id]._measurementsNumber =
-            1 + (memo[meas.location_id]?._measurementsNumber || 0)
-        } else {
-          memo[meas.location_id] = {
-            id: meas.location_id,
-            name: meas.location_id,
-            city_id: meas.city_id,
-            country_id: meas.country_id,
-            _measurementsNumber: 0,
-          }
-        }
-        return memo
-      },
-      {}
-    )
-    const stations = _orderBy(Object.values(stationsMap), 'id')
+    sources = sources.filter((item) => usedSourcesMap[item.id])
 
     newChartData.measurements = measurements
     newChartData.pollutants = pollutants
@@ -550,7 +531,7 @@ export default class ViewMeasurements extends Vue {
     return newChartData
   }
 
-  private async refreshChartData(): Promise<void> {
+  public async refreshChartData(): Promise<void> {
     this.isChartLoading = true
 
     const [err, chartData] = await to(this.fetchChartData())
@@ -600,7 +581,7 @@ export default class ViewMeasurements extends Vue {
     this.isChartLoading = false
   }
 
-  private async fetchMeasurements(query: {
+  public async fetchMeasurements(query: {
     city: string[]
     date_from?: string
     date_to?: string
@@ -618,7 +599,43 @@ export default class ViewMeasurements extends Vue {
     return items || []
   }
 
-  private async onChangeQuery(query: URLQuery) {
+  public async fetchStations(query: {city: string[]}): Promise<Station[]> {
+    let [err, items = []] = await to(StationAPI.findAll(toQueryString(query)))
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
+  public async fetchSources(): Promise<Source[]> {
+    let [err, items = []] = await to(SourceAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
+  public async fetchPollutants(): Promise<Pollutant[]> {
+    let [err, items = []] = await to(PollutantAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
+  public async onChangeQuery(query: URLQuery) {
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
@@ -647,19 +664,19 @@ export default class ViewMeasurements extends Vue {
     if (needRefresh) this.onClickRefresh()
   }
 
-  private async onClickRefresh() {
+  public async onClickRefresh() {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()
   }
 
-  private onClickExport(fileType: ExportFileType) {
+  public onClickExport(fileType: ExportFileType) {
     if (fileType === ExportFileType.CSV) {
       this.onClickExportToCSV()
     }
   }
 
-  private onClickExportToCSV() {
+  public onClickExportToCSV() {
     const citiesNames: string[] = this.urlQuery.cities
       .map(
         (cityId) =>
@@ -670,7 +687,7 @@ export default class ViewMeasurements extends Vue {
     this.exportToCSV(citiesNames, this.chartData.measurements)
   }
 
-  private exportToCSV(locationsNames: string[], measurements: Measurement[]) {
+  public exportToCSV(locationsNames: string[], measurements: Measurement[]) {
     this.$loader.on()
 
     let items: Measurement[] = []
@@ -746,15 +763,14 @@ export default class ViewMeasurements extends Vue {
     }
   }
 
-  private chooseDefaultSource(sources: Source[] = []): Source | undefined {
-    const _sources = _orderBy(sources, '_measurementsNumber', 'desc')
-    return _sources[0]
+  public chooseDefaultSource(sources: Source[] = []): Source | undefined {
+    return sources[0]
   }
 
-  private toURLStringDate(d: number): string {
+  public toURLStringDate(d: number): string {
     return toURLStringDate(d)
   }
-  private toNumberDate(d: string): number {
+  public toNumberDate(d: string): number {
     return toNumberDate(d)
   }
 }

@@ -114,8 +114,8 @@ export default class SelectBoxCities extends Vue {
   @Prop({type: Boolean, default: false})
   readonly disabled!: boolean
 
-  private searchQuery: string = ''
-  private privateItems: any[] = []
+  public searchQuery: string = ''
+  public privateItems: any[] = []
 
   get countries(): CountryOption[] {
     const map = this.items.reduce(
@@ -180,20 +180,20 @@ export default class SelectBoxCities extends Vue {
   }
 
   @Emit('input')
-  private onChangeValue(value: any) {
+  public onChangeValue(value: any) {
     setTimeout(() => {
       this.$tree?.initialize()
     }, 300)
   }
 
   @Watch('items')
-  private onChangeValue2(value: any) {
+  public onChangeValue2(value: any) {
     setTimeout(() => {
       this.$tree?.initialize()
     }, 300)
   }
 
-  private async loadItems({action, searchQuery, callback}: any): Promise<void> {
+  public async loadItems({action, searchQuery, callback}: any): Promise<void> {
     if (action !== ASYNC_SEARCH) return undefined
 
     if (!searchQuery) {

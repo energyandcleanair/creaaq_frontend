@@ -165,25 +165,25 @@ export default class DatesIntervalInput extends Vue {
   @Prop({type: String, default: 'YYYY-MM-DD'})
   readonly format!: string
 
-  private mdiCalendar = mdiCalendar
-  private privateInterval: DatesIntervals | null = null
-  private isMenuOpen: boolean = false
-  private isMenuDateStartOpen: boolean = false
-  private isMenuDateEndOpen: boolean = false
+  public mdiCalendar = mdiCalendar
+  public privateInterval: DatesIntervals | null = null
+  public isMenuOpen: boolean = false
+  public isMenuDateStartOpen: boolean = false
+  public isMenuDateEndOpen: boolean = false
 
-  private get dateStartFormat(): string {
+  public get dateStartFormat(): string {
     return moment.utc(this.dateStart).format(this.format)
   }
 
-  private get dateEndFormat(): string {
+  public get dateEndFormat(): string {
     return moment.utc(this.dateEnd).format(this.format)
   }
 
-  private get maxDate(): string {
+  public get maxDate(): string {
     return moment().format('YYYY-MM-DD')
   }
 
-  private get datePickersRules(): any {
+  public get datePickersRules(): any {
     const frmt = (date?: number) => moment.utc(date).format('YYYY-MM-DD')
     const min = frmt(+moment.utc().year(moment().year() - 100))
     return {
@@ -198,11 +198,11 @@ export default class DatesIntervalInput extends Vue {
     }
   }
 
-  private get DATES_RANGES(): DateInterval[] {
+  public get DATES_RANGES(): DateInterval[] {
     return DatesIntervalInput.DATES_RANGES
   }
 
-  private get formattedValue(): string {
+  public get formattedValue(): string {
     if (!this.privateInterval) return ''
     return DatesIntervalInput.formatValue(
       this.privateInterval,
@@ -212,29 +212,29 @@ export default class DatesIntervalInput extends Vue {
     )
   }
 
-  private mounted() {
+  public mounted() {
     this.privateInterval = this.determineInterval(this.dateStart, this.dateEnd)
   }
 
   @Watch('interval')
-  private onChangeInterval(val: DatesIntervals | null = null) {
+  public onChangeInterval(val: DatesIntervals | null = null) {
     this.privateInterval = val
   }
 
   @Watch('dateStart')
   @Watch('dateEnd')
-  private onChangeValue() {
+  public onChangeValue() {
     this.privateInterval = this.determineInterval(this.dateStart, this.dateEnd)
   }
 
-  private onClickMenuOption(val: DatesIntervals = DatesIntervals.custom) {
+  public onClickMenuOption(val: DatesIntervals = DatesIntervals.custom) {
     if (val === DatesIntervals.custom) return
     const dates = this.determineDates(val)
     this.onChange(dates)
     setTimeout(() => (this.isMenuOpen = false), 50)
   }
 
-  private onChange(dates: {dateStart: number; dateEnd: number}) {
+  public onChange(dates: {dateStart: number; dateEnd: number}) {
     if (dates?.dateStart !== this.dateStart) {
       this.$emit(`update:date-start`, dates.dateStart)
     }

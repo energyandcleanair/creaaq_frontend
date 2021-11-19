@@ -103,14 +103,14 @@ export default class ChangePasswordForm extends Vue {
   @Prop()
   public formValues?: {[key: string]: string}
 
-  private get isValid(): boolean {
+  public get isValid(): boolean {
     return !!this.value
   }
-  private set isValid(val: boolean) {
+  public set isValid(val: boolean) {
     this.$emit('input', val)
   }
 
-  private get formConfig(): {[key: string]: any} {
+  public get formConfig(): {[key: string]: any} {
     return {
       password: {
         ...AUTH_FORM_DEFAULTS.password,

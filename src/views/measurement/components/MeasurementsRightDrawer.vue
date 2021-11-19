@@ -85,7 +85,7 @@
             <v-radio
               v-for="item of chartData.sources"
               :key="item.id"
-              :label="item.label"
+              :label="item.short_name || item.name"
               :value="item.id"
             />
           </v-radio-group>
@@ -101,7 +101,7 @@
             :input-value="queryParams.pollutants"
             :key="item.id"
             :value="item.id"
-            :label="item.label"
+            :label="item.name"
             color="primary"
             hide-details
             :disabled="
@@ -219,17 +219,17 @@ export default class MeasurementsRightDrawer extends Vue {
   @Prop({type: Boolean, default: false})
   readonly disabledStations!: boolean
 
-  private forceShowStationsSelect: boolean = false
+  public forceShowStationsSelect: boolean = false
 
-  private get displayMode(): ChartDisplayModes {
+  public get displayMode(): ChartDisplayModes {
     return this.queryParams.display_mode || ChartDisplayModes.NORMAL
   }
 
-  private get runningAverage(): RunningAverageEnum {
+  public get runningAverage(): RunningAverageEnum {
     return this.queryParams.running_average || RunningAverageEnum['1d']
   }
 
-  private get chartCols(): number {
+  public get chartCols(): number {
     const cols: ChartColumnSize =
       this.queryParams.chart_cols ||
       MeasurementsChart.getMaxChartCols(
@@ -240,7 +240,7 @@ export default class MeasurementsRightDrawer extends Vue {
     return this.CHART_SIZE_LABELS.indexOf(cols)
   }
 
-  private get _isShowStations(): boolean {
+  public get _isShowStations(): boolean {
     if (
       this.queryParams.display_mode === ChartDisplayModes.SUPERIMPOSED_YEARS
     ) {
@@ -248,7 +248,7 @@ export default class MeasurementsRightDrawer extends Vue {
     }
     return this.forceShowStationsSelect || !!this.queryParams.stations?.length
   }
-  private set _isShowStations(value: boolean) {
+  public set _isShowStations(value: boolean) {
     let visibleStations: Station['id'][]
 
     if (value) {
@@ -265,7 +265,7 @@ export default class MeasurementsRightDrawer extends Vue {
     this.onChangeForm('stations', visibleStations)
   }
 
-  private get stationsGroupedByCity(): StationsNCitiesMap {
+  public get stationsGroupedByCity(): StationsNCitiesMap {
     const map: StationsNCitiesMap = {}
 
     for (const station of this.chartData.stations) {
@@ -293,7 +293,7 @@ export default class MeasurementsRightDrawer extends Vue {
     return map
   }
 
-  private get CHART_SIZE_VALUES(): {min: number; max: number} {
+  public get CHART_SIZE_VALUES(): {min: number; max: number} {
     const maxChartCols = MeasurementsChart.getMaxChartCols(
       this.$vuetify,
       this.queryParams.cities.length,
@@ -306,15 +306,15 @@ export default class MeasurementsRightDrawer extends Vue {
     }
   }
 
-  private get CHART_SIZE_LABELS(): ChartColumnSize[] {
+  public get CHART_SIZE_LABELS(): ChartColumnSize[] {
     return CHART_COLUMN_SIZES.slice()
   }
 
-  private get RUNNING_AVERAGE_OPTIONS(): RunningAverageEnum[] {
+  public get RUNNING_AVERAGE_OPTIONS(): RunningAverageEnum[] {
     return Object.values(RunningAverageEnum)
   }
 
-  private get DISPLAY_MODES(): any {
+  public get DISPLAY_MODES(): any {
     return Object.values(ChartDisplayModes).reduce((memo: any[], val) => {
       memo.push({
         label: this.$t(val.toLowerCase() || '').toString(),
@@ -324,7 +324,7 @@ export default class MeasurementsRightDrawer extends Vue {
     }, [])
   }
 
-  private created() {
+  public created() {
     this.forceShowStationsSelect = !!this.queryParams?.stations?.length
   }
 
@@ -366,54 +366,4 @@ export default class MeasurementsRightDrawer extends Vue {
 }
 </script>
 
-<style lang="scss">
-// .measurements-right-drawer {
-//   overflow: visible;
-
-//   &.v-navigation-drawer--close {
-//     visibility: visible !important;
-
-//     .v-navigation-drawer__content,
-//     .v-navigation-drawer__border {
-//       visibility: hidden !important;
-//     }
-//   }
-
-//   .v-navigation-drawer__prepend {
-//     position: relative;
-
-//     .drawer-handler {
-//       position: absolute;
-//       left: -2.7rem;
-//       top: .5rem;
-//       width: 2.7rem;
-//       height: 2rem;
-//       z-index: 10;
-//       border-radius: 0.2rem;
-//       border-top-right-radius: 0;
-//       border-bottom-right-radius: 0;
-//     }
-//   }
-
-//   &.v-navigation-drawer--open {
-//     .drawer-handler {
-//       display: none;
-//     }
-//   }
-
-//   &:not(.v-navigation-drawer--is-mobile) {
-//     .drawer-handler {
-//       margin-top: 0 !important;
-//     }
-//   }
-
-//   .drawer__form {
-//     overflow: auto;
-//     padding-bottom: 7rem;
-
-//     > .row {
-//       margin-bottom: 2rem;
-//     }
-//   }
-// }
-</style>
+<style lang="scss"></style>

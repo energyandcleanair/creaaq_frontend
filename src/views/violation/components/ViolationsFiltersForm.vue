@@ -121,10 +121,10 @@ interface TreeNode {
 @Component
 export default class ViolationsFiltersForm extends Vue {
   @Ref('primaryFilterTree')
-  private readonly $primaryFilterTree: any | undefined
+  public readonly $primaryFilterTree: any | undefined
 
   @Ref('secondaryFilterTree')
-  private readonly $secondaryFilterTree: any | undefined
+  public readonly $secondaryFilterTree: any | undefined
 
   @Prop({type: Array, required: true})
   public readonly valueGuidelines!: Guideline['id'][]
@@ -161,30 +161,30 @@ export default class ViolationsFiltersForm extends Vue {
   @Prop({type: Boolean, default: false})
   readonly disabled!: boolean
 
-  private mdiMenuDown = mdiMenuDown
+  public mdiMenuDown = mdiMenuDown
 
-  private get primaryFilterItems(): ViolationsFilterItem[] {
+  public get primaryFilterItems(): ViolationsFilterItem[] {
     return this._getPrimaryFilterItems(this.filterPrimary)
   }
 
   // link to the secondaryFilterValue because the primary filter tree
   // is based on the secondaryFilterValue
-  private get primaryFilterValue(): ViolationsFilterValue[] {
+  public get primaryFilterValue(): ViolationsFilterValue[] {
     return this.secondaryFilterValue
   }
 
-  private get secondaryFilterItems(): ViolationsFilterItem[] {
+  public get secondaryFilterItems(): ViolationsFilterItem[] {
     return this._getSecondaryFilterItems(this.filterSecondary)
   }
-  private get secondaryFilterValue(): ViolationsFilterValue[] {
+  public get secondaryFilterValue(): ViolationsFilterValue[] {
     return this._getSecondaryFilterValues(this.filterSecondary)
   }
-  private get filterSecondaryText(): string {
+  public get filterSecondaryText(): string {
     const parts = this.filterSecondary.split('/')
     return `${this.$t(parts[0])}/${this.$t(parts[1])}`
   }
 
-  private get primaryFilterTree(): ViolationsFilterTreeitem[] {
+  public get primaryFilterTree(): ViolationsFilterTreeitem[] {
     const tree: ViolationsFilterTreeitem[] = []
 
     for (const primaryItem of this.primaryFilterItems) {
@@ -211,7 +211,7 @@ export default class ViolationsFiltersForm extends Vue {
     return tree
   }
 
-  private get secondaryFilterTree(): ViolationsFilterTreeitem[] {
+  public get secondaryFilterTree(): ViolationsFilterTreeitem[] {
     const tree: ViolationsFilterTreeitem[] = []
     const items = this._getSecondaryFilterItems(this.filterSecondary)
     const pollutants = this.pollutants.map((item) =>
@@ -242,7 +242,7 @@ export default class ViolationsFiltersForm extends Vue {
     return tree
   }
 
-  private onChangeTree(tree: 'primary' | 'secondary', values: string[]) {
+  public onChangeTree(tree: 'primary' | 'secondary', values: string[]) {
     const componentValue = {
       guidelines: this.valueGuidelines,
       pollutants: this.valuePollutants,
@@ -297,11 +297,11 @@ export default class ViolationsFiltersForm extends Vue {
     this.onChangeForm(componentValue)
   }
 
-  private onChangeForm(value: any) {
+  public onChangeForm(value: any) {
     this.$emit('change', value)
   }
 
-  private _getTreeSelectedParentItems($tree: any): string[] {
+  public _getTreeSelectedParentItems($tree: any): string[] {
     const nodes: Record<string, TreeNode> = $tree.nodes
     const parentItems: ViolationsFilterItem[] = $tree.items
     const selectedIds = parentItems.reduce(
@@ -315,7 +315,7 @@ export default class ViolationsFiltersForm extends Vue {
     return selectedIds
   }
 
-  private _getPrimaryFilterItems(
+  public _getPrimaryFilterItems(
     filter: ViolationsPrimaryFilter
   ): ViolationsFilterItem[] {
     let items = []
@@ -332,7 +332,7 @@ export default class ViolationsFiltersForm extends Vue {
     return (items as any[]).map((item) => this._parseToFilterItem(item, type))
   }
 
-  private _getSecondaryFilterItems(
+  public _getSecondaryFilterItems(
     filter: ViolationsSecondaryFilter
   ): ViolationsFilterItem[] {
     let items = []
@@ -350,7 +350,7 @@ export default class ViolationsFiltersForm extends Vue {
     return (items as any[]).map((item) => this._parseToFilterItem(item, type))
   }
 
-  private _getSecondaryFilterValues(
+  public _getSecondaryFilterValues(
     filter: ViolationsSecondaryFilter
   ): ViolationsFilterValue[] {
     switch (filter) {
@@ -361,7 +361,7 @@ export default class ViolationsFiltersForm extends Vue {
     }
   }
 
-  private _parseToFilterItem(
+  public _parseToFilterItem(
     item: any,
     type: 'guideline' | 'pollutant' | 'target'
   ): ViolationsFilterItem {
@@ -369,7 +369,7 @@ export default class ViolationsFiltersForm extends Vue {
 
     switch (type) {
       case 'pollutant':
-        nameProp = 'label'
+        nameProp = 'name'
         break
       case 'target':
         nameProp = 'name'

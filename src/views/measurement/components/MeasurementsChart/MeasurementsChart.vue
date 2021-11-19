@@ -11,11 +11,9 @@
       <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
 
       <v-row class="px-2">
-        <template v-for="i of cols || 2">
-          <v-col :key="i">
-            <v-skeleton-loader type="text, image" />
-          </v-col>
-        </template>
+        <v-col v-for="i of cols || 2" :key="i">
+          <v-skeleton-loader type="text, image" />
+        </v-col>
       </v-row>
     </template>
 
@@ -83,9 +81,7 @@
             :double-click="false"
             :displaylogo="false"
             :display-mode-bar="col.isEmpty ? false : 'hover'"
-            @relayout="
-              onRelayout(row.id, col.id, $refs[`chart:${col.id}`][0], $event)
-            "
+            @relayout="onRelayout(row.id, col.id, $event)"
           />
         </v-col>
       </v-row>
@@ -135,7 +131,11 @@ const PRIMARY_LINE_STYLE = {
 const SECONDARY_LINE_STYLE = {color: '#ddd', width: 1}
 const PRIMARY_TRACE_COLOR_SCALE = chroma.scale(
   // Can't seem to reverse using domain([1,0]) so using this trick
-  chroma.scale('OrRd').padding([0.2, 0.1]).colors(10).reverse()
+  chroma
+    .scale('OrRd')
+    .padding([0.2, 0.1])
+    .colors(10)
+    .reverse()
 )
 
 interface MapFilter {
@@ -181,28 +181,28 @@ export default class MeasurementsChart extends Vue {
   @Prop({type: Number, default: 15000})
   public readonly maxColHeight?: number
 
-  private get cities(): City[] {
+  public get cities(): City[] {
     return this.chartData.cities || []
   }
 
-  private get pollutants(): Pollutant[] {
+  public get pollutants(): Pollutant[] {
     return this.chartData.pollutants || []
   }
 
-  private get measurements(): Measurement[] {
+  public get measurements(): Measurement[] {
     return this.chartData.measurements || []
   }
 
   // display pollutants as cells and not rows
-  private get dense(): boolean {
+  public get dense(): boolean {
     return this.queryParams.cities?.length === 1
   }
 
-  private get displayMode(): ChartDisplayModes {
+  public get displayMode(): ChartDisplayModes {
     return this.chartDisplayMode || ChartDisplayModes.NORMAL
   }
 
-  private get _cols(): ChartColumnSize {
+  public get _cols(): ChartColumnSize {
     const maxChartCols = MeasurementsChart.getMaxChartCols(
       this.$vuetify,
       this.queryParams.cities.length,
@@ -211,11 +211,11 @@ export default class MeasurementsChart extends Vue {
     return Math.min(this.cols || 0, maxChartCols) as ChartColumnSize
   }
 
-  private get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
+  public get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
     return 12 / this._cols
   }
 
-  private get colWidth(): number {
+  public get colWidth(): number {
     let w = this.$el?.clientWidth || 300
     const PADDING = 10
     w -= PADDING * 2
@@ -224,7 +224,7 @@ export default class MeasurementsChart extends Vue {
 
   // TODO: to improve the performance we can separate the data and display opts
   // TODO: add caching of traces that were not updated
-  private get chartsRows(): ChartRow[] {
+  public get chartsRows(): ChartRow[] {
     if (this.loading) return []
 
     const rows: ChartRow[] = []
@@ -301,7 +301,7 @@ export default class MeasurementsChart extends Vue {
       const row: ChartRow = {
         id: rowId,
         pollutantId: pollutant.id,
-        title: pollutant.label,
+        title: pollutant.name,
         subtitle: pollutant.unit,
         cols,
         rangeBox: _mergeItemsRangeBoxes(cols, 'rangeBox'),
@@ -337,7 +337,7 @@ export default class MeasurementsChart extends Vue {
     return rows
   }
 
-  private mounted() {
+  public mounted() {
     if (!this.cols) {
       this.$emit(
         'update:cols',
@@ -389,7 +389,7 @@ export default class MeasurementsChart extends Vue {
     return _defaultCols as ChartColumnSize
   }
 
-  private genChartTraces(
+  public genChartTraces(
     city: City,
     pollutant: Pollutant,
     filterSources: Source['id'][],
@@ -545,7 +545,7 @@ export default class MeasurementsChart extends Vue {
   @Watch('cols')
   @Watch('runningAverage')
   @Watch('chartDisplayMode')
-  private onResize = _debounce(() => this.resize(), 100)
+  public onResize = _debounce(() => this.resize(), 100)
 
   public resize() {
     for (const refId in this.$refs) {
@@ -555,15 +555,16 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private onRelayout(
-    rowId: ChartRow['id'],
-    colId: ChartCol['id'],
-    $colRef: HTMLElement,
-    $event: any
-  ) {
+  public onRelayout(rowId: ChartRow['id'], colId: ChartCol['id'], $event: any) {
     if (!$event || Object.entries($event).length === 0) return
     const hasAxisX = Object.keys($event).find((key) => /^xaxis/.test(key))
     if (!hasAxisX) return
+
+    const $colRef: HTMLElement | undefined = (this.$refs[
+      `chart:${colId}`
+    ] as HTMLElement[])?.[0]
+
+    if (!$colRef) return
 
     for (const refId in this.$refs) {
       if (refId === $colRef.id) continue
@@ -617,12 +618,12 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private checkPollutantVisibility(pollutantId: Pollutant['id']): boolean {
+  public checkPollutantVisibility(pollutantId: Pollutant['id']): boolean {
     const visible = this.filterPollutants.includes(pollutantId)
     return visible
   }
 
-  private _getChartLayoutDefaults(opts: {
+  public _getChartLayoutDefaults(opts: {
     margin: {[key: string]: number}
     font: number
     displayMode: ChartDisplayModes
@@ -652,7 +653,7 @@ export default class MeasurementsChart extends Vue {
       margin,
       xaxis: {
         visible: !isEmpty,
-        showline: false,  // conflicts with yaxis zeroline. Using css instead
+        showline: false, // conflicts with yaxis zeroline. Using css instead
         linecolor: '#eee',
         linewidth: 1,
         mirror: true,
@@ -699,7 +700,10 @@ export default class MeasurementsChart extends Vue {
   }
 }
 
-function _setLineStylesToChartTraces(traces: ChartTrace[], displayMode: ChartDisplayModes): ChartTrace[] {
+function _setLineStylesToChartTraces(
+  traces: ChartTrace[],
+  displayMode: ChartDisplayModes
+): ChartTrace[] {
   const citiesTracesNumber: number = traces.reduce(
     (acc, trace) => (acc += trace.level === ChartTraceLevels.CITY ? 1 : 0),
     0
@@ -720,16 +724,16 @@ function _setLineStylesToChartTraces(traces: ChartTrace[], displayMode: ChartDis
 
     if (trace.level === ChartTraceLevels.CITY) {
       const width = _lineWidthMax - counterCitiesTraces * widthStep
-      
-      if(displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS){
+
+      if (displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
         trace.line = {
           ...PRIMARY_LINE_STYLE,
           color: PALETTE_COLORS[counterCitiesTraces],
           width: Math.min(width, widthMax),
         }
-      }else{
+      } else {
         trace.line = {
-          ...PRIMARY_LINE_STYLE
+          ...PRIMARY_LINE_STYLE,
         }
       }
       counterCitiesTraces++

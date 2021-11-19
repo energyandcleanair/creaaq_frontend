@@ -42,12 +42,12 @@
           <b class="d-flex justify-center pt-2">
             {{
               $t('msg.queried_of_limit', {
-                queried: `${urlQuery.cities.length} ${$t(
-                  'cities'
-                ).toLowerCase()}`,
-                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t(
-                  'cities'
-                ).toLowerCase()}`,
+                queried: `${urlQuery.cities.length} ${$t('cities')
+                  .toString()
+                  .toLowerCase()}`,
+                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities')
+                  .toString()
+                  .toLowerCase()}`,
               })
             }}
           </b>
@@ -93,19 +93,19 @@ export default class ViewStations extends Vue {
   @Ref('stationsChart')
   readonly $stationsChart?: StationsChart
 
-  private isMounted: boolean = false
-  private isFetched: boolean = false
-  private isLoading: boolean = false
-  private isChartLoading: boolean = false
-  private readonly LIMIT_FETCH_ITEMS_FROM_API: number =
+  public isMounted: boolean = false
+  public isFetched: boolean = false
+  public isLoading: boolean = false
+  public isChartLoading: boolean = false
+  public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
-  private chartData: ChartData = {
+  public chartData: ChartData = {
     cities: [],
     stations: [],
   }
 
-  private get urlQuery(): URLQuery {
+  public get urlQuery(): URLQuery {
     const q: URLQueryRaw = this.$route.query
     const _toArray = (itm: string | string[] | undefined) =>
       (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
@@ -121,7 +121,7 @@ export default class ViewStations extends Vue {
     }
   }
 
-  private async setUrlQuery(inputQuery: URLQuery): Promise<void> {
+  public async setUrlQuery(inputQuery: URLQuery): Promise<void> {
     const query: URLQueryRaw = {
       ct: inputQuery.cities,
       st: inputQuery.stations,
@@ -153,19 +153,19 @@ export default class ViewStations extends Vue {
     }
   }
 
-  private get selectedCities(): City[] {
+  public get selectedCities(): City[] {
     if (!this.urlQuery.cities?.length) return []
     return this.chartData.cities.filter((itm) =>
       this.urlQuery.cities.includes(itm.id)
     )
   }
 
-  private get queryFormCached(): ModuleState['queryForm'] | null {
+  public get queryFormCached(): ModuleState['queryForm'] | null {
     return this.$store.getters.GET('queryForm') || null
   }
 
   // TODO: make it a mixin
-  private created() {
+  public created() {
     let cancelWatcherMounted: () => void = () => {}
     let cancelWatcherFetched: () => void = () => {}
 
@@ -188,14 +188,14 @@ export default class ViewStations extends Vue {
     )
   }
 
-  private async beforeMount() {
+  public async beforeMount() {
     this.isLoading = true
     await this.fetch()
     this.isFetched = true
     this.isLoading = false
   }
 
-  private async fetch() {
+  public async fetch() {
     this.$loader.on()
     this.isChartLoading = true
 
@@ -252,17 +252,17 @@ export default class ViewStations extends Vue {
     this.$loader.off()
   }
 
-  private mounted() {
+  public mounted() {
     this.isMounted = true
   }
 
-  private mountedAfterFetch() {
+  public mountedAfterFetch() {
     if (!this.urlQuery.stations?.length) {
       this.$stationsChart?.fitAllMarkers()
     }
   }
 
-  private async setUrlQueryDefaults(): Promise<void> {
+  public async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
 
     // set from cache
@@ -273,7 +273,7 @@ export default class ViewStations extends Vue {
     await this.setUrlQuery(urlQuery)
   }
 
-  private async fetchCities(): Promise<City[]> {
+  public async fetchCities(): Promise<City[]> {
     const [err, cities] = await to(CityAPI.findAll())
     if (err) {
       this.$dialog.notify.error(
@@ -285,7 +285,7 @@ export default class ViewStations extends Vue {
     return _orderBy(cities || [], 'name')
   }
 
-  private async fetchChartData(): Promise<ChartData> {
+  public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
       throw new Error('exit')
@@ -298,9 +298,9 @@ export default class ViewStations extends Vue {
 
     if (!this.urlQuery?.cities.length) return newChartData
 
-    const promise = this.fetchStations({city: this.urlQuery.cities})
-
-    let [err, stations = []] = await to<Station[]>(promise)
+    let [err, stations = []] = await to<Station[]>(
+      this.fetchStations({city: this.urlQuery.cities})
+    )
 
     if (err) {
       this.$dialog.notify.error(
@@ -313,7 +313,7 @@ export default class ViewStations extends Vue {
     return newChartData
   }
 
-  private async refreshChartData(): Promise<void> {
+  public async refreshChartData(): Promise<void> {
     this.isChartLoading = true
 
     const [err, chartData] = await to(this.fetchChartData())
@@ -331,7 +331,7 @@ export default class ViewStations extends Vue {
     this.isChartLoading = false
   }
 
-  private async fetchStations(query: {city: string[]}): Promise<Station[]> {
+  public async fetchStations(query: {city: string[]}): Promise<Station[]> {
     let [err, items = []] = await to(StationAPI.findAll(toQueryString(query)))
     if (err) {
       this.$dialog.notify.error(
@@ -344,7 +344,7 @@ export default class ViewStations extends Vue {
     return items || []
   }
 
-  private async onChangeQuery(query: URLQuery) {
+  public async onChangeQuery(query: URLQuery) {
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
@@ -354,7 +354,7 @@ export default class ViewStations extends Vue {
     if (citiesChanged) this.onClickRefresh()
   }
 
-  private async onClickRefresh() {
+  public async onClickRefresh() {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()

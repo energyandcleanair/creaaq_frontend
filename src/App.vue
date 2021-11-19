@@ -116,23 +116,23 @@ import config from '@/config'
   },
 })
 export default class App extends Vue {
-  private mdiAccount = mdiAccount
-  private mdiAccountCircle = mdiAccountCircle
-  private isMenuOpen: boolean = false
+  public mdiAccount = mdiAccount
+  public mdiAccountCircle = mdiAccountCircle
+  public isMenuOpen: boolean = false
 
-  private get userName(): string {
+  public get userName(): string {
     return this.$auth.currentUser?.displayName || 'User'
   }
 
-  private get userEmail(): string {
+  public get userEmail(): string {
     return this.$auth.currentUser?.email || ''
   }
 
-  private get userPhoto(): string {
+  public get userPhoto(): string {
     return this.$auth.currentUser?.photoURL || ''
   }
 
-  private get menuItems(): any[] {
+  public get menuItems(): any[] {
     return [
       {
         id: 'profile',
@@ -158,17 +158,17 @@ export default class App extends Vue {
     ]
   }
 
-  private beforeMount() {
+  public beforeMount() {
     document
       .getElementsByTagName('html')[0]
       .setAttribute('app-version', require('@/../package.json').version)
   }
 
-  private mounted() {
+  public mounted() {
     this.checkConnectionToAPI()
   }
 
-  private checkConnectionToAPI() {
+  public checkConnectionToAPI() {
     const service = axios.create({
       baseURL: config.get('API_ORIGIN'),
       withCredentials: true,
@@ -187,7 +187,7 @@ export default class App extends Vue {
       })
   }
 
-  private signOut() {
+  public signOut() {
     this.$auth.logout().then(() => this.$router.push({name: 'signIn'}))
   }
 }

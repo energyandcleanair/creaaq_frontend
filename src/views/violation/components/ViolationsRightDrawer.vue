@@ -69,7 +69,7 @@ export default class ViolationsRightDrawer extends Vue {
   @Prop({type: Object, required: true})
   readonly chartData!: ChartData
 
-  private get YEARS(): {label: string; value: string}[] {
+  public get YEARS(): {label: string; value: string}[] {
     const years: {label: string; value: string}[] = []
     let year = moment().year()
 
@@ -85,15 +85,15 @@ export default class ViolationsRightDrawer extends Vue {
     return years
   }
 
-  private get pollutants(): Pollutant[] {
+  public get pollutants(): Pollutant[] {
     return this.chartData.pollutants || []
   }
 
-  private get guidelines(): Guideline[] {
+  public get guidelines(): Guideline[] {
     return this.chartData.guidelines || []
   }
 
-  private get targets(): Target[] {
+  public get targets(): Target[] {
     return this.chartData.targets || []
   }
 
