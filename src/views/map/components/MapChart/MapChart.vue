@@ -57,7 +57,7 @@ import _orderBy from 'lodash.orderby'
 import Leaflet, {LatLngBounds} from 'leaflet'
 import {Component, Vue, Prop, Ref, Watch} from 'vue-property-decorator'
 import {LMap, LTileLayer, LCircleMarker, LLayerGroup} from 'vue2-leaflet'
-import config, {MapLayerConfig} from '@/config'
+import config, {ConfigParams} from '@/config'
 import {mdiArrowExpandAll} from '@mdi/js'
 import theme from '@/theme'
 import City from '@/entities/City'
@@ -130,7 +130,7 @@ export default class MapChart extends Vue {
     return this.queryParams?.basemap || MapChartBasemap.terrain
   }
 
-  public get MAP_LAYERS(): MapLayerConfig {
+  public get MAP_LAYERS(): ConfigParams['MAP_LAYERS'] {
     return config.get('MAP_LAYERS')
   }
 
@@ -162,6 +162,16 @@ export default class MapChart extends Vue {
         firstMarker?.coordinates?.[1] || 0
       ),
     }
+  }
+
+  public get chartPollutantsMap(): {[pollutantId: string]: Pollutant} {
+    return this.chartData.pollutants.reduce(
+      (memo: {[pollutantId: string]: Pollutant}, item) => {
+        if (!memo[item.id]) memo[item.id] = item
+        return memo
+      },
+      {}
+    )
   }
 
   public mounted() {
@@ -346,14 +356,23 @@ export default class MapChart extends Vue {
           ).format('DD MMMM YYYY')
         }
         if (Array.isArray(item.pollutants)) {
-          detailsList['' + this.$t('pollutants')] = item.pollutants
+          const pollutantsStr = item.pollutants
+            .reduce((arr: string[], id) => {
+              const pollutant = this.chartPollutantsMap[id]
+              if (pollutant) arr.push(pollutant.name)
+              return arr
+            }, [])
             .join(', ')
-            .toUpperCase()
+          detailsList['' + this.$t('pollutants')] = pollutantsStr
         }
         if ((item as Station).source) {
-          detailsList[
-            '' + this.$t('source')
-          ] = (item as Station).source?.toUpperCase()
+          const source = this.chartData.sources.find(
+            (s) => s.id === (item as Station).source
+          )
+          detailsList['' + this.$t('source')] =
+            source?.short_name ||
+            source?.name ||
+            (item as Station).source?.toUpperCase()
         }
 
         const popupComponent = new MapMarkerPopup({

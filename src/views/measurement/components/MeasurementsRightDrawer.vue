@@ -87,7 +87,31 @@
               :key="item.id"
               :label="item.short_name || item.name"
               :value="item.id"
-            />
+            >
+              <template v-slot:label>
+                <v-menu bottom open-on-hover>
+                  <template v-slot:activator="{on, attrs}">
+                    {{ item.short_name || item.name }}
+                    <v-icon
+                      class="ml-1"
+                      color="grey lighten-2"
+                      small
+                      v-bind="attrs"
+                      v-on="on"
+                    >
+                      {{ mdiInformationOutline }}
+                    </v-icon>
+                  </template>
+
+                  <v-card>
+                    <v-card-title v-text="item.name" />
+                    <v-card-text v-if="item.url">
+                      <a :href="item.url" target="_blank" v-text="item.url" />
+                    </v-card-text>
+                  </v-card>
+                </v-menu>
+              </template>
+            </v-radio>
           </v-radio-group>
         </v-col>
       </v-row>
@@ -170,6 +194,7 @@
 
 <script lang="ts">
 import _difference from 'lodash.difference'
+import {mdiInformationOutline} from '@mdi/js'
 import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
 import PageDrawer from '@/components/PageDrawer.vue'
 import SelectBox from '@/components/SelectBox.vue'
@@ -220,6 +245,7 @@ export default class MeasurementsRightDrawer extends Vue {
   readonly disabledStations!: boolean
 
   public forceShowStationsSelect: boolean = false
+  public mdiInformationOutline = mdiInformationOutline
 
   public get displayMode(): ChartDisplayModes {
     return this.queryParams.display_mode || ChartDisplayModes.NORMAL
