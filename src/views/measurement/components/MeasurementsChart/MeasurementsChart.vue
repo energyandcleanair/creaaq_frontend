@@ -100,7 +100,12 @@ import _debounce from 'lodash.debounce'
 import {Framework} from 'vuetify'
 import {Component, Vue, Prop, Watch} from 'vue-property-decorator'
 import {Plotly} from 'vue-plotly'
-import {URL_DATE_FORMAT, toNumberDate, computeMovingAverage} from '@/utils'
+import {
+  URL_DATE_FORMAT,
+  toNumberDate,
+  computeMovingAverage,
+  isObjEmpty,
+} from '@/utils'
 import Measurement, {MeasurementProcesses} from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
@@ -193,6 +198,36 @@ export default class MeasurementsChart extends Vue {
     return this.chartData.measurements || []
   }
 
+  public get filterSourcesMap(): {[sourceId: string]: boolean} {
+    return this.filterSources.reduce(
+      (map: Record<string, boolean>, id: Source['id']) => {
+        if (!map[id]) map[id] = true
+        return map
+      },
+      {}
+    )
+  }
+
+  public get filterPollutantsMap(): {[pollutantId: string]: boolean} {
+    return this.filterPollutants.reduce(
+      (map: Record<string, boolean>, id: Pollutant['id']) => {
+        if (!map[id]) map[id] = true
+        return map
+      },
+      {}
+    )
+  }
+
+  public get filterStationsMap(): {[stationId: string]: boolean} {
+    return this.filterStations.reduce(
+      (map: Record<string, boolean>, id: Station['id']) => {
+        if (!map[id]) map[id] = true
+        return map
+      },
+      {}
+    )
+  }
+
   // display pollutants as cells and not rows
   public get dense(): boolean {
     return this.queryParams.cities?.length === 1
@@ -245,6 +280,7 @@ export default class MeasurementsChart extends Vue {
 
       const rowId: string = pollutant.id
       const cols: ChartCol[] = []
+      let rowUnit: string = ''
 
       for (const _i in this.queryParams.cities) {
         const i = +_i
@@ -259,14 +295,17 @@ export default class MeasurementsChart extends Vue {
         const chartTraces = this.genChartTraces(
           city,
           pollutant,
-          this.filterSources,
-          this.filterStations
+          this.filterSourcesMap,
+          this.filterStationsMap
         )
 
+        const tracesUnits: string[] = []
         const data = chartTraces.traces.map((trace) => {
+          if (trace.unit) tracesUnits.push(trace.unit)
           trace.x = trace.x.map((val) => new Date(val))
           return trace
         })
+        if (tracesUnits.length === 1) rowUnit = tracesUnits[0]
         const isEmpty: boolean =
           !data?.length || (!data[0]?.x?.length && !data[0]?.y?.length)
 
@@ -304,7 +343,7 @@ export default class MeasurementsChart extends Vue {
         id: rowId,
         pollutantId: pollutant.id,
         title: pollutant.name,
-        subtitle: pollutant.unit,
+        subtitle: rowUnit,
         cols,
         rangeBox: _mergeItemsRangeBoxes(cols, 'rangeBox'),
       }
@@ -410,8 +449,8 @@ export default class MeasurementsChart extends Vue {
   public genChartTraces(
     city: City,
     pollutant: Pollutant,
-    filterSources: Source['id'][],
-    filterStations: Station['id'][]
+    filterSourcesMap: {[sourceId: string]: boolean},
+    filterStationsMap: {[stationId: string]: boolean}
   ): {traces: ChartTrace[]; rangeBox: RangeBox} {
     const cityId: City['id'] = city.id
     const pollutantId = pollutant.id
@@ -426,8 +465,13 @@ export default class MeasurementsChart extends Vue {
       y1: NaN,
     }
 
-    const tracesMap: {[location_id: string]: ChartTracePoint[]} = {
-      [cityId]: [],
+    const tracesMap: {
+      [location_id: string]: {
+        data: ChartTracePoint[]
+        unit: string
+      }
+    } = {
+      [cityId]: {data: [], unit: ''},
     }
 
     for (const measurement of this.measurements) {
@@ -441,7 +485,7 @@ export default class MeasurementsChart extends Vue {
         case MeasurementProcesses.station_day_mad: {
           if (!this.displayStations) continue
           const stationId = measurement.location_id
-          if (!filterStations.includes(stationId)) continue
+          if (!filterStationsMap[stationId]) continue
           traceId = stationId
           break
         }
@@ -455,23 +499,29 @@ export default class MeasurementsChart extends Vue {
 
       const matchCity: boolean = measurement.city_id === cityId
       const matchPollutant: boolean = measurement.pollutant === pollutantId
-      const matchSource: boolean = filterSources.length
-        ? filterSources.includes(measurement.source)
-        : true
+      const matchSource: boolean = isObjEmpty(filterSourcesMap)
+        ? true
+        : filterSourcesMap[measurement.source]
 
       if (!matchCity || !matchPollutant || !matchSource) continue
 
       const x = +new Date(measurement.date)
       const y = measurement.value
 
-      if (!tracesMap[traceId]) tracesMap[traceId] = []
-      tracesMap[traceId].push({x, y})
+      if (!tracesMap[traceId]) {
+        tracesMap[traceId] = {data: [], unit: measurement.unit || ''}
+      }
+      if (!tracesMap[traceId].unit) {
+        tracesMap[traceId].unit = measurement.unit || ''
+      }
+      tracesMap[traceId].data.push({x, y})
     }
 
     let traces: ChartTrace[] = []
 
     for (const traceId in tracesMap) {
-      const tracePoints = tracesMap[traceId]
+      const traceDef = tracesMap[traceId]
+      const tracePoints = traceDef.data
       const level =
         traceId === cityId ? ChartTraceLevels.CITY : ChartTraceLevels.STATION
       const isCalcRunningAverage =
@@ -479,7 +529,7 @@ export default class MeasurementsChart extends Vue {
         RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
         tracePoints.length
       const hovertemplate =
-        `%{y:.0f} ${pollutant.unit || ''}<br>%{x}` +
+        `%{y:.0f} ${traceDef.unit || ''}<br>%{x}` +
         (level === ChartTraceLevels.CITY
           ? `<br><b>${this.$t('city')}:</b> ${city.name}`
           : `<br><b>${this.$t('station')}:</b> ${traceId}`)
@@ -492,6 +542,7 @@ export default class MeasurementsChart extends Vue {
         type: 'scatter',
         mode: 'lines',
         name: '',
+        unit: traceDef.unit,
         hovertemplate,
       }
 

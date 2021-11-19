@@ -33,6 +33,11 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+export function isObjEmpty(obj: Record<any, any>): boolean {
+  for (const i in obj) return false
+  return true
+}
+
 export function _runIteration(
   fn: any,
   numTimes: number,
