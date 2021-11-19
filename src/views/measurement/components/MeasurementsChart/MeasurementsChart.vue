@@ -73,15 +73,18 @@
           </v-tooltip>
 
           <Plotly
-            :ref="`chart:${col.id}`"
-            :id="`chart:${col.id}`"
+            :ref="`${CHART_REF_PREFIX}${col.id}`"
+            :id="`${CHART_REF_PREFIX}${col.id}`"
             :data="col.data"
             :layout="col.layout"
             :responsive="false"
             :double-click="false"
             :displaylogo="false"
             :display-mode-bar="col.isEmpty ? false : 'hover'"
+            :mode-bar-buttons-to-add="modeBarButtonsToAdd"
+            :mode-bar-buttons-to-remove="['autoscale', 'autoScale2d']"
             @relayout="onRelayout(row.id, col.id, $event)"
+            @doubleclick="onClickChart(row.id, col.id)"
           />
         </v-col>
       </v-row>
@@ -126,6 +129,7 @@ import ChartTracePoint from './ChartTracePoint'
 import ChartData from './ChartData'
 import {fillGapsInDatesArray} from '@/utils/computeMovingAverage/computeMovingAverage'
 
+const CHART_REF_PREFIX = 'chart:'
 const COL_ID_DIVIDER = '--'
 const PRIMARY_LINE_STYLE = {
   color: theme.colors.darkRed.base,
@@ -146,6 +150,14 @@ const PRIMARY_TRACE_COLOR_SCALE = chroma.scale(
 
 interface MapFilter {
   [id: string]: number
+}
+
+var icon = {
+  width: 1000,
+  path:
+    'm250 850l-187 0-63 0 0-62 0-188 63 0 0 188 187 0 0 62z m688 0l-188 0 0-62 188 0 0-188 62 0 0 188 0 62-62 0z m-875-938l0 188-63 0 0-188 0-62 63 0 187 0 0 62-187 0z m875 188l0-188-188 0 0-62 188 0 62 0 0 62 0 188-62 0z m-125 188l-1 0-93-94-156 156 156 156 92-93 2 0 0 250-250 0 0-2 93-92-156-156-156 156 94 92 0 2-250 0 0-250 0 0 93 93 157-156-157-156-93 94 0 0 0-250 250 0 0 0-94 93 156 157 156-157-93-93 0 0 250 0 0 250z',
+  ascent: 850,
+  descent: -150,
 }
 
 @Component({
@@ -186,6 +198,22 @@ export default class MeasurementsChart extends Vue {
 
   @Prop({type: Number, default: 15000})
   public readonly maxColHeight?: number
+
+  public CHART_REF_PREFIX = CHART_REF_PREFIX
+  public get modeBarButtonsToAdd(): any[] {
+    return [
+      {
+        name: 'Autoscale',
+        icon: icon,
+        click: ($el: HTMLElement) => {
+          const id = $el.id || ''
+          const colId = id.replace(CHART_REF_PREFIX, '')
+          const [rowId]: string[] = colId.split(COL_ID_DIVIDER)
+          this.autoscaleChart(rowId, colId)
+        },
+      },
+    ]
+  }
 
   public get cities(): City[] {
     return this.chartData.cities || []
@@ -629,13 +657,39 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
+  public onClickChart(rowId: ChartRow['id'], colId: ChartCol['id']) {
+    this.autoscaleChart(rowId, colId)
+  }
+
+  public autoscaleChart(rowId: ChartRow['id'], colId: ChartCol['id']) {
+    const chartRow = this.chartsRows.find((row) => row.id === rowId)
+    const chartCol = chartRow?.cols.find((col) => col.id === colId)
+    const rangeBox = chartCol?.rangeBox
+
+    if (!rangeBox) return
+
+    const $ref: typeof Plotly | undefined = (this.$refs[
+      `${CHART_REF_PREFIX}${colId}`
+    ] as HTMLElement[])?.[0]
+
+    const paramsToUpdate: {[key: string]: any} = {}
+
+    Object.assign(paramsToUpdate, {
+      'xaxis.range[0]': rangeBox.x0,
+      'xaxis.range[1]': rangeBox.x1,
+      'yaxis.range[0]': rangeBox.y0,
+      'yaxis.range[1]': rangeBox.y1,
+    })
+    if (Object.keys(paramsToUpdate).length) $ref.relayout(paramsToUpdate)
+  }
+
   public onRelayout(rowId: ChartRow['id'], colId: ChartCol['id'], $event: any) {
     if (!$event || Object.entries($event).length === 0) return
     const hasAxisX = Object.keys($event).find((key) => /^xaxis/.test(key))
     if (!hasAxisX) return
 
     const $colRef: HTMLElement | undefined = (this.$refs[
-      `chart:${colId}`
+      `${CHART_REF_PREFIX}${colId}`
     ] as HTMLElement[])?.[0]
 
     if (!$colRef) return
@@ -648,7 +702,7 @@ export default class MeasurementsChart extends Vue {
       if (!$ref) continue
 
       const chartParams: string[] = refId
-        .replace('chart:', '')
+        .replace(CHART_REF_PREFIX, '')
         .split(COL_ID_DIVIDER)
       const chartRowId: ChartRow['id'] = chartParams[0]
 
@@ -727,6 +781,7 @@ export default class MeasurementsChart extends Vue {
       margin,
       xaxis: {
         visible: !isEmpty,
+        autorange: false,
         showline: false, // conflicts with yaxis zeroline. Using css instead
         linecolor: '#eee',
         linewidth: 1,
@@ -742,6 +797,7 @@ export default class MeasurementsChart extends Vue {
       },
       yaxis: {
         visible: !isEmpty,
+        autorange: false,
         tickfont: {
           size: font,
           color: '#212121',
