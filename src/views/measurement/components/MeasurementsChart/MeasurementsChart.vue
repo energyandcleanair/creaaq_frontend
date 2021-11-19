@@ -115,8 +115,8 @@ import theme from '@/theme'
 import RunningAverageEnum, {
   RUNNING_AVERAGE_DAYS_MAP,
 } from '../../types/RunningAverageEnum'
-import ChartColumnSize from './ChartColumnSize'
 import URLQuery from '../../types/URLQuery'
+import ChartColumnSize from './ChartColumnSize'
 import ChartDisplayModes from './ChartDisplayModes'
 import RangeBox from './RangeBox'
 import ChartRow from './ChartRow'
@@ -124,6 +124,7 @@ import ChartCol from './ChartCol'
 import ChartTrace, {ChartTraceLevels} from './ChartTrace'
 import ChartTracePoint from './ChartTracePoint'
 import ChartData from './ChartData'
+import {fillGapsInDatesArray} from '@/utils/computeMovingAverage/computeMovingAverage'
 
 const COL_ID_DIVIDER = '--'
 const PRIMARY_LINE_STYLE = {
@@ -524,10 +525,10 @@ export default class MeasurementsChart extends Vue {
       const tracePoints = traceDef.data
       const level =
         traceId === cityId ? ChartTraceLevels.CITY : ChartTraceLevels.STATION
-      const isCalcRunningAverage =
-        this.runningAverage &&
+      const isCalcRunningAverage: boolean =
+        !!this.runningAverage &&
         RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
-        tracePoints.length
+        !!tracePoints.length
       const hovertemplate =
         `%{y:.0f} ${traceDef.unit || ''}<br>%{x}` +
         (level === ChartTraceLevels.CITY
@@ -559,6 +560,10 @@ export default class MeasurementsChart extends Vue {
         const avg = computeMovingAverage(trace.x, trace.y, days)
         trace.x = avg.dates
         trace.y = avg.values
+      } else {
+        const filled = fillGapsInDatesArray(trace.x, trace.y)
+        trace.x = filled.dates
+        trace.y = filled.values
       }
 
       const cutTrace = _cutTracePointsOverDatesFrame(trace, dateStart, dateEnd)
