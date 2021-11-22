@@ -76,12 +76,16 @@ import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import CityAPI from '@/api/CityAPI'
+import SourceAPI from '@/api/SourceAPI'
+import PollutantAPI from '@/api/PollutantAPI'
 import StationAPI from '@/api/StationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import {toQueryString} from '@/utils'
 import StationsChart from './components/StationsChart/StationsChart.vue'
 import ChartData from './components/StationsChart/ChartData'
 import URLQuery, {URLQueryRaw} from './types/URLQuery'
+import Pollutant from '@/entities/Pollutant'
+import Source from '@/entities/Source'
 
 @Component({
   components: {
@@ -103,6 +107,8 @@ export default class ViewStations extends Vue {
   public chartData: ChartData = {
     cities: [],
     stations: [],
+    pollutants: [],
+    sources: [],
   }
 
   public get urlQuery(): URLQuery {
@@ -201,8 +207,29 @@ export default class ViewStations extends Vue {
 
     await this.setUrlQueryDefaults()
 
-    const cities = await this.fetchCities()
-    this.chartData.cities = cities
+    const promises: Promise<any>[] = []
+
+    promises.push(
+      this.fetchCities().then((items) => (this.chartData.cities = items))
+    )
+
+    promises.push(
+      this.fetchSources().then((items) => (this.chartData.sources = items))
+    )
+
+    promises.push(
+      this.fetchPollutants().then(
+        (items) => (this.chartData.pollutants = items)
+      )
+    )
+
+    const [err] = await to(Promise.all(promises))
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      throw err
+    }
 
     if (this.urlQuery.cities.length) {
       // filter only existing cities
@@ -214,17 +241,17 @@ export default class ViewStations extends Vue {
         {}
       )
       const existingCities = Object.keys(idsMap).length
-        ? cities.filter((city) => idsMap[city.id])
+        ? this.chartData.cities.filter((city) => idsMap[city.id])
         : []
 
       await this.setUrlQuery({
         ...this.urlQuery,
         cities: existingCities.map((i) => i.id),
       })
-    } else if (cities[0]) {
+    } else if (this.chartData.cities[0]) {
       await this.setUrlQuery({
         ...this.urlQuery,
-        cities: [cities[0].id],
+        cities: [this.chartData.cities[0].id],
       })
     }
 
@@ -285,6 +312,30 @@ export default class ViewStations extends Vue {
     return _orderBy(cities || [], 'name')
   }
 
+  public async fetchPollutants(): Promise<Pollutant[]> {
+    let [err, items = []] = await to(PollutantAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
+  public async fetchSources(): Promise<Source[]> {
+    let [err, items = []] = await to(SourceAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
   public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
@@ -293,6 +344,8 @@ export default class ViewStations extends Vue {
 
     const newChartData: ChartData = {
       cities: this.chartData.cities,
+      sources: this.chartData.sources,
+      pollutants: this.chartData.pollutants,
       stations: [],
     }
 
@@ -307,6 +360,19 @@ export default class ViewStations extends Vue {
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
       throw err
+    }
+
+    // populate stations
+    for (const station of stations) {
+      if (station.source) {
+        station._source = this.chartData.sources.find(
+          (source) => station.source === source.id
+        )
+      }
+      const polutantsSet = new Set(station.pollutants)
+      station._pollutants = this.chartData.pollutants.filter((pollutant) =>
+        polutantsSet.has(pollutant.id)
+      )
     }
 
     newChartData.stations = stations

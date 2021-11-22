@@ -33,7 +33,21 @@
               (item) => selectedMarkersIdsMap[item.id] && 'selected-row'
             "
             @click:row="onClickTableRow"
-          />
+          >
+            <!-- eslint-disable-next-line vue/valid-v-slot -->
+            <template v-slot:item._source="{value}">
+              {{ value ? value.short_name || value.name : '' }}
+            </template>
+
+            <!-- eslint-disable-next-line vue/valid-v-slot -->
+            <template v-slot:item._pollutants="{value}">
+              {{
+                value && Array.isArray(value)
+                  ? value.map((i) => i.name).join(', ')
+                  : ''
+              }}
+            </template>
+          </v-data-table>
 
           <ExportBtn class="ml-1 mt-2" :value="'CSV'" @click="onClickExport" />
         </v-col>
@@ -75,12 +89,20 @@
                   </b>
                 </div>
 
-                <div
+                <!-- <div
                   class="text-body-2"
                   v-for="header of tooltipInfoHeaders"
                   :key="header.value"
                 >
                   <b>{{ header.text }}:</b> {{ marker.station[header.value] }}
+                </div> -->
+
+                <div
+                  class="text-body-2"
+                  v-for="(val, key) of genTooltipDetailsList(marker.station)"
+                  :key="key"
+                >
+                  <b>{{ key }}:</b> {{ val }}
                 </div>
               </l-tooltip>
             </l-circle-marker>
@@ -226,7 +248,12 @@ export default class StationsChart extends Vue {
       {
         text: this.$t('source'),
         sortable: true,
-        value: 'source',
+        value: '_source',
+      },
+      {
+        text: this.$t('pollutants'),
+        sortable: false,
+        value: '_pollutants',
       },
       {
         text: this.$t('attribution'),
@@ -238,16 +265,26 @@ export default class StationsChart extends Vue {
         sortable: true,
         value: 'last_updated',
       },
-      {
-        text: this.$t('pollutants'),
-        sortable: false,
-        value: 'pollutants',
-      },
     ].filter((i) => i)
   }
 
-  public get tooltipInfoHeaders(): any[] {
-    return this.tableHeaders.filter((header) => header.value !== 'name')
+  // public get tooltipDetailsList(): any[] {
+  //   return this.tableHeaders.filter((header) => header.value !== 'name')
+  // }
+
+  public genTooltipDetailsList(station: Station): Record<string, string> {
+    const detailsList: Record<string, any> = {}
+    detailsList[this.$t('id').toString()] = station.id
+    detailsList[this.$t('type').toString()] = station.type
+    detailsList[this.$t('source').toString()] = station.source
+    detailsList[this.$t('source').toString()] = station._source
+      ? station._source.short_name || station._source.name
+      : ''
+    detailsList[this.$t('pollutants').toString()] =
+      station._pollutants?.map((i) => i.name).join(', ') || ''
+    detailsList[this.$t('attribution').toString()] = station.attribution
+    detailsList[this.$t('last_updated').toString()] = station.last_updated
+    return detailsList
   }
 
   public get tableItems(): Station[] {
