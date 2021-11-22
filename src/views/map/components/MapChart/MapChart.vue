@@ -174,6 +174,16 @@ export default class MapChart extends Vue {
     )
   }
 
+  public get chartSourcesMap(): {[sourceId: string]: Source} {
+    return this.chartData.sources.reduce(
+      (memo: {[sourceId: string]: Source}, item) => {
+        if (!memo[item.id]) memo[item.id] = item
+        return memo
+      },
+      {}
+    )
+  }
+
   public mounted() {
     // see this.onMapInitialized()
   }
@@ -365,14 +375,29 @@ export default class MapChart extends Vue {
             .join(', ')
           detailsList['' + this.$t('pollutants')] = pollutantsStr
         }
+
+        const itemSourcesSet = new Set<string>()
+        if ((item as City).sources) {
+          ;(item as City).sources?.forEach((srcId) => itemSourcesSet.add(srcId))
+        }
         if ((item as Station).source) {
-          const source = this.chartData.sources.find(
-            (s) => s.id === (item as Station).source
-          )
-          detailsList['' + this.$t('source')] =
-            source?.short_name ||
-            source?.name ||
-            (item as Station).source?.toUpperCase()
+          itemSourcesSet.add((item as Station).source as string)
+        }
+
+        const sourcesStr = Array.from(itemSourcesSet)
+          .reduce((arr: string[], id) => {
+            const source = this.chartSourcesMap[id]
+            if (source) arr.push(source.short_name || source.name || source.id)
+            return arr
+          }, [])
+          .join(', ')
+
+        if (sourcesStr) {
+          detailsList[
+            (item as Station).level === 'station'
+              ? this.$t('source').toString()
+              : this.$t('sources').toString()
+          ] = sourcesStr
         }
 
         const popupComponent = new MapMarkerPopup({

@@ -235,6 +235,7 @@ export default class ViewMap extends Vue {
         pollutants,
         cities
       )
+      this.chartData.sources = this.filterUsedSourcesFromItems(sources, cities)
     } else if (this.urlQuery.level === MapChartLevel.station) {
       const stations = await this.fetchStations()
       this.chartData.stations = stations
@@ -356,25 +357,20 @@ export default class ViewMap extends Vue {
     pollutants: Pollutant[],
     items: (City | Station)[]
   ): Pollutant[] {
-    const usedPollutantsMap = this.execPollutantsMapFromItems(items)
-    return pollutants.filter((item) => usedPollutantsMap[item.id])
+    const usedPollutantsSet = this.execPollutantsSetFromItems(items)
+    return pollutants.filter((item) => usedPollutantsSet.has(item.id))
   }
 
-  public execPollutantsMapFromItems(
+  public execPollutantsSetFromItems(
     items: (City | Station)[] = []
-  ): {
-    [pollutantId: string]: number
-  } {
-    return items.reduce(
-      (memo: {[pollutantId: string]: number}, item: Station | City) => {
-        const pollutantsIds: string[] = item.pollutants || []
-        for (const pollutantId of pollutantsIds) {
-          if (pollutantId && !memo[pollutantId]) memo[pollutantId] = 1
-        }
-        return memo
-      },
-      {}
-    )
+  ): Set<Pollutant['id']> {
+    return items.reduce((set: Set<Pollutant['id']>, item: Station | City) => {
+      const pollutantsIds: string[] = item.pollutants || []
+      for (const pollutantId of pollutantsIds) {
+        if (pollutantId && !set.has(pollutantId)) set.add(pollutantId)
+      }
+      return set
+    }, new Set<Pollutant['id']>())
   }
 
   // public execSourcesFromStations(items: Station[]): Source[] {
@@ -385,22 +381,27 @@ export default class ViewMap extends Vue {
 
   public filterUsedSourcesFromItems(
     sources: Source[],
-    items: Station[]
+    items: (Station | City)[]
   ): Source[] {
-    const usedSourcesMap = this.execSourcesMapFromStations(items)
-    return sources.filter((item) => usedSourcesMap[item.id])
+    const usedSourcesSet = this.execSourcesSetFromStations(items)
+    return sources.filter((item) => usedSourcesSet.has(item.id))
   }
 
-  public execSourcesMapFromStations(
-    items: Station[] = []
-  ): {
-    [sourceId: string]: number
-  } {
-    return items.reduce((memo: {[sourceId: string]: number}, item: Station) => {
-      const sourceId: Source['id'] | undefined = item.source
-      if (sourceId && !memo[sourceId]) memo[sourceId] = 1
-      return memo
-    }, {})
+  public execSourcesSetFromStations(
+    items: (Station | City)[] = []
+  ): Set<Source['id']> {
+    return items.reduce((set: Set<Source['id']>, item: Station | City) => {
+      let sourcesIds: string[] = []
+      if ((item as Station).level === 'station' && (item as Station).source) {
+        sourcesIds = [(item as Station).source as string]
+      } else if ((item as City).level === 'city') {
+        sourcesIds = (item as City).sources || []
+      }
+      for (const sourceId of sourcesIds) {
+        if (sourceId && !set.has(sourceId)) set.add(sourceId)
+      }
+      return set
+    }, new Set<Source['id']>())
   }
 
   public get onChangeQuery() {

@@ -54,7 +54,7 @@ export default class MapMarkerPopup extends Vue {
   width: max-content;
   min-width: fit-content;
   min-height: fit-content;
-  max-width: 350px !important;
+  max-width: 300px !important;
   max-height: 250px;
   display: flex !important;
   flex-direction: column;
