@@ -6,7 +6,7 @@
 
     <treeselect
       ref="tree"
-      v-custom-should-expand-handler
+      v-custom-should-expand-handler="true"
       :value="value"
       :cache-options="false"
       :default-options="sortedCountries"
@@ -24,11 +24,9 @@
       multiple
       @input="onChangeValue"
     >
-      <div slot="value-label" slot-scope="{node}">
-        {{ node.label }}
-      </div>
+      <template v-slot:value-label="{node}">{{ node.label }}</template>
 
-      <div slot="option-label" slot-scope="{node}">
+      <template v-slot:option-label="{node}">
         <span class="pl-1">
           <CountryFlag
             v-if="node.raw.level === 'country'"
@@ -45,7 +43,7 @@
         >
           &nbsp;({{ node.raw.childrenLength }})
         </span>
-      </div>
+      </template>
     </treeselect>
   </div>
 </template>
@@ -105,10 +103,10 @@ export default class SelectBoxCities extends Vue {
   @Model('input', {type: Array})
   readonly value!: any[]
 
-  @Prop()
+  @Prop({type: Array, required: true})
   readonly items!: City[]
 
-  @Prop({type: String})
+  @Prop({type: String, required: false})
   readonly label?: string
 
   @Prop({type: Boolean, default: false})

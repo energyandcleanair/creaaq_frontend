@@ -155,7 +155,7 @@ export default class DatesIntervalInput extends Vue {
   @Prop({type: String, required: false})
   readonly interval!: DatesIntervals
 
-  @Prop({type: String})
+  @Prop({type: String, required: false})
   readonly label?: string
 
   @Prop({type: Number, default: 0})
@@ -276,7 +276,11 @@ export default class DatesIntervalInput extends Vue {
 
     const regYear = /^year:(.+)/
     const _today = today ? moment.utc(today) : moment.utc()
-    _today.hours(0).minutes(0).seconds(0).milliseconds(0)
+    _today
+      .hours(0)
+      .minutes(0)
+      .seconds(0)
+      .milliseconds(0)
 
     if (regYear.test(interval)) {
       const res = regYear.exec(interval)

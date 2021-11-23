@@ -49,8 +49,8 @@
 
           <DatesIntervalInput
             class="pt-0"
-            :dateStart="toNumberDate(urlQuery.date_start)"
-            :dateEnd="toNumberDate(urlQuery.date_end)"
+            :dateStart="toNumberDate(urlQuery.date_start || '')"
+            :dateEnd="toNumberDate(urlQuery.date_end || '')"
             format="YYYY-MM-DD"
             :disabled="isLoading"
             @input="
@@ -122,6 +122,7 @@
             large
             @click="onClickDownload"
           >
+            <v-icon left>{{ mdiDownload }}</v-icon>
             {{ $t('download') }}
           </v-btn>
         </v-col>
@@ -131,15 +132,18 @@
 </template>
 
 <script lang="ts">
+import moment from 'moment'
 import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
 import _difference from 'lodash.difference'
 import {Component, Vue} from 'vue-property-decorator'
+import {mdiDownload} from '@mdi/js'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
 import CityAPI from '@/api/CityAPI'
 import StationAPI from '@/api/StationAPI'
+import PollutantAPI from '@/api/PollutantAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
 import {
@@ -155,7 +159,7 @@ import URLQuery, {
   URLQueryTargetEntity,
 } from './types/URLQuery'
 import PageData from './types/PageData'
-import moment from 'moment'
+import Pollutant from '@/entities/Pollutant'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
@@ -167,10 +171,11 @@ const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
   },
 })
 export default class ViewDownload extends Vue {
-  private isLoading: boolean = false
-  private URLQueryTargetEntity = URLQueryTargetEntity
+  public isLoading: boolean = false
+  public URLQueryTargetEntity = URLQueryTargetEntity
+  public mdiDownload = mdiDownload
 
-  private pageData: PageData = {
+  public pageData: PageData = {
     cities: [],
     measurements: [],
     pollutants: [],
@@ -178,15 +183,15 @@ export default class ViewDownload extends Vue {
     stations: [],
   }
 
-  private get urlQuery(): URLQuery {
+  public get urlQuery(): URLQuery {
     return URLQuery.parseFromURLString(this.$route.fullPath)
   }
 
-  private set urlQuery(queryForm: URLQuery) {
+  public set urlQuery(queryForm: URLQuery) {
     this.setUrlQuery(queryForm)
   }
 
-  private async setUrlQuery(newQuery: URLQuery): Promise<void> {
+  public async setUrlQuery(newQuery: URLQuery): Promise<void> {
     const query = URLQuery.toRawQueryObject(newQuery, {positive: true})
     const newRoute = this.$router.resolve({
       ...(this.$route as any),
@@ -198,50 +203,50 @@ export default class ViewDownload extends Vue {
     }
   }
 
-  private get formHasAggregation(): boolean {
+  public get formHasAggregation(): boolean {
     return this.urlQuery.entity === URLQueryTargetEntity.measurement
   }
 
-  private get formHasRunningAverage(): boolean {
+  public get formHasRunningAverage(): boolean {
     return this.urlQuery.entity === URLQueryTargetEntity.measurement
   }
 
-  private get formHasDates(): boolean {
+  public get formHasDates(): boolean {
     return (
       this.urlQuery.entity === URLQueryTargetEntity.measurement ||
       this.urlQuery.entity === URLQueryTargetEntity.violation
     )
   }
 
-  private get targetEntityOptions(): {label: string; value: string}[] {
+  public get targetEntityOptions(): {label: string; value: string}[] {
     return Object.values(URLQueryTargetEntity).map((value) => ({
       label: this.$t(value).toString(),
       value,
     }))
   }
 
-  private get formatOptions(): {label: string; value: string}[] {
+  public get formatOptions(): {label: string; value: string}[] {
     return Object.values(URLQueryFormat).map((value) => ({
       label: value.toUpperCase(),
       value,
     }))
   }
 
-  private get AVERAGING_PERIOD_OPTIONS(): URLQueryAveragingPeriod[] {
+  public get AVERAGING_PERIOD_OPTIONS(): URLQueryAveragingPeriod[] {
     return Object.values(URLQueryAveragingPeriod)
   }
 
-  private get queryFormCached(): ModuleState['queryForm'] | null {
+  public get queryFormCached(): ModuleState['queryForm'] | null {
     return this.$store.getters.GET('queryForm') || null
   }
 
-  private async beforeMount() {
+  public async beforeMount() {
     this.isLoading = true
     await this.fetch()
     this.isLoading = false
   }
 
-  private async fetch() {
+  public async fetch() {
     this.$loader.on()
 
     await this.setUrlQueryDefaults()
@@ -277,15 +282,33 @@ export default class ViewDownload extends Vue {
       })
     }
 
+    const promises: Promise<any>[] = []
+
+    promises.push(
+      this.fetchPollutants().then((items) => (this.pageData.pollutants = items))
+    )
+
     if (this.urlQuery.entity === URLQueryTargetEntity.station) {
-      const stations = await this.fetchStations({city: this.urlQuery.cities})
-      this.pageData.stations = stations
+      promises.push(
+        this.fetchStations({city: this.urlQuery.cities}).then(
+          (items) => (this.pageData.stations = items)
+        )
+      )
+    }
+
+    const [err] = await to(Promise.all(promises))
+    if (err) {
+      this.$loader.off()
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      throw err
     }
 
     this.$loader.off()
   }
 
-  private async setUrlQueryDefaults(): Promise<void> {
+  public async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
 
     // set from cache
@@ -317,7 +340,7 @@ export default class ViewDownload extends Vue {
     await this.setUrlQuery(urlQuery)
   }
 
-  private async fetchCities(): Promise<City[]> {
+  public async fetchCities(): Promise<City[]> {
     const [err, cities] = await to(CityAPI.findAll())
     if (err) {
       this.$dialog.notify.error(
@@ -329,7 +352,7 @@ export default class ViewDownload extends Vue {
     return _orderBy(cities || [], 'name')
   }
 
-  private async fetchStations(query: {city: string[]}): Promise<Station[]> {
+  public async fetchStations(query: {city: string[]}): Promise<Station[]> {
     let [err, items = []] = await to(StationAPI.findAll(toQueryString(query)))
     if (err) {
       this.$dialog.notify.error(
@@ -341,8 +364,20 @@ export default class ViewDownload extends Vue {
     return items || []
   }
 
+  public async fetchPollutants(): Promise<Pollutant[]> {
+    let [err, items = []] = await to(PollutantAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
   // TODO: complete
-  private async onChangeQuery(query: URLQuery) {
+  public async onChangeQuery(query: URLQuery) {
     // const citiesOld = [...this.urlQuery.cities].sort().join(',')
     // const citiesNew = [...query.cities].sort().join(',')
     // const citiesChanged = citiesOld !== citiesNew
@@ -353,23 +388,21 @@ export default class ViewDownload extends Vue {
   }
 
   // TODO: complete
-  private async onClickDownload() {
+  public async onClickDownload() {
     this.$loader.on()
     this.$dialog.notify.info(this.$tc('msg.will_be_added_soon').toString())
     // await this.refreshChartData()
     this.$loader.off()
   }
 
-  private toURLStringDate(d: number): string {
+  public toURLStringDate(d: number): string {
     return toURLStringDate(d)
   }
-  private toNumberDate(d: string): number {
+  public toNumberDate(d: string): number {
     return toNumberDate(d)
   }
 }
 </script>
 
 <style lang="scss">
-.view-download {
-}
 </style>
