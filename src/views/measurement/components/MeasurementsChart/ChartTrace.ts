@@ -15,5 +15,6 @@ export default interface ChartTrace {
   zIndex?: number
   mode?: string
   line?: any
+  unit?: string
   hovertemplate: string
 }

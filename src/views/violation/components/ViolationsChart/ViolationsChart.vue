@@ -186,30 +186,30 @@ export default class ViolationsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly loading!: boolean
 
-  private tooltip: TooltipParams = TOOLTIP_DEFAULTS
-  private tooltips: any[] = []
+  public tooltip: TooltipParams = TOOLTIP_DEFAULTS
+  public tooltips: any[] = []
 
-  private get cities(): City[] {
+  public get cities(): City[] {
     return this.chartData.cities || []
   }
 
-  private get violations(): Violation[] {
+  public get violations(): Violation[] {
     return this.chartData.violations || []
   }
 
-  private get pollutants(): Pollutant[] {
+  public get pollutants(): Pollutant[] {
     return this.chartData.pollutants || []
   }
 
-  private get guidelines(): Guideline[] {
+  public get guidelines(): Guideline[] {
     return this.chartData.guidelines || []
   }
 
-  private get targets(): Target[] {
+  public get targets(): Target[] {
     return this.chartData.targets || []
   }
 
-  private get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
+  public get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
     const b = this.$vuetify.breakpoint
     if (b.width >= 1620) return 2
     if (b.width >= 1300) return 3
@@ -218,7 +218,7 @@ export default class ViolationsChart extends Vue {
     return 12
   }
 
-  private get filteredViolations(): Violation[] {
+  public get filteredViolations(): Violation[] {
     const violations: Violation[] = []
     const filterCities: MapFilter = this.queryParams.cities.reduce(
       (memo: MapFilter, id: City['id']) => (memo[id] = 1) && memo,
@@ -263,7 +263,7 @@ export default class ViolationsChart extends Vue {
     return violations
   }
 
-  private get chartRows(): ChartRow[] {
+  public get chartRows(): ChartRow[] {
     if (this.loading) return []
     if (!this.queryParams.cities?.length) return []
 
@@ -377,11 +377,11 @@ export default class ViolationsChart extends Vue {
     return rows
   }
 
-  private weekdayFormatter(dayProps: any) {
+  public weekdayFormatter(dayProps: any) {
     return ['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayProps.weekday]
   }
 
-  private genDateTooltipParams(
+  public genDateTooltipParams(
     $date: Moment,
     violations: Violation[],
     targets: Target[]

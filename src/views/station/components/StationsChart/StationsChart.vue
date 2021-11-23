@@ -33,7 +33,21 @@
               (item) => selectedMarkersIdsMap[item.id] && 'selected-row'
             "
             @click:row="onClickTableRow"
-          />
+          >
+            <!-- eslint-disable-next-line vue/valid-v-slot -->
+            <template v-slot:item._source="{value}">
+              {{ value ? value.short_name || value.name : '' }}
+            </template>
+
+            <!-- eslint-disable-next-line vue/valid-v-slot -->
+            <template v-slot:item._pollutants="{value}">
+              {{
+                value && Array.isArray(value)
+                  ? value.map((i) => i.name).join(', ')
+                  : ''
+              }}
+            </template>
+          </v-data-table>
 
           <ExportBtn class="ml-1 mt-2" :value="'CSV'" @click="onClickExport" />
         </v-col>
@@ -75,12 +89,20 @@
                   </b>
                 </div>
 
-                <div
+                <!-- <div
                   class="text-body-2"
                   v-for="header of tooltipInfoHeaders"
                   :key="header.value"
                 >
                   <b>{{ header.text }}:</b> {{ marker.station[header.value] }}
+                </div> -->
+
+                <div
+                  class="text-body-2"
+                  v-for="(val, key) of genTooltipDetailsList(marker.station)"
+                  :key="key"
+                >
+                  <b>{{ key }}:</b> {{ val }}
                 </div>
               </l-tooltip>
             </l-circle-marker>
@@ -114,7 +136,7 @@ import Leaflet, {LatLngBounds} from 'leaflet'
 import {LMap, LTileLayer, LCircleMarker, LTooltip} from 'vue2-leaflet'
 import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
 import theme from '@/theme'
-import config, {MapLayerConfig} from '@/config'
+import config, {ConfigParams} from '@/config'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import Coordinates from '@/entities/Coordinates'
 import City from '@/entities/City'
@@ -156,26 +178,26 @@ export default class StationsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly permanentTooltipOnSelected!: boolean
 
-  private mdiArrowExpandAll = mdiArrowExpandAll
-  private iconPrimary = theme.leafletMapCircleMarkerProps.primary
-  private iconSelected = theme.leafletMapCircleMarkerProps.primarySelected
-  private tableOptions = {
+  public mdiArrowExpandAll = mdiArrowExpandAll
+  public iconPrimary = theme.leafletMapCircleMarkerProps.primary
+  public iconSelected = theme.leafletMapCircleMarkerProps.primarySelected
+  public tableOptions = {
     page: 1,
     itemsPerPage: 5,
     sortBy: ['id'],
     sortDesc: [false],
   }
 
-  private get selectedStationsIds(): Station['id'][] {
+  public get selectedStationsIds(): Station['id'][] {
     return this.queryParams.stations || []
   }
-  private set selectedStationsIds(stations: Station['id'][]) {
+  public set selectedStationsIds(stations: Station['id'][]) {
     this.$emit('update:queryParams', {
       ...this.queryParams,
       stations,
     })
   }
-  private get selectedMarkersIdsMap(): Record<Station['id'], number> {
+  public get selectedMarkersIdsMap(): Record<Station['id'], number> {
     return this.selectedStationsIds.reduce(
       (map: Record<Station['id'], number>, id: Station['id']) => {
         map[id] = 1
@@ -185,23 +207,23 @@ export default class StationsChart extends Vue {
     )
   }
 
-  private get MAP_LAYERS(): MapLayerConfig {
+  public get MAP_LAYERS(): ConfigParams['MAP_LAYERS'] {
     return config.get('MAP_LAYERS')
   }
 
-  private get cities(): City[] {
+  public get cities(): City[] {
     return this.chartData.cities || []
   }
 
-  private get stations(): Station[] {
+  public get stations(): Station[] {
     return this.chartData.stations || []
   }
 
-  private get showCitiesCol(): boolean {
+  public get showCitiesCol(): boolean {
     return (this.queryParams.cities?.length || 0) > 1
   }
 
-  private get tableHeaders(): any[] {
+  public get tableHeaders(): any[] {
     return [
       {
         text: this.$t('id'),
@@ -226,7 +248,12 @@ export default class StationsChart extends Vue {
       {
         text: this.$t('source'),
         sortable: true,
-        value: 'source',
+        value: '_source',
+      },
+      {
+        text: this.$t('pollutants'),
+        sortable: false,
+        value: '_pollutants',
       },
       {
         text: this.$t('attribution'),
@@ -238,19 +265,29 @@ export default class StationsChart extends Vue {
         sortable: true,
         value: 'last_updated',
       },
-      {
-        text: this.$t('pollutants'),
-        sortable: false,
-        value: 'pollutants',
-      },
     ].filter((i) => i)
   }
 
-  private get tooltipInfoHeaders(): any[] {
-    return this.tableHeaders.filter((header) => header.value !== 'name')
+  // public get tooltipDetailsList(): any[] {
+  //   return this.tableHeaders.filter((header) => header.value !== 'name')
+  // }
+
+  public genTooltipDetailsList(station: Station): Record<string, string> {
+    const detailsList: Record<string, any> = {}
+    detailsList[this.$t('id').toString()] = station.id
+    detailsList[this.$t('type').toString()] = station.type
+    detailsList[this.$t('source').toString()] = station.source
+    detailsList[this.$t('source').toString()] = station._source
+      ? station._source.short_name || station._source.name
+      : ''
+    detailsList[this.$t('pollutants').toString()] =
+      station._pollutants?.map((i) => i.name).join(', ') || ''
+    detailsList[this.$t('attribution').toString()] = station.attribution
+    detailsList[this.$t('last_updated').toString()] = station.last_updated
+    return detailsList
   }
 
-  private get tableItems(): Station[] {
+  public get tableItems(): Station[] {
     const EMPTY = '—'
     return this.chartData.stations.map((_station) => {
       const station = {..._station}
@@ -274,7 +311,7 @@ export default class StationsChart extends Vue {
     })
   }
 
-  private get mapOptions(): Leaflet.MapOptions {
+  public get mapOptions(): Leaflet.MapOptions {
     const firstMarker = this.mapMarkers[0]
     return {
       zoom: 1000,
@@ -287,7 +324,7 @@ export default class StationsChart extends Vue {
     }
   }
 
-  private get mapMarkers(): MapMarker[] {
+  public get mapMarkers(): MapMarker[] {
     return this.tableItems
       .map((station) => {
         if (!station.coordinates) return null
@@ -305,11 +342,11 @@ export default class StationsChart extends Vue {
       .filter((i) => i) as MapMarker[]
   }
 
-  private mounted() {
+  public mounted() {
     // see this.onMapInitialized()
   }
 
-  private onMapInitialized() {
+  public onMapInitialized() {
     this.closeAllMapMarkerTooltips()
 
     // move to the selected station if exists
@@ -322,7 +359,7 @@ export default class StationsChart extends Vue {
     }
   }
 
-  private selectStation(stationId: Station['id']) {
+  public selectStation(stationId: Station['id']) {
     this.selectedStationsIds = stationId ? [stationId] : []
 
     this.closeAllMapMarkerTooltips()
@@ -352,7 +389,7 @@ export default class StationsChart extends Vue {
     this.$map?.mapObject?.fitBounds(bounds)
   }
 
-  private mapMoveToStation(stationId: Station['id']) {
+  public mapMoveToStation(stationId: Station['id']) {
     const marker = this.mapMarkers.find((m) => m.station.id === stationId)
     if (!marker) return
 
@@ -362,7 +399,7 @@ export default class StationsChart extends Vue {
     })
   }
 
-  private openMapMarkerTooltip(stationId: Station['id']) {
+  public openMapMarkerTooltip(stationId: Station['id']) {
     if (!stationId) return
     if (!this.$map?.mapObject) return
 
@@ -373,7 +410,7 @@ export default class StationsChart extends Vue {
     $marker.openTooltip()
   }
 
-  private closeAllMapMarkerTooltips() {
+  public closeAllMapMarkerTooltips() {
     this.$map?.mapObject?.eachLayer((layer: Leaflet.Layer) => {
       if (
         (layer as any).options.pane === 'tooltipPane' &&
@@ -384,7 +421,7 @@ export default class StationsChart extends Vue {
     })
   }
 
-  private tableMoveToStation(stationId: Station['id']) {
+  public tableMoveToStation(stationId: Station['id']) {
     if (!stationId) return
 
     const items = _orderBy(
@@ -398,7 +435,7 @@ export default class StationsChart extends Vue {
     if (page !== this.tableOptions.page) this.tableOptions.page = page
   }
 
-  private exportToCSV(stations: Station[]) {
+  public exportToCSV(stations: Station[]) {
     this.$loader.on()
 
     const filename = `stations.${moment().format('YYYY-MM-DD HH.mm.ss')}.csv`
@@ -436,13 +473,13 @@ export default class StationsChart extends Vue {
     }
   }
 
-  private onClickMapMarker(stationId: Station['id']) {
+  public onClickMapMarker(stationId: Station['id']) {
     this.selectStation(stationId)
     this.tableMoveToStation(stationId)
     this.openMapMarkerTooltip(stationId)
   }
 
-  private onClickTableRow(station: Station) {
+  public onClickTableRow(station: Station) {
     this.selectStation(station.id)
     this.mapMoveToStation(station.id)
   }

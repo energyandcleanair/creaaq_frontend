@@ -35,14 +35,14 @@ export default class ExportBtn extends VBtn {
   @Model('input', {type: String})
   readonly value!: any[]
 
-  private mdiFileDownloadOutline = mdiFileDownloadOutline
+  public mdiFileDownloadOutline = mdiFileDownloadOutline
 
-  private get fileTypes(): string[] {
+  public get fileTypes(): string[] {
     return Object.keys(ExportFileType)
   }
 
   @Emit('click')
-  private onClick(fileType: string, $event: MouseEvent) {}
+  public onClick(fileType: string, $event: MouseEvent) {}
 }
 </script>
 

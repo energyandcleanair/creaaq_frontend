@@ -44,8 +44,8 @@ export default class PageDrawer extends Vue {
   @Prop({type: Boolean, default: false})
   readonly open!: boolean
 
-  private mdiClose = mdiClose
-  private mdiTune = mdiTune
+  public mdiClose = mdiClose
+  public mdiTune = mdiTune
 
   @Emit('input')
   @Emit('update:open')

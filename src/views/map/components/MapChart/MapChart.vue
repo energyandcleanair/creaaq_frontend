@@ -57,7 +57,7 @@ import _orderBy from 'lodash.orderby'
 import Leaflet, {LatLngBounds} from 'leaflet'
 import {Component, Vue, Prop, Ref, Watch} from 'vue-property-decorator'
 import {LMap, LTileLayer, LCircleMarker, LLayerGroup} from 'vue2-leaflet'
-import config, {MapLayerConfig} from '@/config'
+import config, {ConfigParams} from '@/config'
 import {mdiArrowExpandAll} from '@mdi/js'
 import theme from '@/theme'
 import City from '@/entities/City'
@@ -115,38 +115,38 @@ export default class MapChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly permanentTooltipOnSelected!: boolean
 
-  private privateIsLoading: boolean = false
-  private mapMarkersList: Record<string, MapMarker> = {}
-  private mdiArrowExpandAll = mdiArrowExpandAll
+  public privateIsLoading: boolean = false
+  public mapMarkersList: Record<string, MapMarker> = {}
+  public mdiArrowExpandAll = mdiArrowExpandAll
 
-  private get isLoading(): boolean {
+  public get isLoading(): boolean {
     return this.loading || this.privateIsLoading
   }
-  private set isLoading(val: boolean) {
+  public set isLoading(val: boolean) {
     this.privateIsLoading = val
   }
 
-  private get basemap(): MapChartBasemap {
+  public get basemap(): MapChartBasemap {
     return this.queryParams?.basemap || MapChartBasemap.terrain
   }
 
-  private get MAP_LAYERS(): MapLayerConfig {
+  public get MAP_LAYERS(): ConfigParams['MAP_LAYERS'] {
     return config.get('MAP_LAYERS')
   }
 
-  private get cities(): City[] {
+  public get cities(): City[] {
     return this.chartData.cities || []
   }
 
-  private get stations(): Station[] {
+  public get stations(): Station[] {
     return this.chartData.stations || []
   }
 
-  private get entities(): (City | Station)[] {
+  public get entities(): (City | Station)[] {
     return [...this.chartData.cities, ...this.chartData.stations]
   }
 
-  private get mapOptions(): Leaflet.MapOptions {
+  public get mapOptions(): Leaflet.MapOptions {
     let firstMarkerId
     for (firstMarkerId in this.mapMarkersList) break
     const firstMarker = (firstMarkerId &&
@@ -164,16 +164,36 @@ export default class MapChart extends Vue {
     }
   }
 
-  private mounted() {
+  public get chartPollutantsMap(): {[pollutantId: string]: Pollutant} {
+    return this.chartData.pollutants.reduce(
+      (memo: {[pollutantId: string]: Pollutant}, item) => {
+        if (!memo[item.id]) memo[item.id] = item
+        return memo
+      },
+      {}
+    )
+  }
+
+  public get chartSourcesMap(): {[sourceId: string]: Source} {
+    return this.chartData.sources.reduce(
+      (memo: {[sourceId: string]: Source}, item) => {
+        if (!memo[item.id]) memo[item.id] = item
+        return memo
+      },
+      {}
+    )
+  }
+
+  public mounted() {
     // see this.onMapInitialized()
   }
 
-  private async onMapInitialized() {
+  public async onMapInitialized() {
     this.refreshMapMarkers()
   }
 
   @Watch('queryParams.pollutants')
-  private onFilterChanged(newVal: string[], oldVal: string[]) {
+  public onFilterChanged(newVal: string[], oldVal: string[]) {
     const val1 = newVal?.join(',')
     const val2 = oldVal?.join(',')
     if (val1 !== val2) this.refreshMapMarkers()
@@ -195,7 +215,18 @@ export default class MapChart extends Vue {
       ) {
         this.$dialog.notify.info(
           this.$t('msg.no_items_selected', {
-            items: this.$t('sources').toString().toLocaleLowerCase(),
+            items: this.$t('sources')
+              .toString()
+              .toLowerCase(),
+          }).toString(),
+          {position: 'bottom-left', timeout: 3000, dismissible: false}
+        )
+      } else if (!this.queryParams.pollutants?.length) {
+        this.$dialog.notify.info(
+          this.$t('msg.no_items_selected', {
+            items: this.$t('pollutants')
+              .toString()
+              .toLowerCase(),
           }).toString(),
           {position: 'bottom-left', timeout: 3000, dismissible: false}
         )
@@ -238,7 +269,7 @@ export default class MapChart extends Vue {
     }, 1000)
   }
 
-  private getMapMarkersList(): {
+  public getMapMarkersList(): {
     list: Record<string, MapMarker>
     length: number
   } {
@@ -306,7 +337,7 @@ export default class MapChart extends Vue {
     }
   }
 
-  private _genMarker(
+  public _genMarker(
     type: MapChartLevel,
     item: City | Station
   ): MapMarker | null {
@@ -335,14 +366,38 @@ export default class MapChart extends Vue {
           ).format('DD MMMM YYYY')
         }
         if (Array.isArray(item.pollutants)) {
-          detailsList['' + this.$t('pollutants')] = item.pollutants
+          const pollutantsStr = item.pollutants
+            .reduce((arr: string[], id) => {
+              const pollutant = this.chartPollutantsMap[id]
+              if (pollutant) arr.push(pollutant.name)
+              return arr
+            }, [])
             .join(', ')
-            .toUpperCase()
+          detailsList['' + this.$t('pollutants')] = pollutantsStr
+        }
+
+        const itemSourcesSet = new Set<string>()
+        if ((item as City).sources) {
+          ;(item as City).sources?.forEach((srcId) => itemSourcesSet.add(srcId))
         }
         if ((item as Station).source) {
-          detailsList['' + this.$t('source')] = (
-            item as Station
-          ).source?.toUpperCase()
+          itemSourcesSet.add((item as Station).source as string)
+        }
+
+        const sourcesStr = Array.from(itemSourcesSet)
+          .reduce((arr: string[], id) => {
+            const source = this.chartSourcesMap[id]
+            if (source) arr.push(source.short_name || source.name || source.id)
+            return arr
+          }, [])
+          .join(', ')
+
+        if (sourcesStr) {
+          detailsList[
+            (item as Station).level === 'station'
+              ? this.$t('source').toString()
+              : this.$t('sources').toString()
+          ] = sourcesStr
         }
 
         const popupComponent = new MapMarkerPopup({
@@ -423,7 +478,7 @@ export default class MapChart extends Vue {
     this.$map?.mapObject?.fitBounds(bounds)
   }
 
-  private mapMoveToStation(stationId: Station['id']) {
+  public mapMoveToStation(stationId: Station['id']) {
     const marker = this.mapMarkersList[stationId]
     if (!marker) return
 
@@ -433,7 +488,7 @@ export default class MapChart extends Vue {
     })
   }
 
-  private mapMoveToCity(cityId: City['id']) {
+  public mapMoveToCity(cityId: City['id']) {
     const marker = this.mapMarkersList[cityId]
     if (!marker) return
 
@@ -443,7 +498,7 @@ export default class MapChart extends Vue {
     })
   }
 
-  private closeAllMapMarkerPopups() {
+  public closeAllMapMarkerPopups() {
     this.$map?.mapObject?.eachLayer((layer: MapLayer) => {
       if (layer.options?.pane === 'popupPane' && this.$map?.mapObject) {
         layer.removeFrom(this.$map.mapObject)

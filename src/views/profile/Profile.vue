@@ -30,13 +30,13 @@ import {Component, Vue} from 'vue-property-decorator'
 
 @Component
 export default class ViewProfile extends Vue {
-  private isLoading: boolean = false
+  public isLoading: boolean = false
 
-  private changePassword() {
+  public changePassword() {
     this.$router.push({name: 'changePassword'})
   }
 
-  private clearCache() {
+  public clearCache() {
     this.isLoading = true
     forageStore.clear()
     setTimeout(() => (this.isLoading = false), 1000)

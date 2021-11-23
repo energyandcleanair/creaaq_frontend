@@ -1,5 +1,6 @@
 import Coordinates from './Coordinates'
 import Country from './Country'
+import Source from './Source'
 
 // TODO: approve the schema
 export default class City {
@@ -17,6 +18,7 @@ export default class City {
   public geometry?: Coordinates
   public pollutants?: string[]
   public last_updated?: string | Date
+  public sources?: Source['id'][]
 
   constructor(data: City) {
     Object.assign(this, data)

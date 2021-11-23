@@ -9,8 +9,8 @@
       <template
         v-if="
           urlQuery &&
-          urlQuery.pollutants &&
-          urlQuery.pollutants.length > LIMIT_FETCH_ITEMS_FROM_API
+            urlQuery.pollutants &&
+            urlQuery.pollutants.length > LIMIT_FETCH_ITEMS_FROM_API
         "
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
@@ -25,12 +25,12 @@
           <b class="d-flex justify-center pt-2">
             {{
               $t('msg.queried_of_limit', {
-                queried: `${urlQuery.pollutants.length} ${$t(
-                  'pollutants'
-                ).toLowerCase()}`,
-                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t(
-                  'pollutants'
-                ).toLowerCase()}`,
+                queried: `${urlQuery.pollutants.length} ${$t('pollutants')
+                  .toString()
+                  .toLowerCase()}`,
+                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('pollutants')
+                  .toString()
+                  .toLowerCase()}`,
               })
             }}
           </b>
@@ -70,14 +70,16 @@ import config from '@/config'
 import {sleep} from '@/utils'
 import CityAPI from '@/api/CityAPI'
 import StationAPI from '@/api/StationAPI'
-import City from '@/entities/City'
-import Station from '@/entities/Station'
+import SourceAPI from '@/api/SourceAPI'
+import PollutantAPI from '@/api/PollutantAPI'
+import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import {URLQueryRaw as MeasurementPageURLQueryRaw} from '@/views/measurement/types/URLQuery'
 import {ExportFileType} from '@/components/ExportBtn.vue'
 import Pollutant from '@/entities/Pollutant'
 import Source from '@/entities/Source'
-import {MeasurementLevels} from '@/entities/Measurement'
-import SelectBoxCities from '@/components/SelectBoxCities.vue'
+import Station from '@/entities/Station'
+import City from '@/entities/City'
+// import {MeasurementLevels} from '@/entities/Measurement'
 import MapRightDrawer from './components/MapRightDrawer.vue'
 import MapChart from './components/MapChart/MapChart.vue'
 import ChartData from './components/MapChart/MapChartData'
@@ -101,21 +103,21 @@ export default class ViewMap extends Vue {
   @Ref('map')
   readonly $map?: MapChart
 
-  private isMounted: boolean = false
-  private isFetched: boolean = false
-  private isLoading: boolean = false
-  private isChartLoading: boolean = false
-  private readonly LIMIT_FETCH_ITEMS_FROM_API: number =
+  public isMounted: boolean = false
+  public isFetched: boolean = false
+  public isLoading: boolean = false
+  public isChartLoading: boolean = false
+  public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
-  private chartData: ChartData = {
+  public chartData: ChartData = {
     cities: [],
     stations: [],
     pollutants: [],
     sources: [],
   }
 
-  private get urlQuery(): URLQuery {
+  public get urlQuery(): URLQuery {
     const q: URLQueryRaw = this.$route.query
     const _toLowerString = (
       itm: string | string[] | undefined
@@ -130,7 +132,7 @@ export default class ViewMap extends Vue {
     }
   }
 
-  private async setUrlQuery(inputQuery: URLQuery): Promise<void> {
+  public async setUrlQuery(inputQuery: URLQuery): Promise<void> {
     const query: URLQueryRaw = {
       lvl: inputQuery.level,
       bmap: inputQuery.basemap,
@@ -159,15 +161,15 @@ export default class ViewMap extends Vue {
     }
   }
 
-  private get isRightPanelOpen(): boolean {
+  public get isRightPanelOpen(): boolean {
     return this.$store.getters.GET('ui.map.isRightPanelOpen')
   }
-  private set isRightPanelOpen(value: boolean) {
+  public set isRightPanelOpen(value: boolean) {
     this.$store.commit('SET', {key: 'ui.map.isRightPanelOpen', value})
   }
 
   // TODO: make it a mixin
-  private created() {
+  public created() {
     let cancelWatcherMounted: () => void = () => {}
     let cancelWatcherFetched: () => void = () => {}
 
@@ -190,32 +192,61 @@ export default class ViewMap extends Vue {
     )
   }
 
-  private async beforeMount() {
+  public async beforeMount() {
     this.isLoading = true
     await this.fetch()
     this.isFetched = true
     this.isLoading = false
   }
 
-  private mounted() {
+  public mounted() {
     this.isMounted = true
   }
 
-  private async fetch() {
+  public async fetch() {
     this.$loader.on()
     this.isChartLoading = true
 
     await this.setUrlQueryDefaults()
 
+    let err: any
+    let pollutants: Pollutant[]
+    ;[err, pollutants = []] = await to<Pollutant[]>(this.fetchPollutants())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      throw err
+    }
+
+    let sources: Source[]
+    ;[err, sources = []] = await to<Source[]>(this.fetchSources())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      throw err
+    }
+
     if (this.urlQuery.level === MapChartLevel.city) {
       const cities = await this.fetchCities()
       this.chartData.cities = cities
-      this.chartData.pollutants = this.execPollutantsFromItems(cities)
+      this.chartData.pollutants = this.filterUsedPollutantsFromItems(
+        pollutants,
+        cities
+      )
+      this.chartData.sources = this.filterUsedSourcesFromItems(sources, cities)
     } else if (this.urlQuery.level === MapChartLevel.station) {
       const stations = await this.fetchStations()
       this.chartData.stations = stations
-      this.chartData.pollutants = this.execPollutantsFromItems(stations)
-      this.chartData.sources = this.execSourcesFromStations(stations)
+      this.chartData.pollutants = this.filterUsedPollutantsFromItems(
+        pollutants,
+        stations
+      )
+      this.chartData.sources = this.filterUsedSourcesFromItems(
+        sources,
+        stations
+      )
     }
 
     // filter only existing pollutants
@@ -257,7 +288,7 @@ export default class ViewMap extends Vue {
     this.$loader.off()
   }
 
-  private async setUrlQueryDefaults(): Promise<void> {
+  public async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
 
     if (!urlQuery.level) {
@@ -271,9 +302,9 @@ export default class ViewMap extends Vue {
     await this.setUrlQuery(urlQuery)
   }
 
-  private mountedAfterFetch() {}
+  public mountedAfterFetch() {}
 
-  private async fetchCities(): Promise<City[]> {
+  public async fetchCities(): Promise<City[]> {
     const [err, cities] = await to(CityAPI.findAll({count: 10}))
     if (err) {
       this.$dialog.notify.error(
@@ -285,7 +316,31 @@ export default class ViewMap extends Vue {
     return _orderBy(cities || [], 'name')
   }
 
-  private async fetchStations(): Promise<Station[]> {
+  public async fetchPollutants(): Promise<Pollutant[]> {
+    let [err, items = []] = await to(PollutantAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
+  public async fetchSources(): Promise<Source[]> {
+    let [err, items = []] = await to(SourceAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
+  public async fetchStations(): Promise<Station[]> {
     let [err, items = []] = await to(StationAPI.findAll())
     if (err) {
       this.$dialog.notify.error(
@@ -298,61 +353,58 @@ export default class ViewMap extends Vue {
     return items || []
   }
 
-  private execPollutantsFromItems(items: (City | Station)[]): Pollutant[] {
-    const map = this.execPollutantsMapFromItems(items)
-    const pollutants = _orderBy(Object.values(map), 'id')
-    return pollutants
+  public filterUsedPollutantsFromItems(
+    pollutants: Pollutant[],
+    items: (City | Station)[]
+  ): Pollutant[] {
+    const usedPollutantsSet = this.execPollutantsSetFromItems(items)
+    return pollutants.filter((item) => usedPollutantsSet.has(item.id))
   }
 
-  private execPollutantsMapFromItems(items: (City | Station)[] = []): {
-    [pollutantId: string]: Pollutant
-  } {
-    return items.reduce(
-      (memo: {[pollutantId: string]: Pollutant}, item: Station | City) => {
-        const pollutantsIds: string[] = item.pollutants || []
-
-        for (const _pollutantId of pollutantsIds) {
-          const pollutantId = _pollutantId?.toLowerCase() || ''
-          if (pollutantId && !memo[pollutantId]) {
-            memo[pollutantId] = {
-              id: pollutantId,
-              label: pollutantId.toUpperCase(),
-            }
-          }
-        }
-
-        return memo
-      },
-      {}
-    )
-  }
-
-  private execSourcesFromStations(items: Station[]): Source[] {
-    const map = this.execSourcesMapFromStations(items)
-    const sources = _orderBy(Object.values(map), 'id')
-    return sources
-  }
-
-  private execSourcesMapFromStations(items: Station[] = []): {
-    [sourceId: string]: Source
-  } {
-    return items.reduce((memo: {[sourceId: string]: Source}, item: Station) => {
-      const sourceId: Source['id'] | undefined = item.source?.toLowerCase()
-
-      if (sourceId && !memo[sourceId]) {
-        memo[sourceId] = {
-          id: sourceId,
-          label: item.source?.toUpperCase() || '?',
-          cityId: item.city_id,
-          level: MeasurementLevels.station,
-        }
+  public execPollutantsSetFromItems(
+    items: (City | Station)[] = []
+  ): Set<Pollutant['id']> {
+    return items.reduce((set: Set<Pollutant['id']>, item: Station | City) => {
+      const pollutantsIds: string[] = item.pollutants || []
+      for (const pollutantId of pollutantsIds) {
+        if (pollutantId && !set.has(pollutantId)) set.add(pollutantId)
       }
-
-      return memo
-    }, {})
+      return set
+    }, new Set<Pollutant['id']>())
   }
 
-  private get onChangeQuery() {
+  // public execSourcesFromStations(items: Station[]): Source[] {
+  //   const map = this.execSourcesMapFromStations(items)
+  //   const sources = _orderBy(Object.values(map), 'id')
+  //   return sources
+  // }
+
+  public filterUsedSourcesFromItems(
+    sources: Source[],
+    items: (Station | City)[]
+  ): Source[] {
+    const usedSourcesSet = this.execSourcesSetFromStations(items)
+    return sources.filter((item) => usedSourcesSet.has(item.id))
+  }
+
+  public execSourcesSetFromStations(
+    items: (Station | City)[] = []
+  ): Set<Source['id']> {
+    return items.reduce((set: Set<Source['id']>, item: Station | City) => {
+      let sourcesIds: string[] = []
+      if ((item as Station).level === 'station' && (item as Station).source) {
+        sourcesIds = [(item as Station).source as string]
+      } else if ((item as City).level === 'city') {
+        sourcesIds = (item as City).sources || []
+      }
+      for (const sourceId of sourcesIds) {
+        if (sourceId && !set.has(sourceId)) set.add(sourceId)
+      }
+      return set
+    }, new Set<Source['id']>())
+  }
+
+  public get onChangeQuery() {
     return _debounce(async (query: URLQuery) => {
       this.isChartLoading = true
 
@@ -370,12 +422,12 @@ export default class ViewMap extends Vue {
         await this.$map?.refreshMapMarkers()
       }
 
-      await sleep(100)
+      await sleep(1000)
       this.isChartLoading = false
     }, 300)
   }
 
-  private async onClickMapMarkerAction(item: City | Station) {
+  public async onClickMapMarkerAction(item: City | Station) {
     this.isChartLoading = true
 
     if ((item as City).level === 'city') {
@@ -394,20 +446,20 @@ export default class ViewMap extends Vue {
     }
   }
 
-  private async onClickRefresh() {
+  public async onClickRefresh() {
     this.$loader.on()
     await this.fetch()
     this.$loader.off()
   }
 
-  private onClickExport(fileType: ExportFileType) {
+  public onClickExport(fileType: ExportFileType) {
     if (fileType === ExportFileType.CSV) {
       this.onClickExportToCSV()
     }
   }
 
   // TODO: complete
-  private onClickExportToCSV() {
+  public onClickExportToCSV() {
     this.$dialog.notify.info(this.$tc('msg.will_be_added_soon').toString())
     // const citiesNames: string[] = this.urlQuery.cities
     //   .map(
@@ -418,7 +470,7 @@ export default class ViewMap extends Vue {
     // this.exportToCSV(citiesNames, this.chartData.measurements)
   }
 
-  private exportToCSV(locationsNames: string[], measurements: any[]) {
+  public exportToCSV(locationsNames: string[], measurements: any[]) {
     // this.$loader.on()
     // let items: Measurement[] = []
     // if (this.urlQuery.stations?.length) {

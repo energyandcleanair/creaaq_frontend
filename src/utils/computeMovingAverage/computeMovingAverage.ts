@@ -72,7 +72,7 @@ export function fillGapsInDatesArray(
   values: (number | null)[]
 } {
   if (sortedDatesArray.length !== values.length) {
-    throw new Error('Dates and values array should have one length')
+    throw new Error('Dates and values arrays should have same length')
   }
 
   const resultDates: TimestampMS[] = []
@@ -93,7 +93,7 @@ export function fillGapsInDatesArray(
     const date = +_date
 
     if (prevDate === undefined) {
-      resultDates.push(+date)
+      resultDates.push(date)
       resultValues.push(value)
       continue
     }

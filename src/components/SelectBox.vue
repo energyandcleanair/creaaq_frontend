@@ -13,7 +13,7 @@
   >
     <template v-slot:selection="{item, index}">
       <v-chip v-if="index + 1 <= visibleChips">
-        <span>
+        <span class="text-truncate">
           <slot name="item-title" v-bind:item="item">
             <span
               v-html="
@@ -125,13 +125,13 @@ export default class SelectBox extends VSelect {
   @Prop({type: Number, default: 1})
   readonly visibleChips!: number
 
-  @Prop({type: String})
+  @Prop({type: String, required: false})
   readonly tagName?: 'v-autocomplete' | 'v-select'
 
   @Prop({type: Function, default: defaultFilter})
   readonly filter: any
 
-  private get privateItems(): any[] {
+  public get privateItems(): any[] {
     if (!this.selectedFirst) return this.items
 
     const valueProp = this.$props.itemValue || 'value'
@@ -148,12 +148,12 @@ export default class SelectBox extends VSelect {
     return sortedArr
   }
 
-  private get _tagName(): 'v-autocomplete' | 'v-select' {
+  public get _tagName(): 'v-autocomplete' | 'v-select' {
     if (this.tagName) return this.tagName
     return this.$vuetify.breakpoint.mdAndUp ? 'v-autocomplete' : 'v-select'
   }
 
-  private get generalSelectorButtonIcon(): string {
+  public get generalSelectorButtonIcon(): string {
     if (this.isShowDeselectAll) return mdiCloseBox
     if (this.isShowSelectAll) {
       return this.isSelectedSome ? mdiMinusBox : mdiCheckboxBlankOutline
@@ -161,7 +161,7 @@ export default class SelectBox extends VSelect {
     return ''
   }
 
-  private get generalSelectorButtonText(): string {
+  public get generalSelectorButtonText(): string {
     const length = this.items.length
     if (this.isShowDeselectAll) {
       return this.$t('deselect_all').toString() + ` (${this.value.length})`
@@ -172,27 +172,27 @@ export default class SelectBox extends VSelect {
     return ''
   }
 
-  private get isShowSelectAll(): boolean {
+  public get isShowSelectAll(): boolean {
     return !this.isSelectedAll && this.hasSelectAll
   }
 
-  private get isShowDeselectAll(): boolean {
+  public get isShowDeselectAll(): boolean {
     if (!this.hasDeselectAll) return false
     if (this.hasSelectAll) return this.isSelectedAll
     else return this.isSelectedSome || this.isSelectedAll
   }
 
-  private get isSelectedAll(): boolean {
+  public get isSelectedAll(): boolean {
     const selectedItems = this.value
     return selectedItems.length === this.items?.length
   }
 
-  private get isSelectedSome(): boolean {
+  public get isSelectedSome(): boolean {
     const selectedItems = this.value || []
     return selectedItems.length > 0 && !this.isSelectedAll
   }
 
-  private toggleSelected($event: any) {
+  public toggleSelected($event: any) {
     let newVal: any[] = []
     if (this.isShowDeselectAll) newVal = []
     if (this.isShowSelectAll) newVal = this.items.slice()

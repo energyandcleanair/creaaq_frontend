@@ -47,12 +47,12 @@
           <b class="d-flex justify-center pt-2">
             {{
               $t('msg.queried_of_limit', {
-                queried: `${urlQuery.cities.length} ${$t(
-                  'cities'
-                ).toLowerCase()}`,
-                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t(
-                  'cities'
-                ).toLowerCase()}`,
+                queried: `${urlQuery.cities.length} ${$t('cities')
+                  .toString()
+                  .toLowerCase()}`,
+                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities')
+                  .toString()
+                  .toLowerCase()}`,
               })
             }}
           </b>
@@ -90,6 +90,7 @@ import Guideline from '@/entities/Guideline'
 import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
 import CityAPI from '@/api/CityAPI'
+import PollutantAPI from '@/api/PollutantAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
@@ -114,11 +115,11 @@ const JAN_1: number = +moment(0).year(moment().year())
   },
 })
 export default class ViewViolations extends Vue {
-  private isChartLoading: boolean = false
-  private readonly LIMIT_FETCH_ITEMS_FROM_API: number =
+  public isChartLoading: boolean = false
+  public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
-  private chartData: ChartData = {
+  public chartData: ChartData = {
     cities: [],
     violations: [],
     pollutants: [],
@@ -126,11 +127,11 @@ export default class ViewViolations extends Vue {
     targets: [],
   }
 
-  private get isLoading(): boolean {
+  public get isLoading(): boolean {
     return this.$loader.isLoadingProcess
   }
 
-  private get urlQuery(): URLQuery {
+  public get urlQuery(): URLQuery {
     const q: URLQueryRaw = this.$route.query
     return {
       cities: toCompactArray(q.ct),
@@ -141,7 +142,7 @@ export default class ViewViolations extends Vue {
     }
   }
 
-  private async setUrlQuery(inputQuery: URLQuery): Promise<void> {
+  public async setUrlQuery(inputQuery: URLQuery): Promise<void> {
     const query: URLQueryRaw = {
       ct: inputQuery.cities,
       pl: _orderBy(inputQuery.pollutants),
@@ -182,22 +183,22 @@ export default class ViewViolations extends Vue {
     }
   }
 
-  private get isRightPanelOpen(): boolean {
+  public get isRightPanelOpen(): boolean {
     return this.$store.getters.GET('ui.violations.isRightPanelOpen')
   }
-  private set isRightPanelOpen(value: boolean) {
+  public set isRightPanelOpen(value: boolean) {
     this.$store.commit('SET', {key: 'ui.violations.isRightPanelOpen', value})
   }
 
-  private get queryFormCached(): ModuleState['queryForm'] | null {
+  public get queryFormCached(): ModuleState['queryForm'] | null {
     return this.$store.getters.GET('queryForm') || null
   }
 
-  private beforeMount() {
+  public beforeMount() {
     this.fetch()
   }
 
-  private async fetch() {
+  public async fetch() {
     this.$loader.on()
     this.isChartLoading = true
 
@@ -236,7 +237,7 @@ export default class ViewViolations extends Vue {
     this.$loader.off()
   }
 
-  private async setUrlQueryDefaults(): Promise<void> {
+  public async setUrlQueryDefaults(): Promise<void> {
     const urlQuery = {...this.urlQuery}
 
     // set from cache
@@ -251,7 +252,7 @@ export default class ViewViolations extends Vue {
     await this.setUrlQuery(urlQuery)
   }
 
-  private async fetchCities(): Promise<City[]> {
+  public async fetchCities(): Promise<City[]> {
     const [err, cities] = await to(CityAPI.findAll())
     if (err) {
       this.$dialog.notify.error(
@@ -263,7 +264,7 @@ export default class ViewViolations extends Vue {
     return _orderBy(cities || [], 'name')
   }
 
-  private async fetchChartData(): Promise<ChartData> {
+  public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
       throw new Error('exit')
@@ -279,14 +280,13 @@ export default class ViewViolations extends Vue {
 
     if (!this.urlQuery?.cities.length) return newChartData
 
-    const promise = this.fetchViolations({
-      city: this.urlQuery.cities,
-      date_from: this.urlQuery.date_start,
-      sort_by: 'asc(date)',
-    })
-
-    let [err, violations = []] = await to<Violation[]>(promise)
-
+    let [err, violations = []] = await to<Violation[]>(
+      this.fetchViolations({
+        city: this.urlQuery.cities,
+        date_from: this.urlQuery.date_start,
+        sort_by: 'asc(date)',
+      })
+    )
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -305,11 +305,8 @@ export default class ViewViolations extends Vue {
       )
     )
 
-    const promiseTargets = this.fetchTargets(targetsIds)
-
     let targets: Target[]
-    ;[err, targets = []] = await to<Target[]>(promiseTargets)
-
+    ;[err, targets = []] = await to<Target[]>(this.fetchTargets(targetsIds))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -317,21 +314,24 @@ export default class ViewViolations extends Vue {
       throw err
     }
 
-    const pollutantsMap = targets.reduce(
-      (memo: {[pollutantId: string]: Pollutant}, item: Target) => {
-        const pollutantId = item.pollutant?.toLowerCase() || ''
-        if (pollutantId && !memo[pollutantId]) {
-          memo[pollutantId] = {
-            id: pollutantId,
-            label: pollutantId.toUpperCase(),
-            unit: item.target_unit,
-          }
-        }
+    let pollutants: Pollutant[]
+    ;[err, pollutants = []] = await to<Pollutant[]>(this.fetchPollutants())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      throw err
+    }
+
+    const usedPollutantsMap = targets.reduce(
+      (memo: {[pollutantId: string]: number}, item: Target) => {
+        const pollutantId = item.pollutant
+        if (pollutantId && !memo[pollutantId]) memo[pollutantId] = 1
         return memo
       },
       {}
     )
-    const pollutants = _orderBy(Object.values(pollutantsMap), 'id')
+    pollutants = pollutants.filter((item) => usedPollutantsMap[item.id])
 
     const guidelinesMap = targets.reduce(
       (memo: {[guidelineId: string]: Guideline}, item: Target) => {
@@ -359,7 +359,7 @@ export default class ViewViolations extends Vue {
     return newChartData
   }
 
-  private async refreshChartData(): Promise<void> {
+  public async refreshChartData(): Promise<void> {
     this.isChartLoading = true
 
     const [err, chartData] = await to(this.fetchChartData())
@@ -400,7 +400,7 @@ export default class ViewViolations extends Vue {
     this.isChartLoading = false
   }
 
-  private async fetchViolations(query: {
+  public async fetchViolations(query: {
     city: string[]
     date_from?: string
     sort_by?: string
@@ -408,7 +408,10 @@ export default class ViewViolations extends Vue {
     const $startDate = moment(query.date_from || toURLStringDate(JAN_1))
     const q = {
       ...query,
-      date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT),
+      date_to: $startDate
+        .month(11)
+        .date(31)
+        .format(URL_DATE_FORMAT),
     }
 
     const [err, items] = await to(ViolationAPI.findAll(toQueryString(q)))
@@ -422,7 +425,7 @@ export default class ViewViolations extends Vue {
     return items || []
   }
 
-  private async fetchTargets(ids: Target['id'][]): Promise<Target[]> {
+  public async fetchTargets(ids: Target['id'][]): Promise<Target[]> {
     const [err, items] = await to(TargetAPI.findAll({id: ids.join(',')}))
     if (err) {
       this.$dialog.notify.error(
@@ -434,7 +437,19 @@ export default class ViewViolations extends Vue {
     return items || []
   }
 
-  private async onChangeQuery(query: URLQuery) {
+  public async fetchPollutants(): Promise<Pollutant[]> {
+    let [err, items = []] = await to(PollutantAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
+  public async onChangeQuery(query: URLQuery) {
     this.$loader.on()
 
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
@@ -449,7 +464,7 @@ export default class ViewViolations extends Vue {
     this.$loader.off()
   }
 
-  private async onClickRefresh() {
+  public async onClickRefresh() {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()

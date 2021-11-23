@@ -21,10 +21,10 @@ import {Component, Vue} from 'vue-property-decorator'
 
 @Component
 export default class ResetPasswordMessageForm extends Vue {
-  private get isValid(): boolean {
+  public get isValid(): boolean {
     return true
   }
-  private set isValid(val: boolean) {}
+  public set isValid(val: boolean) {}
 
   public validate(): void {}
 }

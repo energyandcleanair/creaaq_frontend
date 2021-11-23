@@ -11,11 +11,9 @@
       <v-skeleton-loader class="mb-2" type="image" style="height: 64px" />
 
       <v-row class="px-2">
-        <template v-for="i of cols || 2">
-          <v-col :key="i">
-            <v-skeleton-loader type="text, image" />
-          </v-col>
-        </template>
+        <v-col v-for="i of cols || 2" :key="i">
+          <v-skeleton-loader type="text, image" />
+        </v-col>
       </v-row>
     </template>
 
@@ -75,17 +73,18 @@
           </v-tooltip>
 
           <Plotly
-            :ref="`chart:${col.id}`"
-            :id="`chart:${col.id}`"
+            :ref="`${CHART_REF_PREFIX}${col.id}`"
+            :id="`${CHART_REF_PREFIX}${col.id}`"
             :data="col.data"
             :layout="col.layout"
             :responsive="false"
             :double-click="false"
             :displaylogo="false"
             :display-mode-bar="col.isEmpty ? false : 'hover'"
-            @relayout="
-              onRelayout(row.id, col.id, $refs[`chart:${col.id}`][0], $event)
-            "
+            :mode-bar-buttons-to-add="modeBarButtonsToAdd"
+            :mode-bar-buttons-to-remove="['autoscale', 'autoScale2d']"
+            @relayout="onRelayout(row.id, col.id, $event)"
+            @doubleclick="onClickChart(row.id, col.id)"
           />
         </v-col>
       </v-row>
@@ -104,7 +103,12 @@ import _debounce from 'lodash.debounce'
 import {Framework} from 'vuetify'
 import {Component, Vue, Prop, Watch} from 'vue-property-decorator'
 import {Plotly} from 'vue-plotly'
-import {URL_DATE_FORMAT, toNumberDate, computeMovingAverage} from '@/utils'
+import {
+  URL_DATE_FORMAT,
+  toNumberDate,
+  computeMovingAverage,
+  isObjEmpty,
+} from '@/utils'
 import Measurement, {MeasurementProcesses} from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
@@ -123,27 +127,37 @@ import ChartCol from './ChartCol'
 import ChartTrace, {ChartTraceLevels} from './ChartTrace'
 import ChartTracePoint from './ChartTracePoint'
 import ChartData from './ChartData'
+import {fillGapsInDatesArray} from '@/utils/computeMovingAverage/computeMovingAverage'
 
+const CHART_REF_PREFIX = 'chart:'
 const COL_ID_DIVIDER = '--'
 const PRIMARY_LINE_STYLE = {
-  color: theme.colors.darkBlue.darken1,
-  width: 2,
-  minWidth: 1.5,
-  maxWidth: 3.5,
-  widthStep: 0.3,
+  color: theme.colors.darkRed.base,
+  width: 1.2,
+  minWidth: 1,
+  maxWidth: 2,
+  widthStep: 0.2,
 }
 const SECONDARY_LINE_STYLE = {color: '#ddd', width: 1}
-const PRIMARY_TRACE_COLOR_SCALE = chroma.scale([
-  theme.colors.darkBlue.darken1,
-  'blue',
-  'purple',
-  'red',
-  'orange',
-  'green',
-])
+const PRIMARY_TRACE_COLOR_SCALE = chroma.scale(
+  // Can't seem to reverse using domain([1,0]) so using this trick
+  chroma
+    .scale('OrRd')
+    .padding([0.2, 0.1])
+    .colors(10)
+    .reverse()
+)
 
 interface MapFilter {
   [id: string]: number
+}
+
+var icon = {
+  width: 1000,
+  path:
+    'm250 850l-187 0-63 0 0-62 0-188 63 0 0 188 187 0 0 62z m688 0l-188 0 0-62 188 0 0-188 62 0 0 188 0 62-62 0z m-875-938l0 188-63 0 0-188 0-62 63 0 187 0 0 62-187 0z m875 188l0-188-188 0 0-62 188 0 62 0 0 62 0 188-62 0z m-125 188l-1 0-93-94-156 156 156 156 92-93 2 0 0 250-250 0 0-2 93-92-156-156-156 156 94 92 0 2-250 0 0-250 0 0 93 93 157-156-157-156-93 94 0 0 0-250 250 0 0 0-94 93 156 157 156-157-93-93 0 0 250 0 0 250z',
+  ascent: 850,
+  descent: -150,
 }
 
 @Component({
@@ -185,28 +199,74 @@ export default class MeasurementsChart extends Vue {
   @Prop({type: Number, default: 15000})
   public readonly maxColHeight?: number
 
-  private get cities(): City[] {
+  public CHART_REF_PREFIX = CHART_REF_PREFIX
+  public get modeBarButtonsToAdd(): any[] {
+    return [
+      {
+        name: 'Autoscale',
+        icon: icon,
+        click: ($el: HTMLElement) => {
+          const id = $el.id || ''
+          const colId = id.replace(CHART_REF_PREFIX, '')
+          const [rowId]: string[] = colId.split(COL_ID_DIVIDER)
+          this.autoscaleChart(rowId, colId)
+        },
+      },
+    ]
+  }
+
+  public get cities(): City[] {
     return this.chartData.cities || []
   }
 
-  private get pollutants(): Pollutant[] {
+  public get pollutants(): Pollutant[] {
     return this.chartData.pollutants || []
   }
 
-  private get measurements(): Measurement[] {
+  public get measurements(): Measurement[] {
     return this.chartData.measurements || []
   }
 
+  public get filterSourcesMap(): {[sourceId: string]: boolean} {
+    return this.filterSources.reduce(
+      (map: Record<string, boolean>, id: Source['id']) => {
+        if (!map[id]) map[id] = true
+        return map
+      },
+      {}
+    )
+  }
+
+  public get filterPollutantsMap(): {[pollutantId: string]: boolean} {
+    return this.filterPollutants.reduce(
+      (map: Record<string, boolean>, id: Pollutant['id']) => {
+        if (!map[id]) map[id] = true
+        return map
+      },
+      {}
+    )
+  }
+
+  public get filterStationsMap(): {[stationId: string]: boolean} {
+    return this.filterStations.reduce(
+      (map: Record<string, boolean>, id: Station['id']) => {
+        if (!map[id]) map[id] = true
+        return map
+      },
+      {}
+    )
+  }
+
   // display pollutants as cells and not rows
-  private get dense(): boolean {
+  public get dense(): boolean {
     return this.queryParams.cities?.length === 1
   }
 
-  private get displayMode(): ChartDisplayModes {
+  public get displayMode(): ChartDisplayModes {
     return this.chartDisplayMode || ChartDisplayModes.NORMAL
   }
 
-  private get _cols(): ChartColumnSize {
+  public get _cols(): ChartColumnSize {
     const maxChartCols = MeasurementsChart.getMaxChartCols(
       this.$vuetify,
       this.queryParams.cities.length,
@@ -215,11 +275,11 @@ export default class MeasurementsChart extends Vue {
     return Math.min(this.cols || 0, maxChartCols) as ChartColumnSize
   }
 
-  private get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
+  public get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
     return 12 / this._cols
   }
 
-  private get colWidth(): number {
+  public get colWidth(): number {
     let w = this.$el?.clientWidth || 300
     const PADDING = 10
     w -= PADDING * 2
@@ -228,9 +288,11 @@ export default class MeasurementsChart extends Vue {
 
   // TODO: to improve the performance we can separate the data and display opts
   // TODO: add caching of traces that were not updated
-  private get chartsRows(): ChartRow[] {
+  public get chartsRows(): ChartRow[] {
     if (this.loading) return []
 
+    let _dateStart: string | undefined = this.queryParams.date_start
+    const _dateEnd: string | undefined = this.queryParams.date_end
     const rows: ChartRow[] = []
     const xs = this.colWidth < 100
     const sm = this.colWidth < 160
@@ -247,6 +309,7 @@ export default class MeasurementsChart extends Vue {
 
       const rowId: string = pollutant.id
       const cols: ChartCol[] = []
+      let rowUnit: string = ''
 
       for (const _i in this.queryParams.cities) {
         const i = +_i
@@ -261,14 +324,17 @@ export default class MeasurementsChart extends Vue {
         const chartTraces = this.genChartTraces(
           city,
           pollutant,
-          this.filterSources,
-          this.filterStations
+          this.filterSourcesMap,
+          this.filterStationsMap
         )
 
+        const tracesUnits: string[] = []
         const data = chartTraces.traces.map((trace) => {
+          if (trace.unit) tracesUnits.push(trace.unit)
           trace.x = trace.x.map((val) => new Date(val))
           return trace
         })
+        if (tracesUnits.length === 1) rowUnit = tracesUnits[0]
         const isEmpty: boolean =
           !data?.length || (!data[0]?.x?.length && !data[0]?.y?.length)
 
@@ -305,8 +371,8 @@ export default class MeasurementsChart extends Vue {
       const row: ChartRow = {
         id: rowId,
         pollutantId: pollutant.id,
-        title: pollutant.label,
-        subtitle: pollutant.unit,
+        title: pollutant.name,
+        subtitle: rowUnit,
         cols,
         rangeBox: _mergeItemsRangeBoxes(cols, 'rangeBox'),
       }
@@ -329,19 +395,35 @@ export default class MeasurementsChart extends Vue {
         }
       }
 
-      // set one grid range to all charts in row
-      row.cols = _alignColsGridRange(row.cols, row.rangeBox, this.displayMode, {
-        dateStart: this.queryParams.date_start,
-        dateEnd: this.queryParams.date_end,
-      })
+      // set the earliest date from the data array as x0
+      // if no start date is specified
+      if (!_dateStart || _dateStart === '0') {
+        let earlierDate = NaN
+        for (const i in row.cols) {
+          const col = row.cols[i]
+          if (isNaN(earlierDate) || col.rangeBox.x0 < earlierDate) {
+            earlierDate = col.rangeBox.x0
+          }
+        }
+        _dateStart = moment(earlierDate).format(URL_DATE_FORMAT)
+      }
 
       rows.push(row)
+    }
+
+    // set one grid range to all rows
+    for (const row of rows) {
+      // set one grid range to all charts in row
+      row.cols = _alignColsGridRange(row.cols, row.rangeBox, this.displayMode, {
+        dateStart: _dateStart,
+        dateEnd: _dateEnd,
+      })
     }
 
     return rows
   }
 
-  private mounted() {
+  public mounted() {
     if (!this.cols) {
       this.$emit(
         'update:cols',
@@ -365,7 +447,7 @@ export default class MeasurementsChart extends Vue {
       case 'md':
         return 2
       case 'lg':
-        return 3
+        return 2
       case 'xl':
         return 4
       default:
@@ -379,8 +461,9 @@ export default class MeasurementsChart extends Vue {
     pollutantsLength: number = 0
   ): ChartColumnSize {
     const rowItemsLength = citiesLength === 1 ? pollutantsLength : citiesLength
-    const defaultChartCols =
-      MeasurementsChart.getDefaultChartColsBasedOnWindow($vuetify)
+    const defaultChartCols = MeasurementsChart.getDefaultChartColsBasedOnWindow(
+      $vuetify
+    )
     let _defaultCols: number = rowItemsLength
       ? rowItemsLength
       : defaultChartCols
@@ -392,11 +475,11 @@ export default class MeasurementsChart extends Vue {
     return _defaultCols as ChartColumnSize
   }
 
-  private genChartTraces(
+  public genChartTraces(
     city: City,
     pollutant: Pollutant,
-    filterSources: Source['id'][],
-    filterStations: Station['id'][]
+    filterSourcesMap: {[sourceId: string]: boolean},
+    filterStationsMap: {[stationId: string]: boolean}
   ): {traces: ChartTrace[]; rangeBox: RangeBox} {
     const cityId: City['id'] = city.id
     const pollutantId = pollutant.id
@@ -405,14 +488,19 @@ export default class MeasurementsChart extends Vue {
     const dateStartYear: number = dateStart ? moment(dateStart).year() : 0
     const dateEnd: number = toNumberDate(this.queryParams.date_end || '') || 0
     let rangeBox: RangeBox = {
-      x0: -0,
-      y0: -0,
-      x1: 0,
-      y1: 0,
+      x0: -NaN,
+      y0: -NaN,
+      x1: NaN,
+      y1: NaN,
     }
 
-    const tracesMap: {[location_id: string]: ChartTracePoint[]} = {
-      [cityId]: [],
+    const tracesMap: {
+      [location_id: string]: {
+        data: ChartTracePoint[]
+        unit: string
+      }
+    } = {
+      [cityId]: {data: [], unit: ''},
     }
 
     for (const measurement of this.measurements) {
@@ -426,7 +514,7 @@ export default class MeasurementsChart extends Vue {
         case MeasurementProcesses.station_day_mad: {
           if (!this.displayStations) continue
           const stationId = measurement.location_id
-          if (!filterStations.includes(stationId)) continue
+          if (!filterStationsMap[stationId]) continue
           traceId = stationId
           break
         }
@@ -440,31 +528,37 @@ export default class MeasurementsChart extends Vue {
 
       const matchCity: boolean = measurement.city_id === cityId
       const matchPollutant: boolean = measurement.pollutant === pollutantId
-      const matchSource: boolean = filterSources.length
-        ? filterSources.includes(measurement.source)
-        : true
+      const matchSource: boolean = isObjEmpty(filterSourcesMap)
+        ? true
+        : filterSourcesMap[measurement.source]
 
       if (!matchCity || !matchPollutant || !matchSource) continue
 
       const x = +new Date(measurement.date)
       const y = measurement.value
 
-      if (!tracesMap[traceId]) tracesMap[traceId] = []
-      tracesMap[traceId].push({x, y})
+      if (!tracesMap[traceId]) {
+        tracesMap[traceId] = {data: [], unit: measurement.unit || ''}
+      }
+      if (!tracesMap[traceId].unit) {
+        tracesMap[traceId].unit = measurement.unit || ''
+      }
+      tracesMap[traceId].data.push({x, y})
     }
 
     let traces: ChartTrace[] = []
 
     for (const traceId in tracesMap) {
-      const tracePoints = tracesMap[traceId]
+      const traceDef = tracesMap[traceId]
+      const tracePoints = traceDef.data
       const level =
         traceId === cityId ? ChartTraceLevels.CITY : ChartTraceLevels.STATION
-      const isCalcRunningAverage =
-        this.runningAverage &&
+      const isCalcRunningAverage: boolean =
+        !!this.runningAverage &&
         RUNNING_AVERAGE_DAYS_MAP[this.runningAverage] !== 1 &&
-        tracePoints.length
+        !!tracePoints.length
       const hovertemplate =
-        `%{y:.0f} ${pollutant.unit || ''}<br>%{x}` +
+        `%{y:.0f} ${traceDef.unit || ''}<br>%{x}` +
         (level === ChartTraceLevels.CITY
           ? `<br><b>${this.$t('city')}:</b> ${city.name}`
           : `<br><b>${this.$t('station')}:</b> ${traceId}`)
@@ -477,6 +571,7 @@ export default class MeasurementsChart extends Vue {
         type: 'scatter',
         mode: 'lines',
         name: '',
+        unit: traceDef.unit,
         hovertemplate,
       }
 
@@ -493,6 +588,10 @@ export default class MeasurementsChart extends Vue {
         const avg = computeMovingAverage(trace.x, trace.y, days)
         trace.x = avg.dates
         trace.y = avg.values
+      } else {
+        const filled = fillGapsInDatesArray(trace.x, trace.y)
+        trace.x = filled.dates
+        trace.y = filled.values
       }
 
       const cutTrace = _cutTracePointsOverDatesFrame(trace, dateStart, dateEnd)
@@ -537,7 +636,7 @@ export default class MeasurementsChart extends Vue {
 
     traces = _orderBy(traces, ['level', 'zIndex'], ['desc', 'asc'])
 
-    _setLineStylesToChartTraces(traces)
+    _setLineStylesToChartTraces(traces, this.displayMode)
 
     return {
       traces,
@@ -548,7 +647,7 @@ export default class MeasurementsChart extends Vue {
   @Watch('cols')
   @Watch('runningAverage')
   @Watch('chartDisplayMode')
-  private onResize = _debounce(() => this.resize(), 100)
+  public onResize = _debounce(() => this.resize(), 100)
 
   public resize() {
     for (const refId in this.$refs) {
@@ -558,15 +657,42 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private onRelayout(
-    rowId: ChartRow['id'],
-    colId: ChartCol['id'],
-    $colRef: HTMLElement,
-    $event: any
-  ) {
+  public onClickChart(rowId: ChartRow['id'], colId: ChartCol['id']) {
+    this.autoscaleChart(rowId, colId)
+  }
+
+  public autoscaleChart(rowId: ChartRow['id'], colId: ChartCol['id']) {
+    const chartRow = this.chartsRows.find((row) => row.id === rowId)
+    const chartCol = chartRow?.cols.find((col) => col.id === colId)
+    const rangeBox = chartCol?.rangeBox
+
+    if (!rangeBox) return
+
+    const $ref: typeof Plotly | undefined = (this.$refs[
+      `${CHART_REF_PREFIX}${colId}`
+    ] as HTMLElement[])?.[0]
+
+    const paramsToUpdate: {[key: string]: any} = {}
+
+    Object.assign(paramsToUpdate, {
+      'xaxis.range[0]': rangeBox.x0,
+      'xaxis.range[1]': rangeBox.x1,
+      'yaxis.range[0]': rangeBox.y0,
+      'yaxis.range[1]': rangeBox.y1,
+    })
+    if (Object.keys(paramsToUpdate).length) $ref.relayout(paramsToUpdate)
+  }
+
+  public onRelayout(rowId: ChartRow['id'], colId: ChartCol['id'], $event: any) {
     if (!$event || Object.entries($event).length === 0) return
     const hasAxisX = Object.keys($event).find((key) => /^xaxis/.test(key))
     if (!hasAxisX) return
+
+    const $colRef: HTMLElement | undefined = (this.$refs[
+      `${CHART_REF_PREFIX}${colId}`
+    ] as HTMLElement[])?.[0]
+
+    if (!$colRef) return
 
     for (const refId in this.$refs) {
       if (refId === $colRef.id) continue
@@ -576,7 +702,7 @@ export default class MeasurementsChart extends Vue {
       if (!$ref) continue
 
       const chartParams: string[] = refId
-        .replace('chart:', '')
+        .replace(CHART_REF_PREFIX, '')
         .split(COL_ID_DIVIDER)
       const chartRowId: ChartRow['id'] = chartParams[0]
 
@@ -620,12 +746,12 @@ export default class MeasurementsChart extends Vue {
     }
   }
 
-  private checkPollutantVisibility(pollutantId: Pollutant['id']): boolean {
+  public checkPollutantVisibility(pollutantId: Pollutant['id']): boolean {
     const visible = this.filterPollutants.includes(pollutantId)
     return visible
   }
 
-  private _getChartLayoutDefaults(opts: {
+  public _getChartLayoutDefaults(opts: {
     margin: {[key: string]: number}
     font: number
     displayMode: ChartDisplayModes
@@ -655,6 +781,8 @@ export default class MeasurementsChart extends Vue {
       margin,
       xaxis: {
         visible: !isEmpty,
+        autorange: false,
+        showline: false, // conflicts with yaxis zeroline. Using css instead
         linecolor: '#eee',
         linewidth: 1,
         mirror: true,
@@ -669,14 +797,18 @@ export default class MeasurementsChart extends Vue {
       },
       yaxis: {
         visible: !isEmpty,
+        autorange: false,
         tickfont: {
           size: font,
           color: '#212121',
         },
         showticklabels: true,
+        showline: true,
         linecolor: '#eee',
         linewidth: 1,
         mirror: true,
+        zeroline: true,
+        zerolinecolor: '#212121',
       },
       ...(!isEmpty
         ? {}
@@ -698,14 +830,18 @@ export default class MeasurementsChart extends Vue {
   }
 }
 
-function _setLineStylesToChartTraces(traces: ChartTrace[]): ChartTrace[] {
+function _setLineStylesToChartTraces(
+  traces: ChartTrace[],
+  displayMode: ChartDisplayModes
+): ChartTrace[] {
   const citiesTracesNumber: number = traces.reduce(
     (acc, trace) => (acc += trace.level === ChartTraceLevels.CITY ? 1 : 0),
     0
   )
 
-  const PALETTE_COLORS =
-    PRIMARY_TRACE_COLOR_SCALE.mode('lab').colors(citiesTracesNumber)
+  const PALETTE_COLORS = PRIMARY_TRACE_COLOR_SCALE.mode('lab').colors(
+    citiesTracesNumber
+  )
 
   let counterCitiesTraces = 0
   const widthStep = PRIMARY_LINE_STYLE.widthStep
@@ -718,10 +854,17 @@ function _setLineStylesToChartTraces(traces: ChartTrace[]): ChartTrace[] {
 
     if (trace.level === ChartTraceLevels.CITY) {
       const width = _lineWidthMax - counterCitiesTraces * widthStep
-      trace.line = {
-        ...PRIMARY_LINE_STYLE,
-        color: PALETTE_COLORS[counterCitiesTraces],
-        width: Math.min(width, widthMax),
+
+      if (displayMode === ChartDisplayModes.SUPERIMPOSED_YEARS) {
+        trace.line = {
+          ...PRIMARY_LINE_STYLE,
+          color: PALETTE_COLORS[counterCitiesTraces],
+          width: Math.min(width, widthMax),
+        }
+      } else {
+        trace.line = {
+          ...PRIMARY_LINE_STYLE,
+        }
       }
       counterCitiesTraces++
     } else {
@@ -764,7 +907,7 @@ function _alignColsGridRange(
     dateEnd || rangeBox.x1 + MARGIN,
   ]
   const generalRangeY = [
-    -1, // always start from 0
+    0, // always start from 0
     rangeBox.y1 + MARGIN,
   ]
 
@@ -818,10 +961,10 @@ function _mergeItemsRangeBoxes(
   propName: string = 'rangeBox'
 ): RangeBox {
   const rangeBox: RangeBox = {
-    x0: -0,
-    y0: -0,
-    x1: 0,
-    y1: 0,
+    x0: -NaN,
+    y0: -NaN,
+    x1: NaN,
+    y1: NaN,
   }
 
   for (const item of items) {
@@ -830,10 +973,10 @@ function _mergeItemsRangeBoxes(
     const x1 = _get(item, `${propName}.x1`)
     const y1 = _get(item, `${propName}.y1`)
 
-    if (rangeBox.x0 === -Infinity || x0 < rangeBox.x0) rangeBox.x0 = x0
-    if (rangeBox.x1 === Infinity || x1 > rangeBox.x1) rangeBox.x1 = x1
-    if (rangeBox.y0 === -Infinity || y0 < rangeBox.y0) rangeBox.y0 = y0
-    if (rangeBox.y1 === Infinity || y1 > rangeBox.y1) rangeBox.y1 = y1
+    if (isNaN(rangeBox.x0) || x0 < rangeBox.x0) rangeBox.x0 = x0
+    if (isNaN(rangeBox.x1) || x1 > rangeBox.x1) rangeBox.x1 = x1
+    if (isNaN(rangeBox.y0) || y0 < rangeBox.y0) rangeBox.y0 = y0
+    if (isNaN(rangeBox.y1) || y1 > rangeBox.y1) rangeBox.y1 = y1
   }
 
   return rangeBox
@@ -842,10 +985,10 @@ function _mergeItemsRangeBoxes(
 function _extendRangeBox(rangeBox: RangeBox, x: number, y: number): RangeBox {
   const _rangeBox = {...rangeBox}
 
-  if (_rangeBox.x0 === -Infinity || x < _rangeBox.x0) _rangeBox.x0 = x
-  if (_rangeBox.x1 === Infinity || x > _rangeBox.x1) _rangeBox.x1 = x
-  if (_rangeBox.y0 === -Infinity || y < _rangeBox.y0) _rangeBox.y0 = y
-  if (_rangeBox.y1 === Infinity || y > _rangeBox.y1) _rangeBox.y1 = y
+  if (isNaN(_rangeBox.x0) || x < _rangeBox.x0) _rangeBox.x0 = x
+  if (isNaN(_rangeBox.x1) || x > _rangeBox.x1) _rangeBox.x1 = x
+  if (isNaN(_rangeBox.y0) || y < _rangeBox.y0) _rangeBox.y0 = y
+  if (isNaN(_rangeBox.y1) || y > _rangeBox.y1) _rangeBox.y1 = y
 
   return _rangeBox
 }

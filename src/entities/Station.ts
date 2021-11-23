@@ -20,7 +20,9 @@ export default class Station {
   public attribution?: string | null
   public pollutants?: Pollutant['id'][]
   public last_updated?: string | Date
-  public _measurementsNumber?: number
+
+  public _source?: Source
+  public _pollutants?: Pollutant[]
 
   constructor(data: Station) {
     Object.assign(this, data)

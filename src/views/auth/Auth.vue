@@ -47,10 +47,10 @@ export default class PageAuth extends Vue {
   @Ref('form')
   readonly $form: any
 
-  private isValid: boolean = true
+  public isValid: boolean = true
 
-  private formMessage: string = ''
-  private formValues: {[key: string]: string} = {
+  public formMessage: string = ''
+  public formValues: {[key: string]: string} = {
     name: '',
     email: '',
     password: '',
@@ -76,7 +76,7 @@ export default class PageAuth extends Vue {
     }
   }
 
-  private async onClickSubmit(): Promise<void> {
+  public async onClickSubmit(): Promise<void> {
     this.validate()
 
     if (!this.isValid) return
@@ -105,15 +105,15 @@ export default class PageAuth extends Vue {
     }
   }
 
-  private validate(): void {
+  public validate(): void {
     this.$form?.validate()
   }
 
-  private resetValidation(): void {
+  public resetValidation(): void {
     this.$form?.resetValidation()
   }
 
-  private async onClickLoginGoogle(): Promise<void> {
+  public async onClickLoginGoogle(): Promise<void> {
     this.$loader.on()
 
     const provider = new fb.auth.GoogleAuthProvider()
@@ -144,7 +144,7 @@ export default class PageAuth extends Vue {
     this.$loader.off()
   }
 
-  private async sendPasswordResetEmail(): Promise<void> {
+  public async sendPasswordResetEmail(): Promise<void> {
     this.$loader.on()
 
     const [err] = await to(
@@ -166,7 +166,7 @@ export default class PageAuth extends Vue {
     this.$loader.off()
   }
 
-  private async changePassword(): Promise<void> {
+  public async changePassword(): Promise<void> {
     this.$loader.on()
 
     const email: string = _get(auth, 'currentUser.email', '')
@@ -218,7 +218,7 @@ export default class PageAuth extends Vue {
     )
   }
 
-  private async signIn(): Promise<void> {
+  public async signIn(): Promise<void> {
     this.$loader.on()
 
     const [err, res] = await to<fb.auth.UserCredential>(
@@ -242,7 +242,7 @@ export default class PageAuth extends Vue {
     this.$loader.off()
   }
 
-  private async signUp(): Promise<void> {
+  public async signUp(): Promise<void> {
     let err
     this.$loader.on()
     ;[err] = await to<fb.auth.UserCredential>(

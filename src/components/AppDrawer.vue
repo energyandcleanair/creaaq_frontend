@@ -61,17 +61,17 @@ interface MenuItem {
 @Component
 export default class AppDrawer extends Vue {
   @Prop({type: Boolean, default: false})
-  private open!: boolean
+  public open!: boolean
 
-  private version: string = pkg.version
+  public version: string = pkg.version
 
-  private get selectedItemIndex(): number {
+  public get selectedItemIndex(): number {
     return this.menuItems.findIndex(
       (item) => item?.to?.name === this.$route.name
     )
   }
 
-  private get menuItems(): MenuItem[] {
+  public get menuItems(): MenuItem[] {
     return [
       {
         label: this.$t('measurements').toString(),
