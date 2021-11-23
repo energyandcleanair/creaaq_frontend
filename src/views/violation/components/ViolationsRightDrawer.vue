@@ -32,23 +32,56 @@
           @change="onChangeFiltersForm"
         />
       </v-row>
+
+      <v-row no-gutters>
+        <v-col class="text-subtitle-1 d-flex align-center" cols="12">
+          <label class="d-inline-flex" for="overshooting-switch">
+            <v-tooltip max-width="400" bottom>
+              <template v-slot:activator="{on, attrs}">
+                {{ $t('overshooting') }}
+                <v-icon
+                  class="ml-1"
+                  color="grey lighten-2"
+                  small
+                  v-bind="attrs"
+                  v-on="on"
+                >
+                  {{ mdiInformationOutline }}
+                </v-icon>
+              </template>
+              <span v-html="$t('msg.overshooting_tooltip_info')" />
+            </v-tooltip>
+          </label>
+
+          <v-switch
+            id="overshooting-switch"
+            class="d-inline-flex ml-2 mt-0 pt-0"
+            v-model="_isOvershooting"
+            :disabled="loading"
+            :color="OVERSHOOT_VIOLATION_COLOR"
+            hide-details
+            dense
+          />
+        </v-col>
+      </v-row>
     </v-form>
   </PageDrawer>
 </template>
 
 <script lang="ts">
-import _difference from 'lodash.difference'
 import moment from 'moment'
+import _difference from 'lodash.difference'
 import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
+import {mdiInformationOutline} from '@mdi/js'
 import {toURLStringDate} from '@/utils'
 import PageDrawer from '@/components/PageDrawer.vue'
+import Guideline from '@/entities/Guideline'
 import Pollutant from '@/entities/Pollutant'
-import Organization from '@/entities/Organization'
 import Target from '@/entities/Target'
 import URLQuery from '../types/URLQuery'
 import ChartData from './ViolationsChart/ChartData'
 import ViolationsFiltersForm from './ViolationsFiltersForm.vue'
-import Guideline from '@/entities/Guideline'
+import {OVERSHOOT_VIOLATION_COLOR} from './ViolationsChart/ViolationsChart.vue'
 
 @Component({
   components: {
@@ -69,6 +102,9 @@ export default class ViolationsRightDrawer extends Vue {
   @Prop({type: Object, required: true})
   readonly chartData!: ChartData
 
+  public mdiInformationOutline = mdiInformationOutline
+  public OVERSHOOT_VIOLATION_COLOR = OVERSHOOT_VIOLATION_COLOR
+
   public get YEARS(): {label: string; value: string}[] {
     const years: {label: string; value: string}[] = []
     let year = moment().year()
@@ -83,6 +119,13 @@ export default class ViolationsRightDrawer extends Vue {
     }
 
     return years
+  }
+
+  public get _isOvershooting(): boolean {
+    return this.queryParams.overshooting || false
+  }
+  public set _isOvershooting(value: boolean) {
+    this.onChangeForm('overshooting', value)
   }
 
   public get pollutants(): Pollutant[] {

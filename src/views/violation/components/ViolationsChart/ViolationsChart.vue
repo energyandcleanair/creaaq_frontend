@@ -4,11 +4,9 @@
       <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
 
       <v-row class="px-2">
-        <template v-for="i of 12 / vCols">
-          <v-col :key="i">
-            <v-skeleton-loader type="text, image" />
-          </v-col>
-        </template>
+        <v-col v-for="i of 12 / vCols" :key="i">
+          <v-skeleton-loader type="text, image" />
+        </v-col>
       </v-row>
     </template>
 
@@ -86,6 +84,7 @@
                 <template v-slot:activator="{on, attrs}">
                   <v-btn
                     v-if="!outside"
+                    :class="col.dates[day].class"
                     :color="col.dates[day].color || 'white'"
                     :ripple="false"
                     small
@@ -125,7 +124,7 @@ import {URL_DATE_FORMAT} from '@/utils'
 import theme from '@/theme'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
-import Organization from '@/entities/Organization'
+import Guideline from '@/entities/Guideline'
 import Violation from '@/entities/Violation'
 import Target from '@/entities/Target'
 import URLQuery from '../../types/URLQuery'
@@ -133,9 +132,9 @@ import ChartTooltip from './ChartTooltip.vue'
 import ChartData from './ChartData'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
-import Guideline from '@/entities/Guideline'
 
 const COL_ID_DIVIDER = '--'
+export const OVERSHOOT_VIOLATION_COLOR = theme.colors.purple.accent1
 
 interface ViolationsCalendar {
   [year: string]: {
@@ -351,6 +350,8 @@ export default class ViolationsChart extends Vue {
             )
 
             let violationsNum: number | undefined
+            let overshootEstimatedViolation: Violation | undefined
+            let overshootViolation: Violation | undefined
 
             if (dateViolations?.length) {
               if (+$date >= _tomorrow) {
@@ -358,10 +359,25 @@ export default class ViolationsChart extends Vue {
               } else {
                 violationsNum = tooltipParams.numExceedViolations || 0
               }
+
+              if (this.queryParams.overshooting === true) {
+                overshootEstimatedViolation = dateViolations?.find(
+                  (v) => v.is_overshoot_estimated
+                )
+                if (!overshootEstimatedViolation) {
+                  overshootViolation = dateViolations?.find(
+                    (v) => v.is_overshoot
+                  )
+                }
+              }
             }
 
             col.dates[date] = {
-              color: _getViolationsColor(violationsNum),
+              class: overshootEstimatedViolation ? 'v-btn--striped' : '',
+              color:
+                overshootViolation || overshootEstimatedViolation
+                  ? OVERSHOOT_VIOLATION_COLOR
+                  : _getViolationsColor(violationsNum),
               violations: dateViolations || [],
               tooltip: tooltipParams,
             }
@@ -581,6 +597,27 @@ $violations-chart__calendar--width: 170px;
               &.not-interactive {
                 cursor: auto !important;
                 pointer-events: none;
+              }
+
+              &.v-btn--striped {
+                &::after {
+                  content: '';
+                  pointer-events: none;
+                  position: absolute;
+                  bottom: 0;
+                  left: 0;
+                  right: 0;
+                  top: 0;
+                  background-size: auto auto;
+                  background-color: transparent;
+                  background-image: repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 3px,
+                    rgba(255, 255, 255, 0.5) 3px,
+                    rgba(255, 255, 255, 0.5) 4px
+                  );
+                }
               }
             }
           }

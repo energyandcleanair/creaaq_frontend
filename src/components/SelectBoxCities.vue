@@ -6,7 +6,7 @@
 
     <treeselect
       ref="tree"
-      v-custom-should-expand-handler
+      v-custom-should-expand-handler="true"
       :value="value"
       :cache-options="false"
       :default-options="sortedCountries"
@@ -24,11 +24,11 @@
       multiple
       @input="onChangeValue"
     >
-      <div slot="value-label" slot-scope="{node}">
+      <template v-slot:value-label="{node}">
         {{ node.label }}
-      </div>
+      </template>
 
-      <div slot="option-label" slot-scope="{node}">
+      <template v-slot:option-label="{node}">
         <span class="pl-1">
           <CountryFlag
             v-if="node.raw.level === 'country'"
@@ -45,7 +45,7 @@
         >
           &nbsp;({{ node.raw.childrenLength }})
         </span>
-      </div>
+      </template>
     </treeselect>
   </div>
 </template>

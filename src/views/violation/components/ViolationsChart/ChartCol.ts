@@ -8,6 +8,7 @@ export default interface ChartCol {
     [date: number]: {
       color: string
       violations: Violation[]
+      class?: string
       tooltip: {
         title: string
         subtitle: string

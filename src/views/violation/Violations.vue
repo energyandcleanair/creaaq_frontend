@@ -145,6 +145,7 @@ export default class ViewViolations extends Vue {
       targets: _toArray(q.tg),
       guidelines: _toArray(q.gl),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
+      overshooting: q.ovshoot === 'true',
     }
   }
 
@@ -157,6 +158,7 @@ export default class ViewViolations extends Vue {
       start: inputQuery.date_start
         ? toURLStringDate(inputQuery.date_start)
         : undefined,
+      ovshoot: inputQuery.overshooting === true ? 'true' : undefined,
     }
 
     for (const _key in query) {

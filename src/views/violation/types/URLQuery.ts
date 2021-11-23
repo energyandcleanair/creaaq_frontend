@@ -9,6 +9,7 @@ export default interface URLQuery {
   targets: Target['id'][]
   guidelines: Guideline['id'][]
   date_start?: string
+  overshooting?: boolean
 }
 
 export interface URLQueryRaw {
@@ -26,4 +27,7 @@ export interface URLQueryRaw {
 
   // date_start
   start?: string
+
+  // overshooting
+  ovshoot?: string
 }

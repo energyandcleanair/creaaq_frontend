@@ -38,6 +38,8 @@ export default class Violation {
   public process_id?: MeasurementProcesses
   public gadm1_id?: string
   public name_local?: string | null
+  public is_overshoot?: boolean
+  public is_overshoot_estimated?: boolean
   public geometry?: {
     longitude: number
     latitude: number
