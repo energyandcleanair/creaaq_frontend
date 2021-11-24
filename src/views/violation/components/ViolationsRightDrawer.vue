@@ -18,7 +18,7 @@
         </v-col>
       </v-row>
 
-      <v-row no-gutters>
+      <v-row class="mb-0" no-gutters>
         <ViolationsFiltersForm
           :value-guidelines="queryParams.guidelines"
           :value-pollutants="queryParams.pollutants"
