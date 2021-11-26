@@ -19,7 +19,7 @@ export default new Vuetify({
       light: {
         primary: {
           ...colors.blue,
-          base: theme.colors.darkBlue.base,
+          ...theme.colors.darkBlue,
         },
         secondary: {
           ...colors.green,
@@ -27,7 +27,7 @@ export default new Vuetify({
         },
         info: {
           ...colors.teal,
-          base: theme.colors.darkBlue.base,
+          ...theme.colors.darkBlue,
         },
         error: {
           ...colors.pink,
@@ -35,9 +35,13 @@ export default new Vuetify({
         grey: {
           ...colors.grey,
         },
+        purple: {
+          ...colors.purple,
+          ...theme.colors.purple,
+        },
         blue: {
           ...colors.blue,
-          base: theme.colors.blue.base,
+          ...theme.colors.blue,
         },
       },
     },

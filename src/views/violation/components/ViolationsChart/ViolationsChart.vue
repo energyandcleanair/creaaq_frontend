@@ -134,7 +134,8 @@ import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
 
 const COL_ID_DIVIDER = '--'
-export const OVERSHOOT_VIOLATION_COLOR = theme.colors.purple.accent1
+export const OVERSHOOT_VIOLATION_COLOR_CLASS = 'purple--text text--lighten-1'
+export const OVERSHOOT_VIOLATION_COLOR = theme.colors.purple.lighten1
 
 interface ViolationsCalendar {
   [year: string]: {
@@ -346,7 +347,8 @@ export default class ViolationsChart extends Vue {
             const tooltipParams = this.genDateTooltipParams(
               $date,
               dateViolations || [],
-              this.chartData.targets || []
+              this.chartData.targets || [],
+              {isMarkOvershoot: !!this.queryParams.overshooting}
             )
 
             let violationsNum: number | undefined
@@ -400,7 +402,10 @@ export default class ViolationsChart extends Vue {
   public genDateTooltipParams(
     $date: Moment,
     violations: Violation[],
-    targets: Target[]
+    targets: Target[],
+    opts?: {
+      isMarkOvershoot: boolean
+    }
   ): TooltipParams {
     let numExceedViolations = 0
 
@@ -408,11 +413,18 @@ export default class ViolationsChart extends Vue {
       const target = targets.find((i) => i.id === item.target_id)
       const value = Math.round(item.value || 0)
       const target_value = Math.round(item.target_value || 0)
+      const isOvershoot: boolean =
+        !!opts?.isMarkOvershoot &&
+        !!(item.is_overshoot_estimated || item.is_overshoot)
       const exceeded = value > target_value
       if (exceeded) numExceedViolations++
       return {
         exceeded,
-        class: exceeded ? 'red--text' : 'green--text',
+        class: isOvershoot
+          ? OVERSHOOT_VIOLATION_COLOR_CLASS
+          : exceeded
+          ? 'red--text'
+          : 'green--text',
         title: target?.name || item.guideline || item.pollutant || '?',
         pollutant: (item.pollutant || '?').toUpperCase(),
         value: value,

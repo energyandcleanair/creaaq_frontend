@@ -188,6 +188,7 @@ export default class App extends Vue {
   }
 
   public signOut() {
+    this.isMenuOpen = false
     this.$auth.logout().then(() => this.$router.push({name: 'signIn'}))
   }
 }
