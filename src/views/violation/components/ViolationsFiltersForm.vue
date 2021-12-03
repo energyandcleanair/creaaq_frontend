@@ -16,13 +16,13 @@
           :value="primaryFilterValue"
           :items="primaryFilterTree"
           :expand-icon="mdiMenuDown"
+          :open-all="false"
           item-key="id"
           item-text="name"
           item-disabled="disabled"
           selected-color="primary"
           selection-type="leaf"
           selectable
-          open-all
           @input="onChangeTree('primary', $event)"
         >
           <template v-slot:label="{item}">
@@ -49,12 +49,12 @@
           :value="secondaryFilterValue"
           :items="secondaryFilterTree"
           :expand-icon="mdiMenuDown"
+          :open-all="false"
           item-key="id"
           item-disabled="disabled"
           selected-color="primary"
           selection-type="leaf"
           selectable
-          open-all
           @input="onChangeTree('secondary', $event)"
         >
           <template v-slot:label="{item}">

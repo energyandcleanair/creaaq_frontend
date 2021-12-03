@@ -42,7 +42,7 @@ export const colors = {
     base: '#741b47',
   },
   purple: {
-    accent1: '#b71bdc',
+    lighten1: '#b71bdc',
   },
   grey: {
     base: '#ccc',
