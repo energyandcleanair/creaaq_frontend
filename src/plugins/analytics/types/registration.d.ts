@@ -1,15 +1,7 @@
-enum EventCategory {
-  'registration' = 'registration',
-}
-
-enum EventActionRegistration {
-  'email_and_password' = 'email_and_password',
-  'google' = 'google',
-}
-
-interface ITrackEventHandler {
+interface ITrackGtmEventHandler {
   (
-    eventCategory: EventCategory.registration,
-    action: EventActionRegistration
+    eventCategory: 'registration',
+    action: 'email_and_password' | 'google',
+    label?: never
   ): void
 }

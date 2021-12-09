@@ -1,18 +1,9 @@
-enum EventCategory {
-  'outbound_link' = 'outbound_link',
-}
+type URL = string
 
-enum EventActionOutboundLink {
-  'any' = 'any',
-}
-
-// type URL = string
-type EventLabelOutboundLink = string
-
-interface ITrackEventHandler {
+interface ITrackGtmEventHandler {
   (
-    eventCategory: EventCategory.outbound_link,
-    action: EventActionOutboundLink,
-    label?: EventLabelOutboundLink
+    eventCategory: 'outbound_link',
+    action: never,
+    label?: URL
   ): void
 }

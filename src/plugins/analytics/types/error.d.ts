@@ -1,17 +1,7 @@
-enum EventCategory {
-  'error' = 'error',
-}
-
-enum EventActionError {
-  'any' = 'any',
-}
-
-type EventLabelError = string
-
-interface ITrackEventHandler {
+interface ITrackGtmEventHandler {
   (
-    eventCategory: EventCategory.error,
-    action: EventActionError,
-    label: EventLabelError
+    eventCategory: 'error',
+    action: string,
+    label?: string
   ): void
 }

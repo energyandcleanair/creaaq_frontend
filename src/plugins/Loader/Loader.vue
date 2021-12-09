@@ -19,7 +19,7 @@
 import _get from 'lodash.get'
 
 export default {
-  name: 'Loader',
+  name: 'CustomLoader',
   data() {
     return {
       isLoading: false,

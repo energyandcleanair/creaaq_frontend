@@ -8,6 +8,7 @@ import PluginAuth from '@/plugins/Auth'
 import i18n from '@/plugins/i18n'
 import '@/plugins/vuetify-dialog'
 import firebase from '@/plugins/firebase'
+import {initGtmAnalytics} from '@/plugins/analytics/gtm'
 import '@/styles/index.scss'
 
 import config from '@/config'
@@ -16,6 +17,7 @@ import store from '@/store'
 import App from '@/App.vue'
 import '@/registerServiceWorker'
 
+initGtmAnalytics(router)
 Vue.use(VueAxios, axios)
 Vue.use(PluginAuth, {store, firebase})
 Vue.use(PluginLoader, {componentName: 'CustomLoader'})

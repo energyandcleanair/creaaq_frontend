@@ -1,19 +1,7 @@
-enum EventCategory {
-  'download' = 'download',
-}
-
-enum EventActionDownload {
-  'measurements' = 'measurements',
-}
-
-enum EventLabelDownload {
-  'csv' = 'csv',
-}
-
-interface ITrackEventHandler {
+interface ITrackGtmEventHandler {
   (
-    eventCategory: EventCategory.download,
-    action: EventActionDownload,
-    label: EventLabelDownload
+    eventCategory: 'download',
+    action: 'measurements',
+    label: 'csv'
   ): void
 }

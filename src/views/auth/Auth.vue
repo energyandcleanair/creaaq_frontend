@@ -221,7 +221,9 @@ export default class PageAuth extends Vue {
   public async signIn(): Promise<void> {
     this.$loader.on()
 
-    const [err, res] = await to<fb.auth.UserCredential>(
+    this.$trackGtmEvent('login', 'email_and_password')
+
+    const [err] = await to<fb.auth.UserCredential>(
       auth.signInWithEmailAndPassword(
         this.formValues.email,
         this.formValues.password
@@ -245,6 +247,7 @@ export default class PageAuth extends Vue {
   public async signUp(): Promise<void> {
     let err
     this.$loader.on()
+    this.$trackGtmEvent('registration', 'email_and_password')
     ;[err] = await to<fb.auth.UserCredential>(
       auth.createUserWithEmailAndPassword(
         this.formValues.email,

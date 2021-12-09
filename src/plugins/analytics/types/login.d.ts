@@ -1,18 +1,7 @@
-enum EventCategory {
-  'login' = 'login',
-}
-
-enum EventActionLogin {
-  'email_and_password' = 'email_and_password',
-  'google' = 'google',
-}
-
-type EventLabelProfile = undefined
-
-interface ITrackEventHandler {
+interface ITrackGtmEventHandler {
   (
-    eventCategory: EventCategory.login,
-    action: EventActionLogin,
-    label?: EventLabelProfile
+    eventCategory: 'login',
+    action: 'email_and_password' | 'google',
+    label?: never
   ): void
 }

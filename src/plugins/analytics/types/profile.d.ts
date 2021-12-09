@@ -1,19 +1,7 @@
-enum EventCategory {
-  'profile' = 'profile',
-}
-
-enum EventActionProfile {
-  'reset_password' = 'reset_password',
-  'change_password' = 'change_password',
-  'clear_cache' = 'clear_cache',
-}
-
-enum EventLabelProfile {}
-
-interface ITrackEventHandler {
+interface ITrackGtmEventHandler {
   (
-    eventCategory: EventCategory.profile,
-    action: EventActionProfile,
-    label: EventLabelProfile
+    eventCategory: 'profile',
+    action: 'reset_password' | 'change_password' | 'clear_cache',
+    label: never
   ): void
 }
