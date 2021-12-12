@@ -39,7 +39,7 @@
               :value="val"
               v-text="val"
               small
-              style="text-transform: none;"
+              style="text-transform: none"
             />
           </v-btn-toggle>
         </v-col>
@@ -106,7 +106,18 @@
                   <v-card>
                     <v-card-title v-text="item.name" />
                     <v-card-text v-if="item.url">
-                      <a :href="item.url" target="_blank" v-text="item.url" />
+                      <a
+                        :href="item.url"
+                        target="_blank"
+                        v-text="item.url"
+                        @click="
+                          $trackGtmEvent(
+                            'outbound_link',
+                            'measurements_source',
+                            item.url
+                          )
+                        "
+                      />
                     </v-card-text>
                   </v-card>
                 </v-menu>
@@ -130,7 +141,7 @@
             hide-details
             :disabled="
               queryParams.pollutants.length <= 1 &&
-                queryParams.pollutants.includes(item.id)
+              queryParams.pollutants.includes(item.id)
             "
             @change="onChangeForm('pollutants', $event)"
           />

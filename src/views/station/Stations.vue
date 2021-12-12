@@ -339,6 +339,11 @@ export default class ViewStations extends Vue {
   public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
+      this.$trackGtmEvent(
+        'stations',
+        'error_too_large_query',
+        String(this.urlQuery?.cities.length)
+      )
       throw new Error('exit')
     }
 
@@ -356,6 +361,7 @@ export default class ViewStations extends Vue {
     )
 
     if (err) {
+      this.$trackGtmEvent('stations', 'error', err.message)
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
@@ -417,10 +423,15 @@ export default class ViewStations extends Vue {
 
     await this.setUrlQuery(query)
 
-    if (citiesChanged) this.onClickRefresh()
+    if (citiesChanged) this.refresh()
   }
 
   public async onClickRefresh() {
+    this.$trackGtmEvent('stations', 'refresh')
+    this.refresh()
+  }
+
+  public async refresh() {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()

@@ -275,6 +275,11 @@ export default class ViewViolations extends Vue {
   public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
+      this.$trackGtmEvent(
+        'violations',
+        'error_too_large_query',
+        String(this.urlQuery?.cities.length)
+      )
       throw new Error('exit')
     }
 
@@ -296,6 +301,7 @@ export default class ViewViolations extends Vue {
       })
     )
     if (err) {
+      this.$trackGtmEvent('violations', 'error', err.message)
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
@@ -416,10 +422,7 @@ export default class ViewViolations extends Vue {
     const $startDate = moment(query.date_from || toURLStringDate(JAN_1))
     const q = {
       ...query,
-      date_to: $startDate
-        .month(11)
-        .date(31)
-        .format(URL_DATE_FORMAT),
+      date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT),
     }
 
     const [err, items] = await to(ViolationAPI.findAll(toQueryString(q)))
@@ -467,12 +470,17 @@ export default class ViewViolations extends Vue {
       query.date_start !== this.urlQuery.date_start || citiesChanged
 
     await this.setUrlQuery(query)
-    if (needRefresh) return this.onClickRefresh()
+    if (needRefresh) return this.refresh()
 
     this.$loader.off()
   }
 
   public async onClickRefresh() {
+    this.$trackGtmEvent('violations', 'refresh')
+    this.refresh()
+  }
+
+  public async refresh() {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()

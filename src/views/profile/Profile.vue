@@ -37,6 +37,7 @@ export default class ViewProfile extends Vue {
   }
 
   public clearCache() {
+    this.$trackGtmEvent('profile', 'clear_cache')
     this.isLoading = true
     forageStore.clear()
     setTimeout(() => (this.isLoading = false), 1000)

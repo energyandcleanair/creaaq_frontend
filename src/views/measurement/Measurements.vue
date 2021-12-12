@@ -428,6 +428,11 @@ export default class ViewMeasurements extends Vue {
   public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
+      this.$trackGtmEvent(
+        'measurements',
+        'error_too_large_query',
+        String(this.urlQuery?.cities.length)
+      )
       throw new Error('exit')
     }
 
@@ -497,6 +502,7 @@ export default class ViewMeasurements extends Vue {
 
     const [err] = await to(Promise.all(promises))
     if (err) {
+      this.$trackGtmEvent('measurements', 'error', err.message)
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
@@ -661,10 +667,15 @@ export default class ViewMeasurements extends Vue {
 
     await this.setUrlQuery(query)
 
-    if (needRefresh) this.onClickRefresh()
+    if (needRefresh) this.refresh()
   }
 
-  public async onClickRefresh() {
+  public onClickRefresh() {
+    this.$trackGtmEvent('measurements', 'refresh')
+    this.refresh()
+  }
+
+  public async refresh() {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()
@@ -672,6 +683,7 @@ export default class ViewMeasurements extends Vue {
 
   public onClickExport(fileType: ExportFileType) {
     if (fileType === ExportFileType.CSV) {
+      this.$trackGtmEvent('measurements', 'export_to_file', 'csv')
       this.onClickExportToCSV()
     }
   }

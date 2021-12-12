@@ -1,9 +1,9 @@
-type URL = string
+type OutboundLinkURL = string
 
 interface ITrackGtmEventHandler {
   (
     eventCategory: 'outbound_link',
-    action: never,
-    label?: URL
+    action: 'measurements_source',
+    label?: OutboundLinkURL
   ): void
 }

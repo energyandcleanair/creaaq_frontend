@@ -1,8 +1,17 @@
+import Vue from 'vue'
+import {TrackEventOptions} from '@gtm-support/vue2-gtm'
+
 export const trackGtmEvent: ITrackGtmEventHandler = (
   category: unknown,
   action: unknown,
-  label: unknown
+  label: unknown,
+  rest?: TrackEventOptions
 ): void => {
-  console.log('Track!', category, action, label)
-  //analytics.track(eventName, props)
+  const opts: TrackEventOptions = {
+    category,
+    action,
+    label,
+    ...(rest || {}),
+  }
+  Vue.gtm.trackEvent(opts)
 }

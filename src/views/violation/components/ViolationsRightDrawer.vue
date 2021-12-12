@@ -61,6 +61,7 @@
             :color="OVERSHOOT_VIOLATION_COLOR"
             hide-details
             dense
+            @click="onClickOvershootingSwitch"
           />
         </v-col>
       </v-row>
@@ -157,6 +158,16 @@ export default class ViolationsRightDrawer extends Vue {
       [key]: value,
     }
     this.emitChange(queryParams)
+  }
+
+  public onClickOvershootingSwitch() {
+    this.$nextTick(() => {
+      if (this._isOvershooting === true) {
+        this.$trackGtmEvent('violations', 'enable_overshooting')
+      } else {
+        this.$trackGtmEvent('violations', 'disable_overshooting')
+      }
+    })
   }
 
   public emitChange(queryParams: URLQuery) {
