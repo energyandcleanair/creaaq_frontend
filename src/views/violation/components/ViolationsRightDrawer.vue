@@ -111,7 +111,7 @@ export default class ViolationsRightDrawer extends Vue {
     let year = moment().year()
 
     while (year >= 1920) {
-      const date = moment(0).year(year)
+      const date = moment.utc(0).year(year)
       years.push({
         label: date.year().toString(),
         value: toURLStringDate(+date),
