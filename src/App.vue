@@ -189,6 +189,7 @@ export default class App extends Vue {
 
   public signOut() {
     this.isMenuOpen = false
+    this.$trackGtmEvent('auth', 'logout')
     this.$auth.logout().then(() => this.$router.push({name: 'signIn'}))
   }
 }
