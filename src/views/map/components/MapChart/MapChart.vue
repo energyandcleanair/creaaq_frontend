@@ -7,44 +7,46 @@
       <v-progress-circular indeterminate color="primary" size="80" />
     </div>
 
-    <template v-if="!isLoading && !entities.length">
-      <v-alert class="fill-width text-center ma-12" color="grey lighten-3">
+    <!-- TODO: not in use -->
+    <!-- <div
+      v-if="!isLoading && !entities.length"
+      class="map-chart__message-banner pa-12"
+    >
+      <v-alert class="fill-width text-center ma-0" color="info lighten-3">
         {{ $t('msg.no_data') }}
       </v-alert>
-    </template>
+    </div> -->
 
-    <template v-else>
-      <div class="map-chart__content fill-width fill-height">
-        <l-map
-          ref="map"
-          class="elevation-1"
-          :options="mapOptions"
-          @ready="onMapInitialized"
-        >
-          <l-tile-layer
-            v-if="basemap === 'satellite'"
-            :url="MAP_LAYERS.SATELLITE.url"
-            :attribution="MAP_LAYERS.SATELLITE.attribution"
-          />
-          <l-tile-layer
-            v-else
-            :url="MAP_LAYERS.TERRAIN.url"
-            :attribution="MAP_LAYERS.TERRAIN.attribution"
-          />
+    <div class="map-chart__content fill-width fill-height">
+      <l-map
+        ref="map"
+        class="elevation-1"
+        :options="mapOptions"
+        @ready="onMapInitialized"
+      >
+        <l-tile-layer
+          v-if="basemap === 'satellite'"
+          :url="MAP_LAYERS.SATELLITE.url"
+          :attribution="MAP_LAYERS.SATELLITE.attribution"
+        />
+        <l-tile-layer
+          v-else
+          :url="MAP_LAYERS.TERRAIN.url"
+          :attribution="MAP_LAYERS.TERRAIN.attribution"
+        />
 
-          <div class="leaflet-bottom leaflet-left">
-            <v-btn
-              class="leaflet-control"
-              icon
-              :rounded="false"
-              @click="fitAllMarkers()"
-            >
-              <v-icon>{{ mdiArrowExpandAll }}</v-icon>
-            </v-btn>
-          </div>
-        </l-map>
-      </div>
-    </template>
+        <div class="leaflet-bottom leaflet-left">
+          <v-btn
+            class="leaflet-control"
+            icon
+            :rounded="false"
+            @click="fitAllMarkers()"
+          >
+            <v-icon>{{ mdiArrowExpandAll }}</v-icon>
+          </v-btn>
+        </div>
+      </l-map>
+    </div>
   </v-container>
 </template>
 
@@ -114,6 +116,9 @@ export default class MapChart extends Vue {
 
   @Prop({type: Boolean, default: false})
   public readonly permanentTooltipOnSelected!: boolean
+
+  @Prop({type: Boolean, default: false})
+  public readonly frozen!: boolean
 
   public privateIsLoading: boolean = false
   public mapMarkersList: Record<string, MapMarker> = {}
@@ -189,11 +194,13 @@ export default class MapChart extends Vue {
   }
 
   public async onMapInitialized() {
+    if (this.frozen) return
     this.refreshMapMarkers()
   }
 
   @Watch('queryParams.pollutants')
   public onFilterChanged(newVal: string[], oldVal: string[]) {
+    if (this.frozen) return
     const val1 = newVal?.join(',')
     const val2 = oldVal?.join(',')
     if (val1 !== val2) this.refreshMapMarkers()
@@ -201,6 +208,7 @@ export default class MapChart extends Vue {
 
   public get refreshMapMarkers() {
     return _debounce(async () => {
+      if (this.frozen) return
       this.isLoading = true
 
       // let the loader appear
@@ -215,18 +223,14 @@ export default class MapChart extends Vue {
       ) {
         this.$dialog.notify.info(
           this.$t('msg.no_items_selected', {
-            items: this.$t('sources')
-              .toString()
-              .toLowerCase(),
+            items: this.$t('sources').toString().toLowerCase(),
           }).toString(),
           {position: 'bottom-left', timeout: 3000, dismissible: false}
         )
       } else if (!this.queryParams.pollutants?.length) {
         this.$dialog.notify.info(
           this.$t('msg.no_items_selected', {
-            items: this.$t('pollutants')
-              .toString()
-              .toLowerCase(),
+            items: this.$t('pollutants').toString().toLowerCase(),
           }).toString(),
           {position: 'bottom-left', timeout: 3000, dismissible: false}
         )
@@ -531,6 +535,30 @@ $map-chart__table-footer--height: 59px;
     height: 100%;
     background: #ffffff5e;
     z-index: 10;
+  }
+
+  &__message-banner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: var(--v-grey-lighten5);
+      opacity: 0.7;
+    }
   }
 
   &__content {

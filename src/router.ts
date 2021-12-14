@@ -18,11 +18,13 @@ const routes: Array<RouteConfig> = [
       requiresAuth: false,
     },
     beforeEnter(to, from, next) {
-      const AUTH_ROUTES: string[] = (_get(
-        routes.find((r: RouteConfig) => r.name === 'auth'),
-        'children',
-        []
-      ) as RouteConfig[]).map((r: RouteConfig) => r.name || 'unknown')
+      const AUTH_ROUTES: string[] = (
+        _get(
+          routes.find((r: RouteConfig) => r.name === 'auth'),
+          'children',
+          []
+        ) as RouteConfig[]
+      ).map((r: RouteConfig) => r.name || 'unknown')
 
       if (Vue.auth.currentUser && to.name === 'changePassword') next()
       else if (Vue.auth.currentUser) next({name: 'home'})

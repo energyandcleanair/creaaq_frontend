@@ -21,6 +21,7 @@ export default interface URLQuery {
   display_mode?: ChartDisplayModes
   running_average?: RunningAverageEnum
   chart_cols?: ChartColumnSize | 0
+  need_reload?: boolean
 }
 
 export interface URLQueryRaw {
@@ -50,4 +51,7 @@ export interface URLQueryRaw {
 
   // chart_cols
   cols?: string
+
+  // need_reload
+  need_rld?: string
 }

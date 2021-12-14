@@ -27,8 +27,9 @@
     </v-container>
 
     <v-container class="page-content mt-4 px-8" fluid>
-      <template
+      <div
         v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+        class="view-stations__message-banner pa-12"
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
           <div class="d-flex justify-center">
@@ -52,14 +53,14 @@
             }}
           </b>
         </v-alert>
-      </template>
+      </div>
 
       <StationsChart
-        v-else
         ref="stationsChart"
         :queryParams="urlQuery"
         :chartData="chartData"
         :loading="isChartLoading"
+        :frozen="isKeepAliveInactive"
         @update:queryParams="onChangeQuery"
       />
     </v-container>
@@ -70,22 +71,44 @@
 import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
 import _difference from 'lodash.difference'
-import {Component, Ref, Vue} from 'vue-property-decorator'
+import {Component, Ref, Mixins} from 'vue-property-decorator'
 import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
+import Pollutant from '@/entities/Pollutant'
+import Source from '@/entities/Source'
 import CityAPI from '@/api/CityAPI'
 import SourceAPI from '@/api/SourceAPI'
 import PollutantAPI from '@/api/PollutantAPI'
 import StationAPI from '@/api/StationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
+import KeepAliveQueryMixin from '@/mixins/KeepAliveQuery'
 import {toQueryString} from '@/utils'
 import StationsChart from './components/StationsChart/StationsChart.vue'
 import ChartData from './components/StationsChart/ChartData'
 import URLQuery, {URLQueryRaw} from './types/URLQuery'
-import Pollutant from '@/entities/Pollutant'
-import Source from '@/entities/Source'
+
+const _queryToArray = (itm: string | string[] | undefined) =>
+  (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
+
+const keepAliveQueryMixin = KeepAliveQueryMixin({
+  // keep some of query params shared, even if the URL query is cached
+  beforeRestoreURLQuery(vm, cachedQuery: URLQueryRaw | null) {
+    if (!cachedQuery) return
+    const localStorageQuery: ModuleState['queryForm'] | null =
+      vm.$store.getters.GET('queryForm') || null
+
+    const cities1: string = localStorageQuery?.cities?.join(',') || ''
+    const cities2: string = _queryToArray(cachedQuery.ct).join(',')
+    if (cities1 && cities1 !== cities2) {
+      cachedQuery.ct = localStorageQuery?.cities
+      cachedQuery.need_rld = 'true'
+    }
+
+    return cachedQuery
+  },
+})
 
 @Component({
   components: {
@@ -93,7 +116,7 @@ import Source from '@/entities/Source'
     StationsChart,
   },
 })
-export default class ViewStations extends Vue {
+export default class ViewStations extends Mixins(keepAliveQueryMixin) {
   @Ref('stationsChart')
   readonly $stationsChart?: StationsChart
 
@@ -113,8 +136,6 @@ export default class ViewStations extends Vue {
 
   public get urlQuery(): URLQuery {
     const q: URLQueryRaw = this.$route.query
-    const _toArray = (itm: string | string[] | undefined) =>
-      (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
     // TODO: delete
     // fallback for old URL format
@@ -122,8 +143,9 @@ export default class ViewStations extends Vue {
     if (!q.st && (q as any).stations) q.st = (q as any).stations
 
     return {
-      cities: _toArray(q.ct),
-      stations: _toArray(q.st),
+      cities: _queryToArray(q.ct),
+      stations: _queryToArray(q.st),
+      need_reload: q.need_rld === 'true',
     }
   }
 
@@ -131,6 +153,7 @@ export default class ViewStations extends Vue {
     const query: URLQueryRaw = {
       ct: inputQuery.cities,
       st: inputQuery.stations,
+      need_rld: inputQuery.need_reload === true ? 'true' : undefined,
     }
 
     for (const _key in query) {
@@ -196,9 +219,19 @@ export default class ViewStations extends Vue {
 
   public async beforeMount() {
     this.isLoading = true
-    await this.fetch()
+    await to(this.fetch())
     this.isFetched = true
     this.isLoading = false
+  }
+
+  public async onAfterCachedQueryRestored() {
+    if (this.urlQuery.need_reload) {
+      this.isLoading = true
+      await to(this.fetch())
+      await this.setUrlQuery({...this.urlQuery, need_reload: false})
+      this.isFetched = true
+      this.isLoading = false
+    }
   }
 
   public async fetch() {
@@ -417,6 +450,8 @@ export default class ViewStations extends Vue {
   }
 
   public async onChangeQuery(query: URLQuery) {
+    if (this.isKeepAliveInactive) return
+
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
@@ -441,6 +476,33 @@ export default class ViewStations extends Vue {
 
 <style lang="scss">
 .view-stations {
+  overflow: auto;
+  position: unset;
+
+  &__message-banner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      // background: var(--v-grey-lighten5);
+      // opacity: 0.7;
+    }
+  }
+
   > .toolbar {
     position: relative;
     z-index: 5;

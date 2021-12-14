@@ -4,6 +4,7 @@ import Station from '@/entities/Station'
 export default interface URLQuery {
   cities: City['id'][]
   stations: Station['id'][]
+  need_reload?: boolean
 }
 
 export interface URLQueryRaw {
@@ -12,4 +13,7 @@ export interface URLQueryRaw {
 
   // stations
   st?: string[]
+
+  // need_reload
+  need_rld?: string
 }

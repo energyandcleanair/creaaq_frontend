@@ -1,7 +1,7 @@
 <template>
   <v-container class="violations-chart" fluid>
     <template v-if="loading">
-      <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
+      <v-skeleton-loader class="mb-2" type="image" style="height: 64px" />
 
       <v-row class="px-2">
         <v-col v-for="i of 12 / vCols" :key="i">
@@ -186,6 +186,9 @@ export default class ViolationsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly loading!: boolean
 
+  @Prop({type: Boolean, default: false})
+  public readonly frozen!: boolean
+
   public tooltip: TooltipParams = TOOLTIP_DEFAULTS
   public tooltips: any[] = []
 
@@ -287,17 +290,17 @@ export default class ViolationsChart extends Vue {
       const $date = moment(violation.date, URL_DATE_FORMAT)
       const calendarProp = $date.format('YYYY.MM.DD')
 
-      let violations: Violation[] | undefined = (_get(
+      let violations: Violation[] | undefined = _get(
         violationsCalendar,
         calendarProp
-      ) as any) as Violation[] | undefined
+      ) as any as Violation[] | undefined
 
       if (!violations) {
         _set<Violation[]>(violationsCalendar, calendarProp, [])
-        violations = (_get(
+        violations = _get(
           violationsCalendar,
           calendarProp
-        ) as any) as Violation[]
+        ) as any as Violation[]
       }
       violations.push(violation)
     }
@@ -339,10 +342,10 @@ export default class ViolationsChart extends Vue {
             const dateStr = date < 10 ? `0${date}` : String(date)
             const key = `${y_m}-${dateStr}`
             const $date = moment(key, 'YYYY-MM-DD')
-            const dateViolations: Violation[] | undefined = (_get(
+            const dateViolations: Violation[] | undefined = _get(
               violationsCalendar,
               key.replace(/-/g, '.')
-            ) as any) as Violation[] | undefined
+            ) as any as Violation[] | undefined
 
             const tooltipParams = this.genDateTooltipParams(
               $date,

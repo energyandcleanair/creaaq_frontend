@@ -5,66 +5,77 @@
       'right-panel-open': isRightPanelOpen,
     }"
   >
-    <v-container class="pt-10 pt-md-4 px-8" fluid>
-      <v-row>
-        <v-col cols="12" sm="8" md="6">
-          <SelectBoxCities
-            :value="urlQuery.cities"
-            :label="$t('cities')"
-            :items="chartData.cities"
-            :disabled="isLoading"
-            @input="onChangeQuery({...urlQuery, cities: $event})"
-          />
-        </v-col>
+    <v-container
+      class="page-content fill-height pa-0 align-content-start"
+      fluid
+    >
+      <v-container class="pt-10 pt-md-4 px-8" fluid>
+        <v-row>
+          <v-col cols="12" sm="8" md="6">
+            <SelectBoxCities
+              :value="urlQuery.cities"
+              :label="$t('cities')"
+              :items="chartData.cities"
+              :disabled="isLoading"
+              @input="onChangeQuery({...urlQuery, cities: $event})"
+            />
+          </v-col>
 
-        <v-col class="d-flex justify-end align-center" cols="12" sm="4" md="6">
-          <v-btn
-            class="ml-2"
-            :disabled="isLoading"
-            :loading="isLoading || isChartLoading"
-            @click="onClickRefresh"
-            color="primary"
+          <v-col
+            class="d-flex justify-end align-center"
+            cols="12"
+            sm="4"
+            md="6"
           >
-            {{ $t('refresh') }}
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-container>
+            <v-btn
+              class="ml-2"
+              :disabled="isLoading"
+              :loading="isLoading || isChartLoading"
+              @click="onClickRefresh"
+              color="primary"
+            >
+              {{ $t('refresh') }}
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-container>
 
-    <v-container class="mt-4 px-8" fluid>
-      <template
-        v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
-      >
-        <v-alert class="text-center my-12 px-12" color="warning lighten-2">
-          <div class="d-flex justify-center">
-            {{
-              $t(
-                'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
-              )
-            }}
-          </div>
+      <v-container class="mt-4 px-8" fluid>
+        <div
+          v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+          class="view-violations__message-banner pa-12"
+        >
+          <v-alert class="text-center my-12 px-12" color="warning lighten-2">
+            <div class="d-flex justify-center">
+              {{
+                $t(
+                  'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
+                )
+              }}
+            </div>
 
-          <b class="d-flex justify-center pt-2">
-            {{
-              $t('msg.queried_of_limit', {
-                queried: `${urlQuery.cities.length} ${$t('cities')
-                  .toString()
-                  .toLowerCase()}`,
-                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities')
-                  .toString()
-                  .toLowerCase()}`,
-              })
-            }}
-          </b>
-        </v-alert>
-      </template>
+            <b class="d-flex justify-center pt-2">
+              {{
+                $t('msg.queried_of_limit', {
+                  queried: `${urlQuery.cities.length} ${$t('cities')
+                    .toString()
+                    .toLowerCase()}`,
+                  limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities')
+                    .toString()
+                    .toLowerCase()}`,
+                })
+              }}
+            </b>
+          </v-alert>
+        </div>
 
-      <ViolationsChart
-        v-else
-        :queryParams="urlQuery"
-        :chartData="chartData"
-        :loading="isChartLoading"
-      />
+        <ViolationsChart
+          :queryParams="urlQuery"
+          :chartData="chartData"
+          :loading="isChartLoading"
+          :frozen="isKeepAliveInactive"
+        />
+      </v-container>
     </v-container>
 
     <ViolationsRightDrawer
@@ -81,7 +92,8 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
-import {Component, Vue} from 'vue-property-decorator'
+import {Route} from 'vue-router'
+import {Component, Vue, Mixins} from 'vue-property-decorator'
 import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
@@ -94,6 +106,7 @@ import PollutantAPI from '@/api/PollutantAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
+import KeepAliveQueryMixin from '@/mixins/KeepAliveQuery'
 import {toURLStringDate, toQueryString, URL_DATE_FORMAT} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
@@ -101,6 +114,37 @@ import ChartData from './components/ViolationsChart/ChartData'
 import URLQuery, {URLQueryRaw} from './types/URLQuery'
 
 const JAN_1: number = +moment(0).year(moment().year())
+const _queryToArray = (itm: string | string[] | undefined) =>
+  (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
+
+const keepAliveQueryMixin = KeepAliveQueryMixin({
+  // keep some of query params shared, even if the URL query is cached
+  beforeRestoreURLQuery(vm, cachedQuery: URLQueryRaw | null) {
+    if (!cachedQuery) return
+    const localStorageQuery: ModuleState['queryForm'] | null =
+      vm.$store.getters.GET('queryForm') || null
+
+    const cities1: string = localStorageQuery?.cities?.join(',') || ''
+    const cities2: string = _queryToArray(cachedQuery.ct).join(',')
+    if (cities1 && cities1 !== cities2) {
+      cachedQuery.ct = localStorageQuery?.cities
+      cachedQuery.need_rld = 'true'
+    }
+
+    const dateStart1: string = localStorageQuery?.dateStart
+      ? toURLStringDate(localStorageQuery.dateStart)
+      : ''
+    const dateStart2: string = cachedQuery.start
+      ? toURLStringDate(cachedQuery.start)
+      : ''
+    if (dateStart1 && dateStart1 !== dateStart2) {
+      cachedQuery.start = localStorageQuery?.dateStart
+      cachedQuery.need_rld = 'true'
+    }
+
+    return cachedQuery
+  },
+})
 
 @Component({
   components: {
@@ -109,7 +153,7 @@ const JAN_1: number = +moment(0).year(moment().year())
     ViolationsChart,
   },
 })
-export default class ViewViolations extends Vue {
+export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   public isChartLoading: boolean = false
   public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
@@ -128,8 +172,6 @@ export default class ViewViolations extends Vue {
 
   public get urlQuery(): URLQuery {
     const q: URLQueryRaw = this.$route.query
-    const _toArray = (itm: string | string[] | undefined) =>
-      (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
     // TODO: delete
     // fallback for old URL format
@@ -140,12 +182,13 @@ export default class ViewViolations extends Vue {
     if (!q.start && (q as any).date_start) q.start = (q as any).date_start
 
     return {
-      cities: _toArray(q.ct),
-      pollutants: _toArray(q.pl),
-      targets: _toArray(q.tg),
-      guidelines: _toArray(q.gl),
+      cities: _queryToArray(q.ct),
+      pollutants: _queryToArray(q.pl),
+      targets: _queryToArray(q.tg),
+      guidelines: _queryToArray(q.gl),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
       overshooting: q.ovshoot === 'true',
+      need_reload: q.need_rld === 'true',
     }
   }
 
@@ -159,6 +202,7 @@ export default class ViewViolations extends Vue {
         ? toURLStringDate(inputQuery.date_start)
         : undefined,
       ovshoot: inputQuery.overshooting === true ? 'true' : undefined,
+      need_rld: inputQuery.need_reload === true ? 'true' : undefined,
     }
 
     for (const _key in query) {
@@ -204,6 +248,13 @@ export default class ViewViolations extends Vue {
 
   public beforeMount() {
     this.fetch()
+  }
+
+  public async onAfterCachedQueryRestored() {
+    if (this.urlQuery.need_reload) {
+      await to(this.fetch())
+      await this.setUrlQuery({...this.urlQuery, need_reload: false})
+    }
   }
 
   public async fetch() {
@@ -461,6 +512,8 @@ export default class ViewViolations extends Vue {
   }
 
   public async onChangeQuery(query: URLQuery) {
+    if (this.isKeepAliveInactive) return
+
     this.$loader.on()
 
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
@@ -494,6 +547,36 @@ $right_panel--width: 250px;
 
 .view-violations {
   overflow: auto;
+  position: unset;
+
+  > .page-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  &__message-banner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: var(--v-grey-lighten5);
+      opacity: 0.7;
+    }
+  }
 
   &.right-panel-open {
     width: calc(100% - #{$right_panel--width});

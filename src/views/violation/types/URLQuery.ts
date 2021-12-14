@@ -10,6 +10,7 @@ export default interface URLQuery {
   guidelines: Guideline['id'][]
   date_start?: string
   overshooting?: boolean
+  need_reload?: boolean
 }
 
 export interface URLQueryRaw {
@@ -30,4 +31,7 @@ export interface URLQueryRaw {
 
   // overshooting
   ovshoot?: string
+
+  // need_reload
+  need_rld?: string
 }

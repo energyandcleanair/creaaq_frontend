@@ -91,7 +91,16 @@
     <AppDrawer :open="!!$auth.currentUser" />
 
     <v-main>
-      <RouterView />
+      <keep-alive
+        :include="[
+          'ViewMeasurements',
+          'ViewViolations',
+          'ViewStations',
+          'ViewMap',
+        ]"
+      >
+        <RouterView :key="$route.path" />
+      </keep-alive>
     </v-main>
 
     <CustomLoader />

@@ -5,53 +5,13 @@
       'right-panel-open': isRightPanelOpen,
     }"
   >
-    <v-container class="pt-10 pt-md-4 px-8" fluid>
-      <v-row>
-        <v-col cols="12" md="5" lg="6" xl="6">
-          <SelectBoxCities
-            :value="urlQuery.cities"
-            :label="$t('cities')"
-            :items="chartData.cities"
-            :disabled="isLoading"
-            @input="onChangeQuery({...urlQuery, cities: $event})"
-          />
-        </v-col>
-
-        <v-col>
-          <DatesIntervalInput
-            :dateStart="toNumberDate(urlQuery.date_start || '')"
-            :dateEnd="toNumberDate(urlQuery.date_end || '')"
-            format="YYYY-MM-DD"
-            :disabled="isLoading"
-            @input="
-              onChangeQuery({
-                ...urlQuery,
-                date_start: toURLStringDate($event.dateStart),
-                date_end: toURLStringDate($event.dateEnd),
-              })
-            "
-          />
-        </v-col>
-
-        <v-spacer />
-
-        <v-col class="d-flex justify-end align-center">
-          <v-btn
-            class="ml-3"
-            :disabled="isLoading"
-            :loading="isLoading || isChartLoading"
-            @click="onClickRefresh"
-            color="primary"
-          >
-            {{ $t('refresh') }}
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-container>
-
-    <v-container class="mt-4 px-8" fluid>
-      <template
+    <v-container
+      class="page-content fill-height pa-0 align-content-start"
+      fluid
+    >
+      <div
         v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+        class="view-measurements__message-banner pa-12"
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
           <div class="d-flex justify-center">
@@ -75,10 +35,11 @@
             }}
           </b>
         </v-alert>
-      </template>
+      </div>
 
-      <template
+      <div
         v-else-if="urlQuery && urlQuery.cities.length > LIMIT_RENDER_ITEMS"
+        class="view-measurements__message-banner pa-12"
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-3">
           <div class="d-flex justify-center">
@@ -106,22 +67,67 @@
         <v-row class="justify-center">
           <ExportBtn class="d-flex" :value="'CSV'" @click="onClickExport" />
         </v-row>
-      </template>
+      </div>
+      <v-container class="pt-10 pt-md-4 px-8" fluid>
+        <v-row>
+          <v-col cols="12" md="5" lg="6" xl="6">
+            <SelectBoxCities
+              :value="urlQuery.cities"
+              :label="$t('cities')"
+              :items="chartData.cities"
+              :disabled="isLoading"
+              @input="onChangeQuery({...urlQuery, cities: $event})"
+            />
+          </v-col>
 
-      <MeasurementsChart
-        v-else
-        :queryParams="urlQuery"
-        :chartData="chartData"
-        :cols.sync="chartCols"
-        :chartDisplayMode="displayMode"
-        :runningAverage="runningAverage"
-        :displayStations="allowDisplayStations"
-        :filterSources="filterSources"
-        :filterPollutants="filterPollutants"
-        :filterStations="filterStations"
-        :maxColHeight="maxColHeight"
-        :loading="isChartLoading"
-      />
+          <v-col>
+            <DatesIntervalInput
+              :dateStart="toNumberDate(urlQuery.date_start || '')"
+              :dateEnd="toNumberDate(urlQuery.date_end || '')"
+              format="YYYY-MM-DD"
+              :disabled="isLoading"
+              @input="
+                onChangeQuery({
+                  ...urlQuery,
+                  date_start: toURLStringDate($event.dateStart),
+                  date_end: toURLStringDate($event.dateEnd),
+                })
+              "
+            />
+          </v-col>
+
+          <v-spacer />
+
+          <v-col class="d-flex justify-end align-center">
+            <v-btn
+              class="ml-3"
+              :disabled="isLoading"
+              :loading="isLoading || isChartLoading"
+              @click="onClickRefresh"
+              color="primary"
+            >
+              {{ $t('refresh') }}
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-container>
+
+      <v-container class="mt-4 px-8" fluid>
+        <MeasurementsChart
+          :queryParams="urlQuery"
+          :chartData="chartData"
+          :cols.sync="chartCols"
+          :chartDisplayMode="displayMode"
+          :runningAverage="runningAverage"
+          :displayStations="allowDisplayStations"
+          :filterSources="filterSources"
+          :filterPollutants="filterPollutants"
+          :filterStations="filterStations"
+          :maxColHeight="maxColHeight"
+          :loading="isChartLoading"
+          :frozen="isKeepAliveInactive"
+        />
+      </v-container>
     </v-container>
 
     <MeasurementsRightDrawer
@@ -142,7 +148,7 @@ import moment from 'moment'
 import _orderBy from 'lodash.orderby'
 import json2csv from 'json2csv'
 import {saveAs} from 'file-saver'
-import {Component, Vue} from 'vue-property-decorator'
+import {Component, Mixins} from 'vue-property-decorator'
 import {
   URL_DATE_FORMAT,
   toURLStringDate,
@@ -164,6 +170,7 @@ import MeasurementAPI from '@/api/MeasurementAPI'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
+import KeepAliveQueryMixin from '@/mixins/KeepAliveQuery'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
@@ -177,6 +184,35 @@ const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
 const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
+const keepAliveQueryMixin = KeepAliveQueryMixin({
+  // keep some of query params shared, even if the URL query is cached
+  beforeRestoreURLQuery(vm, cachedQuery: URLQueryRaw | null) {
+    if (!cachedQuery) return
+    const localStorageQuery: ModuleState['queryForm'] | null =
+      vm.$store.getters.GET('queryForm') || null
+
+    const cities1: string = localStorageQuery?.cities?.join(',') || ''
+    const cities2: string = _queryToArray(cachedQuery.ct).join(',')
+    if (cities1 && cities1 !== cities2) {
+      cachedQuery.ct = localStorageQuery?.cities
+      cachedQuery.need_rld = 'true'
+    }
+
+    const dateStart1: string = localStorageQuery?.dateStart
+      ? toURLStringDate(localStorageQuery.dateStart)
+      : ''
+    const dateStart2: string = cachedQuery.start
+      ? toURLStringDate(cachedQuery.start)
+      : ''
+    if (dateStart1 && dateStart1 !== dateStart2) {
+      cachedQuery.start = localStorageQuery?.dateStart
+      cachedQuery.need_rld = 'true'
+    }
+
+    return cachedQuery
+  },
+})
+
 @Component({
   components: {
     MeasurementsRightDrawer,
@@ -186,7 +222,7 @@ const _queryToArray = (itm: string | string[] | undefined) =>
     ExportBtn,
   },
 })
-export default class ViewMeasurements extends Vue {
+export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   public isLoading: boolean = false
   public isChartLoading: boolean = false
   public readonly LIMIT_RENDER_ITEMS: number = 20
@@ -228,6 +264,7 @@ export default class ViewMeasurements extends Vue {
         : undefined,
       running_average: (q.avg as RunningAverageEnum) || undefined,
       chart_cols: (Number(q.cols) || 0) as ChartColumnSize,
+      need_reload: q.need_rld === 'true',
     }
   }
 
@@ -246,6 +283,7 @@ export default class ViewMeasurements extends Vue {
       dspl: inputQuery.display_mode,
       avg: inputQuery.running_average,
       cols: String(inputQuery.chart_cols || 0),
+      need_rld: inputQuery.need_reload === true ? 'true' : undefined,
     }
 
     for (const _key in query) {
@@ -335,8 +373,17 @@ export default class ViewMeasurements extends Vue {
 
   public async beforeMount() {
     this.isLoading = true
-    await this.fetch()
+    await to(this.fetch())
     this.isLoading = false
+  }
+
+  public async onAfterCachedQueryRestored() {
+    if (this.urlQuery.need_reload) {
+      this.isLoading = true
+      await to(this.fetch())
+      await this.setUrlQuery({...this.urlQuery, need_reload: false})
+      this.isLoading = false
+    }
   }
 
   public async fetch() {
@@ -642,6 +689,8 @@ export default class ViewMeasurements extends Vue {
   }
 
   public async onChangeQuery(query: URLQuery) {
+    if (this.isKeepAliveInactive) return
+
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
@@ -793,6 +842,36 @@ $right_panel--width: 250px;
 
 .view-measurements {
   overflow: auto;
+  position: unset;
+
+  > .page-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  &__message-banner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: var(--v-grey-lighten5);
+      opacity: 0.7;
+    }
+  }
 
   &.right-panel-open {
     width: calc(100% - #{$right_panel--width});
