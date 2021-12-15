@@ -41,11 +41,7 @@ describe('DatesIntervalInput.vue', () => {
     const vm: any = wrapper.findComponent(DatesIntervalInput).vm
 
     const case1 = () => {
-      const dateStart = +moment
-        .utc()
-        .year(today.year())
-        .month(0)
-        .date(1)
+      const dateStart = +moment.utc().year(today.year()).month(0).date(1)
       const endDate = +today
       const interval: DatesIntervals = vm.determineInterval(
         dateStart,
@@ -56,11 +52,7 @@ describe('DatesIntervalInput.vue', () => {
     }
 
     const case2 = () => {
-      const dateStart = +moment
-        .utc()
-        .year(today.year())
-        .month(0)
-        .date(1)
+      const dateStart = +moment.utc().year(today.year()).month(0).date(1)
       const endDate = 0
       const interval: DatesIntervals = vm.determineInterval(
         dateStart,
@@ -152,16 +144,8 @@ describe('DatesIntervalInput.vue', () => {
     const vm: any = wrapper.findComponent(DatesIntervalInput).vm
 
     const case1 = () => {
-      const dateStart = +moment
-        .utc()
-        .year(today.year())
-        .month(0)
-        .date(2)
-      const endDate = +moment
-        .utc()
-        .year(today.year())
-        .month(9)
-        .date(12)
+      const dateStart = +moment.utc().year(today.year()).month(0).date(2)
+      const endDate = +moment.utc().year(today.year()).month(9).date(12)
       const interval: DatesIntervals = vm.determineInterval(
         dateStart,
         endDate,
@@ -171,11 +155,7 @@ describe('DatesIntervalInput.vue', () => {
     }
 
     const case2 = () => {
-      const dateStart = +moment
-        .utc()
-        .year(today.year())
-        .month(0)
-        .date(2)
+      const dateStart = +moment.utc().year(today.year()).month(0).date(2)
       const endDate = 0
       const interval: DatesIntervals = vm.determineInterval(
         dateStart,
@@ -259,11 +239,7 @@ describe('DatesIntervalInput.vue', () => {
         +today
       )
 
-      const dateStart = +moment
-        .utc(today)
-        .year(today.year())
-        .month(0)
-        .date(1)
+      const dateStart = +moment.utc(today).year(today.year()).month(0).date(1)
       const endDate = +today
 
       expect(dates.dateStart).toBe(dateStart)
