@@ -106,18 +106,7 @@
                   <v-card>
                     <v-card-title v-text="item.name" />
                     <v-card-text v-if="item.url">
-                      <a
-                        :href="item.url"
-                        target="_blank"
-                        v-text="item.url"
-                        @click="
-                          $trackGtmEvent(
-                            'outbound_link',
-                            'measurements_source',
-                            item.url
-                          )
-                        "
-                      />
+                      <a :href="item.url" target="_blank" v-text="item.url" />
                     </v-card-text>
                   </v-card>
                 </v-menu>
