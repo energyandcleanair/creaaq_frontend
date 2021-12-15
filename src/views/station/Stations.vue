@@ -115,6 +115,11 @@ const keepAliveQueryMixin = KeepAliveQueryMixin({
     SelectBoxCities,
     StationsChart,
   },
+  metaInfo() {
+    return {
+      title: `${this.$t('stations')} - ${config.get('APP_PUBLIC_NAME')}`,
+    }
+  },
 })
 export default class ViewStations extends Mixins(keepAliveQueryMixin) {
   @Ref('stationsChart')

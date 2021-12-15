@@ -3,6 +3,7 @@ import './classComponentHooks'
 import Vue from 'vue'
 import axios from 'axios'
 import VueAxios from 'vue-axios'
+import VueMeta from 'vue-meta'
 
 import PluginLoader from '@/plugins/Loader'
 import vuetify from '@/plugins/vuetify'
@@ -20,6 +21,11 @@ import App from '@/App.vue'
 import '@/registerServiceWorker'
 
 initGtmAnalytics(router)
+Vue.use(VueMeta, {
+  keyName: 'metaInfo',
+  attribute: 'data-vue-meta',
+  refreshOnceOnNavigation: true,
+})
 Vue.use(VueAxios, axios)
 Vue.use(PluginAuth, {store, firebase})
 Vue.use(PluginLoader, {componentName: 'CustomLoader'})

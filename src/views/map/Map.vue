@@ -99,6 +99,11 @@ const _queryToArray = (itm: string | string[] | undefined) =>
     MapChart,
     MapRightDrawer,
   },
+  metaInfo() {
+    return {
+      title: `${this.$t('map')} - ${config.get('APP_PUBLIC_NAME')}`,
+    }
+  },
 })
 export default class ViewMap extends Mixins(KeepAliveQueryMixin()) {
   @Ref('map')

@@ -221,6 +221,11 @@ const keepAliveQueryMixin = KeepAliveQueryMixin({
     MeasurementsChart,
     ExportBtn,
   },
+  metaInfo() {
+    return {
+      title: `${this.$t('measurements')} - ${config.get('APP_PUBLIC_NAME')}`,
+    }
+  },
 })
 export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   public isLoading: boolean = false

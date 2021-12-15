@@ -152,6 +152,11 @@ const keepAliveQueryMixin = KeepAliveQueryMixin({
     SelectBoxCities,
     ViolationsChart,
   },
+  metaInfo() {
+    return {
+      title: `${this.$t('violations')} - ${config.get('APP_PUBLIC_NAME')}`,
+    }
+  },
 })
 export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   public isChartLoading: boolean = false
