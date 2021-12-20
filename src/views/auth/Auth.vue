@@ -35,6 +35,7 @@ import FormResetPasswordMessage from './ResetPasswordMessage.form.vue'
 import FormChangePassword from './ChangePassword.form.vue'
 
 @Component({
+  name: 'ViewAuth',
   components: {
     FormSignIn,
     FormSignUp,
@@ -43,7 +44,7 @@ import FormChangePassword from './ChangePassword.form.vue'
     FormChangePassword,
   },
 })
-export default class PageAuth extends Vue {
+export default class ViewAuth extends Vue {
   @Ref('form')
   readonly $form: any
 

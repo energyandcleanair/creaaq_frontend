@@ -28,7 +28,9 @@
 import {forageStore} from '@/api/API'
 import {Component, Vue} from 'vue-property-decorator'
 
-@Component
+@Component({
+  name: 'ViewProfile',
+})
 export default class ViewProfile extends Vue {
   public isLoading: boolean = false
 

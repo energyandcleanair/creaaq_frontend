@@ -1,6 +1,6 @@
 <template>
   <v-container class="view-support" fluid>
-    <h1 class="d-block text-center my-5" style="display: none !important;">
+    <h1 class="d-block text-center my-5" style="display: none !important">
       {{ $t('help_n_support') }}
     </h1>
 
@@ -30,8 +30,10 @@ import {Component, Vue} from 'vue-property-decorator'
 
 Vue.use(LoadScript)
 
-@Component
-export default class ViewProfile extends Vue {
+@Component({
+  name: 'ViewSupport',
+})
+export default class ViewSupport extends Vue {
   public isLoading: boolean = false
 
   public beforeCreate() {

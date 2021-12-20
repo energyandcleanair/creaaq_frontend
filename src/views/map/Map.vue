@@ -94,6 +94,7 @@ const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
 @Component({
+  name: 'ViewMap',
   components: {
     SelectBoxCities,
     MapChart,

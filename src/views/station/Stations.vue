@@ -111,6 +111,7 @@ const keepAliveQueryMixin = KeepAliveQueryMixin({
 })
 
 @Component({
+  name: 'ViewStations',
   components: {
     SelectBoxCities,
     StationsChart,

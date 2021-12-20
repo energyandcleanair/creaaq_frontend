@@ -147,6 +147,7 @@ const keepAliveQueryMixin = KeepAliveQueryMixin({
 })
 
 @Component({
+  name: 'ViewViolations',
   components: {
     ViolationsRightDrawer,
     SelectBoxCities,
