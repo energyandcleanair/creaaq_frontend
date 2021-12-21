@@ -1,18 +1,20 @@
 import {VueClass} from '@vue/test-utils'
 import {Component, Vue} from 'vue-property-decorator'
 import {NavigationGuardNext, Route} from 'vue-router'
-import {isObjEmpty} from '@/utils'
 
 type RouteQuery = Record<string, any>
-interface IKeepAliveQueryMixin extends Vue {
+export interface IKeepAliveQueryMixin extends Vue {
   isKeepAliveInactive: boolean
+  cacheCurrentRouteSnapshot: () => string
 }
+type ComponentMethodName<T> = keyof T
 
-export default function mixinConstructor(params?: {
-  beforeRestoreURLQuery?: (
-    vm: Vue,
-    cachedQuery: RouteQuery | null
-  ) => void | RouteQuery | Promise<RouteQuery>
+export default function mixinConstructor<T>(params: {
+  hooksMap: {
+    reload: ComponentMethodName<T>
+  }
+  // keep some of query params shared, even if the URL query is cached
+  sharedQueryGetter?: (vm: T) => RouteQuery | Promise<RouteQuery>
 }): VueClass<IKeepAliveQueryMixin> {
   /**
    * Mixin that caches the URL query before leaving the route
@@ -22,71 +24,121 @@ export default function mixinConstructor(params?: {
    **/
   return Component(
     class KeepAliveQueryMixin extends Vue {
-      public isKeepAliveInactive: boolean = true
+      public isKeepAliveInactive: boolean = false
+      private cachedRouteSnapshot: string = ''
 
-      private keepAliveQueryCache: {
-        query: RouteQuery | null
-      } = {
-        query: null,
-      }
-
-      public hasCachedQuery(): boolean {
-        return !isObjEmpty(this.$route.query)
-      }
-
-      public async activated() {
-        if (!this.$route.query || isObjEmpty(this.$route.query)) {
-          try {
-            await this._restoreQuery()
-          } catch (err) {
-            console.error(err)
-          }
+      private async activated() {
+        let isNeedReload: boolean = false
+        try {
+          isNeedReload = await this.beforeKeepAliveActivated()
+        } catch (err) {
+          console.error(err)
         }
         this.isKeepAliveInactive = false
+
+        if (isNeedReload == true) {
+          if (typeof (this as any)[params?.hooksMap.reload] === 'function') {
+            await (this as any)[params?.hooksMap.reload].call(this)
+          } else {
+            console.error(
+              "KeepAliveQueryMixin. The 'reload' function is not defined"
+            )
+          }
+        }
       }
 
-      public async beforeRouteLeave(
+      private async beforeRouteLeave(
         _: any,
         __: any,
         next: NavigationGuardNext
       ) {
-        try {
-          await this._cacheQuery()
-        } catch (err) {
-          console.error(err)
-        }
         this.isKeepAliveInactive = true
         next()
       }
 
-      public async _cacheQuery() {
-        this.keepAliveQueryCache.query = this.$route.query
+      private async beforeKeepAliveActivated(): Promise<boolean> {
+        const sharedQuery =
+          params?.sharedQueryGetter?.call(this, this as any as T) || {}
+        let isNeedReload = false
+        const isEmptyQuery = this.$route.fullPath === this.$route.path
+        const cachedSnapshot = this.getCachedRouteSnapshot()
+
+        if (isEmptyQuery) {
+          if (cachedSnapshot) {
+            const cachedMergedSnapshot = this.getCachedRouteSnapshot({
+              merge: {query: sharedQuery},
+            })
+            const isEqual = this.checkRouteSnapshotEqualsTo(
+              cachedSnapshot,
+              cachedMergedSnapshot
+            )
+            await this.replaceCurrentRouteWithSnapshot(cachedMergedSnapshot)
+            if (!isEqual) isNeedReload = true
+          } else {
+            isNeedReload = true
+          }
+        } else {
+          const isEqual = this.checkRouteSnapshotEqualsTo(
+            cachedSnapshot,
+            this.takeCurrentRouteSnapshot()
+          )
+          isNeedReload = !isEqual
+        }
+
+        return isNeedReload
       }
 
-      public async _restoreQuery() {
-        let cachedQuery = this.keepAliveQueryCache.query
+      private takeCurrentRouteSnapshot(params?: {
+        merge?: {query?: Record<string, any>}
+      }): string {
+        return this.takeRouteSnapshot(this.$route, params)
+      }
 
-        if (params?.beforeRestoreURLQuery) {
-          const updatedQuery = await params.beforeRestoreURLQuery.call(
-            this,
-            this,
-            cachedQuery
-          )
-          if (updatedQuery) cachedQuery = updatedQuery
+      private takeRouteSnapshot(
+        route: Route,
+        params?: {
+          merge?: {query?: Record<string, any>}
         }
-
-        const newRoute: Route = this.$router.resolve({
-          ...(this.$route as any),
-          query: cachedQuery,
+      ): string {
+        const resultRoute: Route = this.$router.resolve({
+          ...(route as any),
+          query: {
+            ...route.query,
+            ...(params?.merge?.query || {}),
+          },
         }).resolved
+        return resultRoute.fullPath
+      }
 
-        if (this.$route.fullPath !== newRoute.fullPath) {
-          await this.$router.replace(newRoute.fullPath)
-        }
+      public cacheCurrentRouteSnapshot(): string {
+        this.cachedRouteSnapshot = this.takeCurrentRouteSnapshot()
+        return this.cachedRouteSnapshot
+      }
 
-        if (typeof (this as any).onAfterCachedQueryRestored === 'function') {
-          ;(this as any).onAfterCachedQueryRestored.call(this)
+      private getCachedRouteSnapshot(params?: {
+        merge?: {query?: Record<string, any>}
+      }): string {
+        let snapshot = this.cachedRouteSnapshot
+        if (params?.merge?.query) {
+          const routeSnapshot: Route = this.$router.resolve(snapshot).resolved
+          snapshot = this.takeRouteSnapshot(routeSnapshot, {
+            merge: params.merge,
+          })
         }
+        return snapshot
+      }
+
+      private checkRouteSnapshotEqualsTo(
+        path1: string,
+        path2: string
+      ): boolean {
+        return path1 === path2
+      }
+
+      private async replaceCurrentRouteWithSnapshot(snapshot: string) {
+        await this.$router.replace(snapshot, undefined, (err) => {
+          console.error(err)
+        })
       }
     }
   )

@@ -9,7 +9,7 @@
       class="page-content fill-height pa-0 align-content-start"
       fluid
     >
-      <v-container class="pt-10 pt-md-4 px-8" fluid>
+      <v-container class="pt-10 pt-md-4 px-8" style="z-index: 15" fluid>
         <v-row>
           <v-col cols="12" sm="8" md="6">
             <SelectBoxCities
@@ -92,8 +92,8 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
-import {Route} from 'vue-router'
-import {Component, Vue, Mixins} from 'vue-property-decorator'
+import {Component, Mixins} from 'vue-property-decorator'
+import {VueClass} from 'vue-class-component/lib/declarations'
 import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
@@ -106,7 +106,9 @@ import PollutantAPI from '@/api/PollutantAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import KeepAliveQueryMixin from '@/mixins/KeepAliveQuery'
+import KeepAliveQueryMixin, {
+  IKeepAliveQueryMixin,
+} from '@/mixins/KeepAliveQuery'
 import {toURLStringDate, toQueryString, URL_DATE_FORMAT} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
@@ -117,34 +119,21 @@ const JAN_1: number = +moment(0).year(moment().year())
 const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
-const keepAliveQueryMixin = KeepAliveQueryMixin({
-  // keep some of query params shared, even if the URL query is cached
-  beforeRestoreURLQuery(vm, cachedQuery: URLQueryRaw | null) {
-    if (!cachedQuery) return
-    const localStorageQuery: ModuleState['queryForm'] | null =
-      vm.$store.getters.GET('queryForm') || null
-
-    const cities1: string = localStorageQuery?.cities?.join(',') || ''
-    const cities2: string = _queryToArray(cachedQuery.ct).join(',')
-    if (cities1 && cities1 !== cities2) {
-      cachedQuery.ct = localStorageQuery?.cities
-      cachedQuery.need_rld = 'true'
-    }
-
-    const dateStart1: string = localStorageQuery?.dateStart
-      ? toURLStringDate(localStorageQuery.dateStart)
-      : ''
-    const dateStart2: string = cachedQuery.start
-      ? toURLStringDate(cachedQuery.start)
-      : ''
-    if (dateStart1 && dateStart1 !== dateStart2) {
-      cachedQuery.start = localStorageQuery?.dateStart
-      cachedQuery.need_rld = 'true'
-    }
-
-    return cachedQuery
-  },
-})
+const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
+  KeepAliveQueryMixin<ViewViolations>({
+    hooksMap: {
+      reload: 'init',
+    },
+    sharedQueryGetter(vm) {
+      const localStorageQuery: ModuleState['queryForm'] | null =
+        vm.$store.getters.GET('queryForm') || null
+      const sharedQuery: URLQueryRaw = {
+        ct: localStorageQuery?.cities || undefined,
+        start: localStorageQuery?.dateStart || undefined,
+      }
+      return sharedQuery
+    },
+  })
 
 @Component({
   name: 'ViewViolations',
@@ -194,7 +183,6 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       guidelines: _queryToArray(q.gl),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
       overshooting: q.ovshoot === 'true',
-      need_reload: q.need_rld === 'true',
     }
   }
 
@@ -208,7 +196,6 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
         ? toURLStringDate(inputQuery.date_start)
         : undefined,
       ovshoot: inputQuery.overshooting === true ? 'true' : undefined,
-      need_rld: inputQuery.need_reload === true ? 'true' : undefined,
     }
 
     for (const _key in query) {
@@ -237,7 +224,10 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
         key: 'queryForm.dateStart',
         value: newRouteQuery.start,
       })
-      await this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href, undefined, (err) =>
+        console.error(err)
+      )
+      this.cacheCurrentRouteSnapshot()
     }
   }
 
@@ -253,14 +243,18 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   }
 
   public beforeMount() {
-    this.fetch()
+    // see init()
   }
 
-  public async onAfterCachedQueryRestored() {
-    if (this.urlQuery.need_reload) {
-      await to(this.fetch())
-      await this.setUrlQuery({...this.urlQuery, need_reload: false})
-    }
+  public async init() {
+    await this.fetch()
+    this.cacheCurrentRouteSnapshot()
+  }
+
+  public async refresh() {
+    this.$loader.on()
+    await this.refreshChartData()
+    this.$loader.off()
   }
 
   public async fetch() {
@@ -537,12 +531,6 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   public async onClickRefresh() {
     this.$trackGtmEvent('violations', 'refresh')
     this.refresh()
-  }
-
-  public async refresh() {
-    this.$loader.on()
-    await this.refreshChartData()
-    this.$loader.off()
   }
 }
 </script>

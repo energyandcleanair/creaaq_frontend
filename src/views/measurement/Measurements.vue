@@ -68,7 +68,8 @@
           <ExportBtn class="d-flex" :value="'CSV'" @click="onClickExport" />
         </v-row>
       </div>
-      <v-container class="pt-10 pt-md-4 px-8" fluid>
+
+      <v-container class="pt-10 pt-md-4 px-8" fluid style="z-index: 15">
         <v-row>
           <v-col cols="12" md="5" lg="6" xl="6">
             <SelectBoxCities
@@ -170,7 +171,9 @@ import MeasurementAPI from '@/api/MeasurementAPI'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
-import KeepAliveQueryMixin from '@/mixins/KeepAliveQuery'
+import KeepAliveQueryMixin, {
+  IKeepAliveQueryMixin,
+} from '@/mixins/KeepAliveQuery'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
@@ -178,40 +181,28 @@ import ChartData from './components/MeasurementsChart/ChartData'
 import ChartColumnSize from './components/MeasurementsChart/ChartColumnSize'
 import RunningAverageEnum from './types/RunningAverageEnum'
 import URLQuery, {URLQueryRaw, URLQueryStations} from './types/URLQuery'
+import {VueClass} from 'vue-class-component/lib/declarations'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
 const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
-const keepAliveQueryMixin = KeepAliveQueryMixin({
-  // keep some of query params shared, even if the URL query is cached
-  beforeRestoreURLQuery(vm, cachedQuery: URLQueryRaw | null) {
-    if (!cachedQuery) return
-    const localStorageQuery: ModuleState['queryForm'] | null =
-      vm.$store.getters.GET('queryForm') || null
-
-    const cities1: string = localStorageQuery?.cities?.join(',') || ''
-    const cities2: string = _queryToArray(cachedQuery.ct).join(',')
-    if (cities1 && cities1 !== cities2) {
-      cachedQuery.ct = localStorageQuery?.cities
-      cachedQuery.need_rld = 'true'
-    }
-
-    const dateStart1: string = localStorageQuery?.dateStart
-      ? toURLStringDate(localStorageQuery.dateStart)
-      : ''
-    const dateStart2: string = cachedQuery.start
-      ? toURLStringDate(cachedQuery.start)
-      : ''
-    if (dateStart1 && dateStart1 !== dateStart2) {
-      cachedQuery.start = localStorageQuery?.dateStart
-      cachedQuery.need_rld = 'true'
-    }
-
-    return cachedQuery
-  },
-})
+const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
+  KeepAliveQueryMixin<ViewMeasurements>({
+    hooksMap: {
+      reload: 'init',
+    },
+    sharedQueryGetter(vm) {
+      const localStorageQuery: ModuleState['queryForm'] | null =
+        vm.$store.getters.GET('queryForm') || null
+      const sharedQuery: URLQueryRaw = {
+        ct: localStorageQuery?.cities || undefined,
+        start: localStorageQuery?.dateStart || undefined,
+      }
+      return sharedQuery
+    },
+  })
 
 @Component({
   name: 'ViewMeasurements',
@@ -270,11 +261,12 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
         : undefined,
       running_average: (q.avg as RunningAverageEnum) || undefined,
       chart_cols: (Number(q.cols) || 0) as ChartColumnSize,
-      need_reload: q.need_rld === 'true',
     }
   }
 
   public async setUrlQuery(inputQuery: URLQuery): Promise<void> {
+    if (this.isKeepAliveInactive) return
+
     const query: URLQueryRaw = {
       ct: inputQuery.cities,
       sr: inputQuery.sources,
@@ -289,7 +281,6 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
       dspl: inputQuery.display_mode,
       avg: inputQuery.running_average,
       cols: String(inputQuery.chart_cols || 0),
-      need_rld: inputQuery.need_reload === true ? 'true' : undefined,
     }
 
     for (const _key in query) {
@@ -322,7 +313,10 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
         key: 'queryForm.dateEnd',
         value: newRouteQuery.end,
       })
-      await this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href, undefined, (err) =>
+        console.error(err)
+      )
+      this.cacheCurrentRouteSnapshot()
     }
   }
 
@@ -377,19 +371,21 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
     return this.$store.getters.GET('queryForm') || null
   }
 
-  public async beforeMount() {
+  public mounted() {
+    // see init()
+  }
+
+  public async init() {
     this.isLoading = true
     await to(this.fetch())
+    this.cacheCurrentRouteSnapshot()
     this.isLoading = false
   }
 
-  public async onAfterCachedQueryRestored() {
-    if (this.urlQuery.need_reload) {
-      this.isLoading = true
-      await to(this.fetch())
-      await this.setUrlQuery({...this.urlQuery, need_reload: false})
-      this.isLoading = false
-    }
+  public async refresh() {
+    this.$loader.on()
+    await this.refreshChartData()
+    this.$loader.off()
   }
 
   public async fetch() {
@@ -695,6 +691,7 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   }
 
   public async onChangeQuery(query: URLQuery) {
+    await new Promise<void>((r) => this.$nextTick(r))
     if (this.isKeepAliveInactive) return
 
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
@@ -728,12 +725,6 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   public onClickRefresh() {
     this.$trackGtmEvent('measurements', 'refresh')
     this.refresh()
-  }
-
-  public async refresh() {
-    this.$loader.on()
-    await this.refreshChartData()
-    this.$loader.off()
   }
 
   public onClickExport(fileType: ExportFileType) {

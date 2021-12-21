@@ -421,19 +421,6 @@ export default class MeasurementsChart extends Vue {
     return rows
   }
 
-  public mounted() {
-    if (!this.cols) {
-      this.$emit(
-        'update:cols',
-        MeasurementsChart.getMaxChartCols(
-          this.$vuetify,
-          this.queryParams.cities.length,
-          this.queryParams.pollutants.length
-        )
-      )
-    }
-  }
-
   static getDefaultChartColsBasedOnWindow(
     $vuetify: Framework
   ): ChartColumnSize {

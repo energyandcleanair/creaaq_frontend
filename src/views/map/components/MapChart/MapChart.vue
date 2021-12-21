@@ -413,6 +413,7 @@ export default class MapChart extends Vue {
         })
         popupComponent.$on('click:button', () => {
           this.$emit('click:markerAction', marker.city || marker.station)
+          target.closePopup?.()
         })
         popupComponent.$mount()
 

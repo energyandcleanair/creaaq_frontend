@@ -127,7 +127,7 @@ const router = new VueRouter({
   routes,
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _, next) => {
   const requiresAuth = to.matched.some((x) => x.meta.requiresAuth)
 
   if (requiresAuth) {

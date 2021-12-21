@@ -13,7 +13,4 @@ export interface URLQueryRaw {
 
   // stations
   st?: string[]
-
-  // need_reload
-  need_rld?: string
 }

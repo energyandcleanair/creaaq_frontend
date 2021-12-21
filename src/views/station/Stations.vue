@@ -72,6 +72,7 @@ import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
 import _difference from 'lodash.difference'
 import {Component, Ref, Mixins} from 'vue-property-decorator'
+import {VueClass} from 'vue-class-component/lib/declarations'
 import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
@@ -83,7 +84,9 @@ import SourceAPI from '@/api/SourceAPI'
 import PollutantAPI from '@/api/PollutantAPI'
 import StationAPI from '@/api/StationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import KeepAliveQueryMixin from '@/mixins/KeepAliveQuery'
+import KeepAliveQueryMixin, {
+  IKeepAliveQueryMixin,
+} from '@/mixins/KeepAliveQuery'
 import {toQueryString} from '@/utils'
 import StationsChart from './components/StationsChart/StationsChart.vue'
 import ChartData from './components/StationsChart/ChartData'
@@ -92,23 +95,20 @@ import URLQuery, {URLQueryRaw} from './types/URLQuery'
 const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
-const keepAliveQueryMixin = KeepAliveQueryMixin({
-  // keep some of query params shared, even if the URL query is cached
-  beforeRestoreURLQuery(vm, cachedQuery: URLQueryRaw | null) {
-    if (!cachedQuery) return
-    const localStorageQuery: ModuleState['queryForm'] | null =
-      vm.$store.getters.GET('queryForm') || null
-
-    const cities1: string = localStorageQuery?.cities?.join(',') || ''
-    const cities2: string = _queryToArray(cachedQuery.ct).join(',')
-    if (cities1 && cities1 !== cities2) {
-      cachedQuery.ct = localStorageQuery?.cities
-      cachedQuery.need_rld = 'true'
-    }
-
-    return cachedQuery
-  },
-})
+const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
+  KeepAliveQueryMixin<ViewStations>({
+    hooksMap: {
+      reload: 'init',
+    },
+    sharedQueryGetter(vm) {
+      const localStorageQuery: ModuleState['queryForm'] | null =
+        vm.$store.getters.GET('queryForm') || null
+      const sharedQuery: URLQueryRaw = {
+        ct: localStorageQuery?.cities || undefined,
+      }
+      return sharedQuery
+    },
+  })
 
 @Component({
   name: 'ViewStations',
@@ -151,7 +151,6 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
     return {
       cities: _queryToArray(q.ct),
       stations: _queryToArray(q.st),
-      need_reload: q.need_rld === 'true',
     }
   }
 
@@ -159,7 +158,6 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
     const query: URLQueryRaw = {
       ct: inputQuery.cities,
       st: inputQuery.stations,
-      need_rld: inputQuery.need_reload === true ? 'true' : undefined,
     }
 
     for (const _key in query) {
@@ -184,7 +182,10 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
         key: 'queryForm.cities',
         value: newRouteQuery.ct,
       })
-      await this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href, undefined, (err) =>
+        console.error(err)
+      )
+      this.cacheCurrentRouteSnapshot()
     }
   }
 
@@ -224,20 +225,15 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
   }
 
   public async beforeMount() {
-    this.isLoading = true
-    await to(this.fetch())
-    this.isFetched = true
-    this.isLoading = false
+    // see init()
   }
 
-  public async onAfterCachedQueryRestored() {
-    if (this.urlQuery.need_reload) {
-      this.isLoading = true
-      await to(this.fetch())
-      await this.setUrlQuery({...this.urlQuery, need_reload: false})
-      this.isFetched = true
-      this.isLoading = false
-    }
+  public async init() {
+    this.isLoading = true
+    await to(this.fetch())
+    this.cacheCurrentRouteSnapshot()
+    this.isFetched = true
+    this.isLoading = false
   }
 
   public async fetch() {
@@ -504,8 +500,8 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
       height: 100%;
       left: 0;
       top: 0;
-      // background: var(--v-grey-lighten5);
-      // opacity: 0.7;
+      background: var(--v-grey-lighten5);
+      opacity: 0.7;
     }
   }
 

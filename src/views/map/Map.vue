@@ -67,6 +67,7 @@ import _orderBy from 'lodash.orderby'
 import _debounce from 'lodash.debounce'
 import _difference from 'lodash.difference'
 import {Component, Ref, Mixins} from 'vue-property-decorator'
+import {VueClass} from 'vue-class-component/lib/declarations'
 import config from '@/config'
 import {sleep} from '@/utils'
 import City from '@/entities/City'
@@ -80,7 +81,9 @@ import {URLQueryRaw as MeasurementPageURLQueryRaw} from '@/views/measurement/typ
 import {ExportFileType} from '@/components/ExportBtn.vue'
 import Pollutant from '@/entities/Pollutant'
 import Source from '@/entities/Source'
-import KeepAliveQueryMixin from '@/mixins/KeepAliveQuery'
+import KeepAliveQueryMixin, {
+  IKeepAliveQueryMixin,
+} from '@/mixins/KeepAliveQuery'
 import MapRightDrawer from './components/MapRightDrawer.vue'
 import MapChart from './components/MapChart/MapChart.vue'
 import ChartData from './components/MapChart/MapChartData'
@@ -92,6 +95,13 @@ import URLQuery, {
 
 const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
+
+const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
+  KeepAliveQueryMixin<ViewMap>({
+    hooksMap: {
+      reload: 'init',
+    },
+  })
 
 @Component({
   name: 'ViewMap',
@@ -106,7 +116,7 @@ const _queryToArray = (itm: string | string[] | undefined) =>
     }
   },
 })
-export default class ViewMap extends Mixins(KeepAliveQueryMixin()) {
+export default class ViewMap extends Mixins(keepAliveQueryMixin) {
   @Ref('map')
   readonly $map?: MapChart
 
@@ -164,7 +174,10 @@ export default class ViewMap extends Mixins(KeepAliveQueryMixin()) {
     }
 
     if (this.$route.fullPath !== newRoute.href) {
-      await this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href, undefined, (err) =>
+        console.error(err)
+      )
+      this.cacheCurrentRouteSnapshot()
     }
   }
 
@@ -200,8 +213,13 @@ export default class ViewMap extends Mixins(KeepAliveQueryMixin()) {
   }
 
   public async beforeMount() {
+    // see init()
+  }
+
+  public async init() {
     this.isLoading = true
     await to(this.fetch())
+    this.cacheCurrentRouteSnapshot()
     this.isFetched = true
     this.isLoading = false
   }
@@ -421,6 +439,7 @@ export default class ViewMap extends Mixins(KeepAliveQueryMixin()) {
 
   public get onChangeQuery() {
     return _debounce(async (query: URLQuery) => {
+      console.trace('Map onChangeQuery: ')
       if (this.isKeepAliveInactive) return
 
       this.isChartLoading = true
@@ -451,16 +470,17 @@ export default class ViewMap extends Mixins(KeepAliveQueryMixin()) {
       const query: MeasurementPageURLQueryRaw = {
         ct: [item.id],
       }
-      this.$router.push({name: 'measurements', query: query as any})
+      await this.$router.push({name: 'measurements', query: query as any})
     } else if ((item as Station).level === 'station') {
       const query: MeasurementPageURLQueryRaw = {
         ct: [(item as Station).city_id],
         st: [item.id],
       }
-      this.$router.push({name: 'measurements', query: query as any})
+      await this.$router.push({name: 'measurements', query: query as any})
     } else {
       console.error('Unknown marker level', item)
     }
+    this.isChartLoading = false
   }
 
   public async onClickRefresh() {

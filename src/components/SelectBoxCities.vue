@@ -56,15 +56,7 @@ import Treeselect, {ASYNC_SEARCH} from '@riophae/vue-treeselect'
 import _orderBy from 'lodash.orderby'
 import _sortBy from 'lodash.sortby'
 import CountryFlag from 'vue-country-flag'
-import {
-  Vue,
-  Component,
-  Model,
-  Prop,
-  Emit,
-  Watch,
-  Ref,
-} from 'vue-property-decorator'
+import {Vue, Component, Model, Prop, Watch, Ref} from 'vue-property-decorator'
 import City from '@/entities/City'
 import {_runIteration} from '@/utils'
 import Country from '@/entities/Country'
@@ -179,8 +171,9 @@ export default class SelectBoxCities extends Vue {
     return sortedArr
   }
 
-  @Emit('input')
   public onChangeValue(value: any) {
+    if (this._inactive) return
+    this.$emit('input', value)
     setTimeout(() => {
       this.$tree?.initialize()
     }, 300)
