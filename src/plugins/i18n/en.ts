@@ -92,6 +92,7 @@ export default {
   overshooting: 'Overshooting',
   target_value: 'Target value',
   unit: 'Unit',
+  average_so_far_this_year: 'Average so far this year',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',
@@ -127,6 +128,7 @@ export default {
     rendering_n_items: 'Rendering {n} items',
     no_items_selected: 'No {items} selected',
     overshooting_tooltip_info: `Overshooting date is the date when a yearly target is exceeded even if air pollution dropped to zero from that day onwards.<br/><br/>Estimated overshooting dates (striped) are assuming average concentrations for the rest of the year.`,
+    cache_has_been_cleared: 'Cache has been cleared',
   },
 
   auth: {

@@ -102,6 +102,7 @@
                   :subtitle="col.dates[day].tooltip.subtitle"
                   :table-headers="col.dates[day].tooltip.tableHeaders"
                   :table-items="col.dates[day].tooltip.tableItems"
+                  :has-overshoot="col.dates[day].tooltip.hasOvershoot"
                 />
               </v-menu>
             </template>
@@ -155,6 +156,7 @@ interface TooltipParams {
   tableHeaders: any[]
   tableItems: any[]
   numExceedViolations: number
+  hasOvershoot: boolean
 }
 
 const TOOLTIP_DEFAULTS = {
@@ -165,6 +167,7 @@ const TOOLTIP_DEFAULTS = {
   tableHeaders: [],
   tableItems: [],
   numExceedViolations: 0,
+  hasOvershoot: false,
 }
 
 @Component({
@@ -404,6 +407,7 @@ export default class ViolationsChart extends Vue {
     }
   ): TooltipParams {
     let numExceedViolations = 0
+    let hasOvershoot = false
 
     const tableItems = violations.map((item) => {
       const target = targets.find((i) => i.id === item.target_id)
@@ -414,6 +418,7 @@ export default class ViolationsChart extends Vue {
         !!(item.is_overshoot_estimated || item.is_overshoot)
       const exceeded = value > target_value
       if (exceeded) numExceedViolations++
+      if (isOvershoot && !hasOvershoot) hasOvershoot = true
       return {
         exceeded,
         class: isOvershoot
@@ -423,7 +428,7 @@ export default class ViolationsChart extends Vue {
           : 'green--text',
         title: target?.name || item.pollutant || '?',
         pollutant: (item.pollutant || '?').toUpperCase(),
-        value: value,
+        value: isOvershoot ? `${value}*` : value,
         target_value: target_value,
       }
     })
@@ -438,6 +443,7 @@ export default class ViolationsChart extends Vue {
       ).toLowerCase(),
       subtitle: $date.format('D MMMM YYYY'),
       numExceedViolations,
+      hasOvershoot,
       tableHeaders: [
         {
           text: '',
