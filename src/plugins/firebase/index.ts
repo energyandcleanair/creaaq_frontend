@@ -31,6 +31,9 @@ export const refreshAccessToken = async (
   const user: any = auth.currentUser
   setAccessToken((await user?.getIdToken(isForce)) || '')
 }
+export const getUserUID = (): string | null => {
+  return auth.currentUser?.uid || null
+}
 
 auth.onIdTokenChanged(async (user: any) => {
   setAccessToken((await user?.getIdToken()) || '')

@@ -1,7 +1,12 @@
 import _get from 'lodash.get'
 import localForage from 'localforage'
 import {setup} from 'axios-cache-adapter'
-import {auth, refreshAccessToken, getAccessToken} from '@/plugins/firebase'
+import {
+  auth,
+  refreshAccessToken,
+  getAccessToken,
+  getUserUID,
+} from '@/plugins/firebase'
 import config from '@/config'
 import router from '@/router'
 
@@ -9,6 +14,13 @@ export const forageStore = localForage.createInstance({
   driver: [localForage.INDEXEDDB, localForage.LOCALSTORAGE],
   name: 'crea-cache',
 })
+
+// const GTM_CONTAINER_ID: string | undefined =
+//   config.get('GTM_ENABLED') === 'true'
+//     ? config.get('GTM_CONTAINER_ID')
+//     : undefined
+
+const GTM_CONTAINER_ID: string | undefined = config.get('GTM_CONTAINER_ID')
 
 const instance = setup({
   baseURL: new URL(config.get('API_ORIGIN') || '')
@@ -32,6 +44,10 @@ instance.interceptors.request.use(
   (config) => {
     const token = getAccessToken()
     if (token) config.headers['Authorization'] = token
+    const userUID = getUserUID()
+    if (userUID) config.headers['user_id'] = userUID
+    console.log('GTM_CONTAINER_ID: ', GTM_CONTAINER_ID)
+    if (GTM_CONTAINER_ID) config.headers['ga_client_id'] = GTM_CONTAINER_ID
     return config
   },
   (error) => {
