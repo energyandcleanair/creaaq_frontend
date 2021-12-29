@@ -12,7 +12,7 @@
       <v-col v-if="primaryFilterTree.length" class="pl-1" cols="12">
         <v-treeview
           ref="primaryFilterTree"
-          class="v-treeview--hide-children v-treeview--hide-toggle"
+          class="v-treeview--hide-children v-treeview--hide-toggle v-treeview--label-no-truncate"
           :value="primaryFilterValue"
           :items="primaryFilterTree"
           :expand-icon="mdiMenuDown"
@@ -28,7 +28,22 @@
           <template v-slot:label="{item}">
             <v-tooltip bottom>
               <template v-slot:activator="{on, attrs}">
-                <span v-bind="attrs" v-on="on" v-text="item.name" />
+                <span
+                  class="d-inline-block text-truncate"
+                  v-bind="attrs"
+                  v-on="on"
+                  v-text="item.name"
+                  style="max-width: calc(100% - 25px)"
+                />
+
+                <v-icon
+                  class="ml-2"
+                  color="grey lighten-1"
+                  @click="onClickDetails(filterPrimary, item)"
+                  small
+                >
+                  {{ mdiInformationOutline }}
+                </v-icon>
               </template>
               <span>{{ item.name }}</span>
             </v-tooltip>
@@ -73,7 +88,7 @@
 
 <script lang="ts">
 import _uniqBy from 'lodash.uniqby'
-import {mdiMenuDown} from '@mdi/js'
+import {mdiInformationOutline, mdiMenuDown} from '@mdi/js'
 import {Vue, Component, Prop, Ref} from 'vue-property-decorator'
 import Pollutant from '@/entities/Pollutant'
 import Regulation from '@/entities/Regulation'
@@ -162,6 +177,7 @@ export default class ViolationsFiltersForm extends Vue {
   readonly disabled!: boolean
 
   public mdiMenuDown = mdiMenuDown
+  public mdiInformationOutline = mdiInformationOutline
 
   public get primaryFilterItems(): ViolationsFilterItem[] {
     return this._getPrimaryFilterItems(this.filterPrimary)
@@ -321,6 +337,19 @@ export default class ViolationsFiltersForm extends Vue {
     return selectedIds
   }
 
+  public onClickDetails(
+    type: ViolationsPrimaryFilter,
+    filterItem: ViolationsFilterItem
+  ) {
+    let item
+
+    if (type === ViolationsPrimaryFilter.regulations) {
+      item = this.regulations.find(({id}) => id === filterItem.id)
+    }
+
+    this.$emit('click:item-details', type, item)
+  }
+
   public _getPrimaryFilterItems(
     filter: ViolationsPrimaryFilter
   ): ViolationsFilterItem[] {
@@ -414,6 +443,16 @@ export default class ViolationsFiltersForm extends Vue {
     max-width: 100%;
     overflow: hidden;
     margin-left: -12px;
+
+    &.v-treeview--label-no-truncate {
+      .v-treeview-node__label {
+        text-overflow: initial !important;
+
+        > * {
+          vertical-align: middle;
+        }
+      }
+    }
 
     &.v-treeview--hide-children {
       .v-treeview-node__children {

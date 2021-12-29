@@ -9,6 +9,7 @@ export default {
   password: 'Password',
   new_password: 'New Password',
   confirm_password: 'Confirm Password',
+  close: 'Close',
   code: 'Code',
   confirm: 'Confirm',
   id: 'ID',
@@ -19,6 +20,7 @@ export default {
   back: 'Back',
   cancel: 'Cancel',
   submit: 'Submit',
+  details: 'Details',
   all: 'All',
   none: 'None',
   level: 'Level',
@@ -49,6 +51,8 @@ export default {
   countries: 'Countries',
   value: 'Value',
   values: 'Values',
+  region: 'Region',
+  regions: 'Regions',
   city: 'City',
   cities: 'Cities',
   source: 'Source',
@@ -86,6 +90,8 @@ export default {
   search_by_moving_map: 'Search by moving the map',
   go_to_measurements: 'Go to measurements',
   overshooting: 'Overshooting',
+  target_value: 'Target value',
+  unit: 'Unit',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

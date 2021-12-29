@@ -10,8 +10,6 @@ export default class Regulation {
   public location_id?: string | null
   public organization?: string | null
 
-  // public _violationsNumber?: number
-
   constructor(data: Regulation) {
     Object.assign(this, data)
   }

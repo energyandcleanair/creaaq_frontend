@@ -115,6 +115,7 @@ import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
 import URLQuery, {URLQueryRaw} from './types/URLQuery'
+import Country from '@/entities/Country'
 
 const JAN_1: number = +moment(0).year(moment().year())
 const _queryToArray = (itm: string | string[] | undefined) =>
@@ -156,6 +157,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
 
   public chartData: ChartData = {
     cities: [],
+    countriesMap: new Map<Country['id'], Country>(),
     violations: [],
     pollutants: [],
     regulations: [],
@@ -266,6 +268,17 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
 
     const cities = await this.fetchCities()
     this.chartData.cities = cities
+    this.chartData.countriesMap = cities.reduce(
+      (map: Map<Country['id'], Country>, city: City) => {
+        map.set(city.country_id, {
+          id: city.country_id,
+          name: city.country_name,
+          level: 'country',
+        })
+        return map
+      },
+      new Map<Country['id'], Country>()
+    )
 
     if (this.urlQuery.cities.length) {
       // filter only existing cities
@@ -331,6 +344,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
 
     const newChartData: ChartData = {
       cities: this.chartData.cities,
+      countriesMap: this.chartData.countriesMap,
       violations: [],
       pollutants: [],
       regulations: [],

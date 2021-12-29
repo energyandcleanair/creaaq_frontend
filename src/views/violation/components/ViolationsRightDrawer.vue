@@ -30,6 +30,7 @@
           :targets="targets"
           :disabled="loading"
           @change="onChangeFiltersForm"
+          @click:item-details="onClickDetails"
         />
       </v-row>
 
@@ -66,6 +67,13 @@
         </v-col>
       </v-row>
     </v-form>
+
+    <RegulationDetailsModal
+      v-model="regulationModal.open"
+      :regulation="regulationModal.regulation"
+      :countries="regulationModal.countries"
+      :targets="regulationModal.targets"
+    />
   </PageDrawer>
 </template>
 
@@ -78,16 +86,21 @@ import {toURLStringDate} from '@/utils'
 import PageDrawer from '@/components/PageDrawer.vue'
 import Regulation from '@/entities/Regulation'
 import Pollutant from '@/entities/Pollutant'
+import Country from '@/entities/Country'
 import Target from '@/entities/Target'
 import URLQuery from '../types/URLQuery'
 import ChartData from './ViolationsChart/ChartData'
-import ViolationsFiltersForm from './ViolationsFiltersForm.vue'
+import ViolationsFiltersForm, {
+  ViolationsPrimaryFilter,
+} from './ViolationsFiltersForm.vue'
 import {OVERSHOOT_VIOLATION_COLOR} from './ViolationsChart/ViolationsChart.vue'
+import RegulationDetailsModal from './RegulationDetailsModal.vue'
 
 @Component({
   components: {
     PageDrawer,
     ViolationsFiltersForm,
+    RegulationDetailsModal,
   },
 })
 export default class ViolationsRightDrawer extends Vue {
@@ -103,6 +116,17 @@ export default class ViolationsRightDrawer extends Vue {
   @Prop({type: Object, required: true})
   readonly chartData!: ChartData
 
+  public regulationModal: {
+    open: boolean
+    regulation: Regulation | null
+    countries: Country[]
+    targets: Target[]
+  } = {
+    open: false,
+    regulation: null,
+    countries: [],
+    targets: [],
+  }
   public mdiInformationOutline = mdiInformationOutline
   public OVERSHOOT_VIOLATION_COLOR = OVERSHOOT_VIOLATION_COLOR
 
@@ -170,6 +194,24 @@ export default class ViolationsRightDrawer extends Vue {
         this.$trackGtmEvent('violations', 'disable_overshooting')
       }
     })
+  }
+
+  public onClickDetails(type: ViolationsPrimaryFilter, item: Regulation) {
+    if (type === ViolationsPrimaryFilter.regulations) {
+      this.regulationModal.open = true
+      this.regulationModal.regulation = item
+      this.regulationModal.targets = this.chartData.targets.filter(
+        (target) => target.regulation_id === item.id
+      )
+      this.regulationModal.countries = (item.country || []).reduce(
+        (arr: Country[], countryId: Country['id']) => {
+          const country = this.chartData.countriesMap.get(countryId)
+          if (country) arr.push(country)
+          return arr
+        },
+        []
+      )
+    }
   }
 
   public emitChange(queryParams: URLQuery) {
