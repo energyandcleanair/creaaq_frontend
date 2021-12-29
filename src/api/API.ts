@@ -15,12 +15,10 @@ export const forageStore = localForage.createInstance({
   name: 'crea-cache',
 })
 
-// const GTM_CONTAINER_ID: string | undefined =
-//   config.get('GTM_ENABLED') === 'true'
-//     ? config.get('GTM_CONTAINER_ID')
-//     : undefined
-
-const GTM_CONTAINER_ID: string | undefined = config.get('GTM_CONTAINER_ID')
+const GTM_CONTAINER_ID: string | undefined =
+  config.get('GTM_ENABLED') === 'true'
+    ? config.get('GTM_CONTAINER_ID')
+    : undefined
 
 const instance = setup({
   baseURL: new URL(config.get('API_ORIGIN') || '')
@@ -46,7 +44,6 @@ instance.interceptors.request.use(
     if (token) config.headers['Authorization'] = token
     const userUID = getUserUID()
     if (userUID) config.headers['user_id'] = userUID
-    console.log('GTM_CONTAINER_ID: ', GTM_CONTAINER_ID)
     if (GTM_CONTAINER_ID) config.headers['ga_client_id'] = GTM_CONTAINER_ID
     return config
   },
