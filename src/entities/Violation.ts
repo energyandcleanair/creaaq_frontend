@@ -2,7 +2,6 @@ import Country from './Country'
 import City from './City'
 import Pollutant from './Pollutant'
 import Source from './Source'
-import Guideline from './Guideline'
 import Organization from './Organization'
 import Target from './Target'
 
@@ -29,7 +28,6 @@ export default class Violation {
   public value!: number
 
   public target_value?: number
-  public guideline?: Guideline['id']
   public unit?: string
   public organization?: Organization['id']
   public names?: string[] | null

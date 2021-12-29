@@ -20,12 +20,12 @@
 
       <v-row class="mb-0" no-gutters>
         <ViolationsFiltersForm
-          :value-guidelines="queryParams.guidelines"
+          :value-regulations="queryParams.regulations"
           :value-pollutants="queryParams.pollutants"
           :value-targets="queryParams.targets"
-          filter-primary="guidelines"
+          filter-primary="regulations"
           filter-secondary="pollutants/targets"
-          :guidelines="guidelines"
+          :regulations="regulations"
           :pollutants="pollutants"
           :targets="targets"
           :disabled="loading"
@@ -76,7 +76,7 @@ import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
 import {mdiInformationOutline} from '@mdi/js'
 import {toURLStringDate} from '@/utils'
 import PageDrawer from '@/components/PageDrawer.vue'
-import Guideline from '@/entities/Guideline'
+import Regulation from '@/entities/Regulation'
 import Pollutant from '@/entities/Pollutant'
 import Target from '@/entities/Target'
 import URLQuery from '../types/URLQuery'
@@ -133,8 +133,8 @@ export default class ViolationsRightDrawer extends Vue {
     return this.chartData.pollutants || []
   }
 
-  public get guidelines(): Guideline[] {
-    return this.chartData.guidelines || []
+  public get regulations(): Regulation[] {
+    return this.chartData.regulations || []
   }
 
   public get targets(): Target[] {
@@ -144,8 +144,10 @@ export default class ViolationsRightDrawer extends Vue {
   @Emit('update:open')
   public toggle(value: boolean) {}
 
-  public onChangeFiltersForm(newParams: any) {
-    const queryParams = {
+  public onChangeFiltersForm(
+    newParams: Pick<URLQuery, 'regulations' | 'pollutants' | 'targets'>
+  ) {
+    const queryParams: URLQuery = {
       ...this.queryParams,
       ...newParams,
     }

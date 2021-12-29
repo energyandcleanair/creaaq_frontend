@@ -2,7 +2,6 @@ import Coordinates from './Coordinates'
 import Country from './Country'
 import Source from './Source'
 
-// TODO: approve the schema
 export default class City {
   public id!: string
   public name!: string

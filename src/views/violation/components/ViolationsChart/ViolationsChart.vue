@@ -124,7 +124,7 @@ import {URL_DATE_FORMAT} from '@/utils'
 import theme from '@/theme'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
-import Guideline from '@/entities/Guideline'
+import Regulation from '@/entities/Regulation'
 import Violation from '@/entities/Violation'
 import Target from '@/entities/Target'
 import URLQuery from '../../types/URLQuery'
@@ -204,8 +204,8 @@ export default class ViolationsChart extends Vue {
     return this.chartData.pollutants || []
   }
 
-  public get guidelines(): Guideline[] {
-    return this.chartData.guidelines || []
+  public get regulations(): Regulation[] {
+    return this.chartData.regulations || []
   }
 
   public get targets(): Target[] {
@@ -234,12 +234,6 @@ export default class ViolationsChart extends Vue {
     )
     if (!Object.keys(filterPollutants).length) filterPollutants = null
 
-    let filterGuidelines: MapFilter | null = this.queryParams.guidelines.reduce(
-      (memo: MapFilter, id: Guideline['id']) => (memo[id] = 1) && memo,
-      {}
-    )
-    if (!Object.keys(filterGuidelines).length) filterGuidelines = null
-
     let filterTargets: MapFilter | null = this.queryParams.targets.reduce(
       (memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo,
       {}
@@ -254,7 +248,6 @@ export default class ViolationsChart extends Vue {
       if (
         !_valuePassesFilter(cityId, filterCities) ||
         !_valuePassesFilter(violation.pollutant, filterPollutants) ||
-        !_valuePassesFilter(violation.guideline, filterGuidelines) ||
         !_valuePassesFilter(violation.target_id, filterTargets)
       ) {
         continue
@@ -428,7 +421,7 @@ export default class ViolationsChart extends Vue {
           : exceeded
           ? 'red--text'
           : 'green--text',
-        title: target?.name || item.guideline || item.pollutant || '?',
+        title: target?.name || item.pollutant || '?',
         pollutant: (item.pollutant || '?').toUpperCase(),
         value: value,
         target_value: target_value,

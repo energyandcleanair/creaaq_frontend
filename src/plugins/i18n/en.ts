@@ -59,6 +59,8 @@ export default {
   targets: 'Targets',
   guideline: 'Guideline',
   guidelines: 'Guidelines',
+  regulation: 'Regulation',
+  regulations: 'Regulations',
   organization: 'Organization',
   organizations: 'Organizations',
   select_all: 'Select all',

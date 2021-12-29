@@ -98,11 +98,12 @@ import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Pollutant from '@/entities/Pollutant'
-import Guideline from '@/entities/Guideline'
 import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
+import Regulation from '@/entities/Regulation'
 import CityAPI from '@/api/CityAPI'
 import PollutantAPI from '@/api/PollutantAPI'
+import RegulationAPI from '@/api/RegulationAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
@@ -157,7 +158,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     cities: [],
     violations: [],
     pollutants: [],
-    guidelines: [],
+    regulations: [],
     targets: [],
   }
 
@@ -173,14 +174,14 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     if (!q.ct && (q as any).cities) q.ct = (q as any).cities
     if (!q.pl && (q as any).pollutants) q.pl = (q as any).pollutants
     if (!q.tg && (q as any).targets) q.tg = (q as any).targets
-    if (!q.gl && (q as any).guidelines) q.gl = (q as any).guidelines
+    if (!q.rg && (q as any).regulations) q.rg = (q as any).regulations
     if (!q.start && (q as any).date_start) q.start = (q as any).date_start
 
     return {
       cities: _queryToArray(q.ct),
       pollutants: _queryToArray(q.pl),
       targets: _queryToArray(q.tg),
-      guidelines: _queryToArray(q.gl),
+      regulations: _queryToArray(q.rg),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
       overshooting: q.ovshoot === 'true',
     }
@@ -191,7 +192,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       ct: inputQuery.cities,
       pl: _orderBy(inputQuery.pollutants),
       tg: _orderBy(inputQuery.targets),
-      gl: _orderBy(inputQuery.guidelines),
+      rg: _orderBy(inputQuery.regulations),
       start: inputQuery.date_start
         ? toURLStringDate(inputQuery.date_start)
         : undefined,
@@ -268,15 +269,9 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
 
     if (this.urlQuery.cities.length) {
       // filter only existing cities
-      const idsMap = this.urlQuery.cities.reduce(
-        (memo: {[id: string]: number}, id: City['id']) => {
-          memo[id] = 1
-          return memo
-        },
-        {}
-      )
-      const existingCities = Object.keys(idsMap).length
-        ? cities.filter((city) => idsMap[city.id])
+      const idsSet = new Set<City['id']>(this.urlQuery.cities)
+      const existingCities = idsSet.size
+        ? cities.filter((city) => idsSet.has(city.id))
         : []
 
       await this.setUrlQuery({
@@ -338,40 +333,53 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       cities: this.chartData.cities,
       violations: [],
       pollutants: [],
-      guidelines: [],
+      regulations: [],
       targets: [],
     }
 
     if (!this.urlQuery?.cities.length) return newChartData
 
-    let [err, violations = []] = await to<Violation[]>(
+    const promises: Promise<any>[] = []
+
+    promises.push(
       this.fetchViolations({
         city: this.urlQuery.cities,
         date_from: this.urlQuery.date_start,
         sort_by: 'asc(date)',
       })
+        .then((violations = []) => {
+          newChartData.violations = violations
+          const targetsIds = Array.from(
+            violations.reduce((set: Set<Target['id']>, item: Violation) => {
+              if (!item?.target_id) return set
+              return set.add(item.target_id)
+            }, new Set<Target['id']>())
+          )
+          return this.fetchTargets(targetsIds)
+        })
+        .then((targets = []) => {
+          newChartData.targets = targets
+
+          const regulationsIds = Array.from(
+            targets.reduce((set: Set<Regulation['id']>, item: Target) => {
+              if (!item?.regulation_id) return set
+              return set.add(item.regulation_id)
+            }, new Set<Regulation['id']>())
+          )
+          return this.fetchRegulations(regulationsIds)
+        })
+        .then((regulations = []) => {
+          newChartData.regulations = regulations
+        })
     )
-    if (err) {
-      this.$trackGtmEvent('violations', 'error', err.message)
-      this.$dialog.notify.error(
-        err?.message || '' + this.$t('msg.something_went_wrong')
-      )
-      throw err
-    }
 
-    const targetsIds = Object.keys(
-      violations.reduce(
-        (memo: {[targetId: string]: number}, item: Violation) => {
-          if (!item.target_id) return memo
-          if (!memo[item.target_id]) memo[item.target_id] = 1
-          return memo
-        },
-        {}
-      )
+    promises.push(
+      this.fetchPollutants().then((pollutants = []) => {
+        newChartData.pollutants = pollutants
+      })
     )
 
-    let targets: Target[]
-    ;[err, targets = []] = await to<Target[]>(this.fetchTargets(targetsIds))
+    const [err] = await to(Promise.all(promises))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -379,48 +387,18 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       throw err
     }
 
-    let pollutants: Pollutant[]
-    ;[err, pollutants = []] = await to<Pollutant[]>(this.fetchPollutants())
-    if (err) {
-      this.$dialog.notify.error(
-        err?.message || '' + this.$t('msg.something_went_wrong')
-      )
-      throw err
-    }
-
-    const usedPollutantsMap = targets.reduce(
-      (memo: {[pollutantId: string]: number}, item: Target) => {
-        const pollutantId = item.pollutant
-        if (pollutantId && !memo[pollutantId]) memo[pollutantId] = 1
-        return memo
+    const usedPollutantsSet = newChartData.targets.reduce(
+      (set: Set<Pollutant['id']>, item: Target) => {
+        if (!item?.pollutant) return set
+        return set.add(item.pollutant)
       },
-      {}
+      new Set<Pollutant['id']>()
     )
-    pollutants = pollutants.filter((item) => usedPollutantsMap[item.id])
 
-    const guidelinesMap = targets.reduce(
-      (memo: {[guidelineId: string]: Guideline}, item: Target) => {
-        if (!item.guideline) return memo
-        if (memo[item.guideline]) {
-          memo[item.guideline]._violationsNumber =
-            1 + (memo[item.guideline]?._violationsNumber || 0)
-        } else {
-          memo[item.guideline] = {
-            id: item.guideline,
-            name: item.guideline,
-            _violationsNumber: 0,
-          }
-        }
-        return memo
-      },
-      {}
+    newChartData.pollutants = newChartData.pollutants.filter((item) =>
+      usedPollutantsSet.has(item.id)
     )
-    const guidelines = _orderBy(Object.values(guidelinesMap), 'id')
 
-    newChartData.violations = violations
-    newChartData.pollutants = pollutants
-    newChartData.guidelines = guidelines
-    newChartData.targets = targets
     return newChartData
   }
 
@@ -438,9 +416,9 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       return
     }
 
-    const allGuidelines = chartData.guidelines
-    let visibleGuidelines = this.urlQuery.guidelines.filter((id) =>
-      allGuidelines.find((p) => p.id === id)
+    const allRegulations = chartData.regulations
+    let visibleRegulations = this.urlQuery.regulations.filter((id) =>
+      allRegulations.find((p) => p.id === id)
     )
 
     const allPollutants = chartData.pollutants
@@ -457,7 +435,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     this.chartData = chartData
     await this.setUrlQuery({
       ...this.urlQuery,
-      guidelines: visibleGuidelines,
+      regulations: visibleRegulations,
       pollutants: visiblePollutants,
       targets: visibleTargets,
     })
@@ -501,6 +479,20 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
 
   public async fetchPollutants(): Promise<Pollutant[]> {
     let [err, items = []] = await to(PollutantAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
+  public async fetchRegulations(
+    ids: Regulation['id'][]
+  ): Promise<Regulation[]> {
+    let [err, items = []] = await to(RegulationAPI.findAll({id: ids.join(',')}))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')

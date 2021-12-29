@@ -1,5 +1,5 @@
 import City from '@/entities/City'
-import Guideline from '@/entities/Guideline'
+import Regulation from '@/entities/Regulation'
 import Pollutant from '@/entities/Pollutant'
 import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
@@ -8,6 +8,6 @@ export default interface ChartData {
   cities: City[]
   violations: Violation[]
   pollutants: Pollutant[]
-  guidelines: Guideline[]
+  regulations: Regulation[]
   targets: Target[]
 }

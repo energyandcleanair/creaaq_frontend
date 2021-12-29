@@ -1,16 +1,13 @@
 import City from './City'
-import Guideline from './Guideline'
-import Organization from './Organization'
 import Pollutant from './Pollutant'
+import Regulation from './Regulation'
 
 export default class Target {
   public id!: string
   public name!: string
-  public cityId!: City['id']
   public location_id!: City['id']
-  public organization!: Organization['id']
   public pollutant!: Pollutant['id']
-  public guideline?: Guideline['id']
+  public regulation_id?: Regulation['id']
 
   public target_unit?: string
 
