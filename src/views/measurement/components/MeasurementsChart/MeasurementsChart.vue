@@ -448,15 +448,16 @@ export default class MeasurementsChart extends Vue {
     const rowItemsLength = citiesLength === 1 ? pollutantsLength : citiesLength
     const defaultChartCols =
       MeasurementsChart.getDefaultChartColsBasedOnWindow($vuetify)
+    let maxChartCols: ChartColumnSize = 1
     let _defaultCols: number = rowItemsLength
       ? rowItemsLength
       : defaultChartCols
 
-    if (_defaultCols > 4 && _defaultCols < 6) _defaultCols = 5
-    if (_defaultCols > 6 && _defaultCols < 12) _defaultCols = 6
-    if (_defaultCols > 12) _defaultCols = 12
+    if (_defaultCols > 4 && _defaultCols < 6) maxChartCols = 4
+    if (_defaultCols > 6 && _defaultCols < 12) maxChartCols = 6
+    if (_defaultCols > 12) maxChartCols = 12
 
-    return _defaultCols as ChartColumnSize
+    return maxChartCols
   }
 
   public genChartTraces(

@@ -328,7 +328,7 @@ export default class MeasurementsRightDrawer extends Vue {
     const maxIndex = CHART_COLUMN_SIZES.indexOf(maxChartCols)
     return {
       min: 0,
-      max: maxIndex,
+      max: maxIndex <= 0 ? 1 : maxIndex,
     }
   }
 
