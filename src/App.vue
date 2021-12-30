@@ -190,8 +190,6 @@ export default class App extends Vue {
   }
 
   public mounted() {
-    // TODO: delete it
-    console.log('GAE_VERSION', config.get('GAE_VERSION'))
     this.checkConnectionToAPI()
   }
 

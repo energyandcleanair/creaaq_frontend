@@ -8,7 +8,6 @@ export interface ConfigParams {
   APP_NAME: string
   APP_PUBLIC_NAME: string
   API_ORIGIN: string
-  GAE_VERSION: string
   FIREBASE_API_KEY: string
   FIREBASE_AUTH_DOMAIN: string
   FIREBASE_PROJECT_ID: string
@@ -29,7 +28,6 @@ export default class ConfigProvider {
       APP_NAME: '$APP_NAME',
       APP_PUBLIC_NAME: '$APP_PUBLIC_NAME',
       API_ORIGIN: '$API_ORIGIN',
-      GAE_VERSION: '$GAE_VERSION',
       FIREBASE_API_KEY: '$FIREBASE_API_KEY',
       FIREBASE_AUTH_DOMAIN: '$FIREBASE_AUTH_DOMAIN',
       FIREBASE_PROJECT_ID: '$FIREBASE_PROJECT_ID',
