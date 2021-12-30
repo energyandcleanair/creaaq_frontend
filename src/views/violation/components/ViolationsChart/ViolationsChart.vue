@@ -449,15 +449,9 @@ export default class ViolationsChart extends Vue {
       hasOvershoot,
       tableHeaders: [
         {
-          text: '',
-          value: 'title',
-          align: 'start',
-          cellClass: '',
-        },
-        {
           text: this.$t('pollutant'),
           value: 'pollutant_name',
-          align: 'center',
+          align: 'start',
           cellClass: 'font-weight-bold',
         },
         {

@@ -3,7 +3,7 @@
     content-class="regulation-details-modal"
     :value="value"
     scrollable
-    width="700"
+    width="500"
     @input="$emit('input', $event)"
   >
     <v-card v-if="regulation" class="pb-2">
@@ -31,7 +31,10 @@
           <span v-text="countries.map(({name}) => name).join(', ')" />
         </div>
 
-        <div class="font-weight-bold text-body-1 mt-3" v-text="$t('targets')" />
+        <div
+          class="font-weight-bold text-body-1 mt-3 mb-2"
+          v-text="$t('targets')"
+        />
         <v-data-table
           :headers="targetsTableHeaders"
           :items="targets"
@@ -83,15 +86,9 @@ export default class RegulationDetailsModal extends Vue {
   public get targetsTableHeaders() {
     return [
       {
-        text: '',
-        value: 'name',
-        align: 'start',
-        cellClass: 'primary--text',
-      },
-      {
         text: this.$t('pollutant'),
         value: 'pollutant_name',
-        align: 'center',
+        align: 'start',
         cellClass: 'primary--text font-weight-bold',
       },
       {

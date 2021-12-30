@@ -93,11 +93,6 @@ export default class ChartTooltip extends Vue {
             height: fit-content !important;
             padding: 2px 5px !important;
             font-size: 12px !important;
-
-            // &:nth-child(2),
-            // &:nth-child(6) {
-            //   color: var(--v-grey-darken1) !important;
-            // }
           }
         }
       }
