@@ -3,7 +3,7 @@
     content-class="regulation-details-modal"
     :value="value"
     scrollable
-    width="600"
+    width="700"
     @input="$emit('input', $event)"
   >
     <v-card v-if="regulation" class="pb-2">
@@ -40,7 +40,11 @@
           disable-sort
           hide-default-footer
           :items-per-page="-1"
-        />
+        >
+          <template v-slot:item.exceptions_allowed="{value}">
+            {{ value ? value : '-' }}
+          </template>
+        </v-data-table>
       </v-card-text>
 
       <v-card-actions>
@@ -86,12 +90,18 @@ export default class RegulationDetailsModal extends Vue {
       },
       {
         text: this.$t('pollutant'),
-        value: 'pollutant',
+        value: 'pollutant_name',
+        align: 'center',
+        cellClass: 'primary--text font-weight-bold',
+      },
+      {
+        text: this.$t('period'),
+        value: 'averaging_period_name',
         align: 'center',
         cellClass: 'primary--text',
       },
       {
-        text: this.$t('target_value'),
+        text: this.$t('value'),
         value: 'target_value',
         align: 'center',
         cellClass: 'primary--text',
@@ -99,6 +109,12 @@ export default class RegulationDetailsModal extends Vue {
       {
         text: this.$t('unit'),
         value: 'target_unit',
+        align: 'center',
+        cellClass: 'primary--text',
+      },
+      {
+        text: this.$t('exceptions_allowed'),
+        value: 'exceptions_allowed',
         align: 'center',
         cellClass: 'primary--text',
       },

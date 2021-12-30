@@ -427,9 +427,12 @@ export default class ViolationsChart extends Vue {
           ? 'red--text'
           : 'green--text',
         title: target?.name || item.pollutant || '?',
-        pollutant: (item.pollutant || '?').toUpperCase(),
+        pollutant_name:
+          target?.pollutant_name || (item.pollutant || '?').toUpperCase(),
         value: isOvershoot ? `${value}*` : value,
         target_value: target_value,
+        target_unit: target?.target_unit,
+        averaging_period_name: target?.averaging_period_name,
       }
     })
 
@@ -449,11 +452,19 @@ export default class ViolationsChart extends Vue {
           text: '',
           value: 'title',
           align: 'start',
+          cellClass: '',
         },
         {
           text: this.$t('pollutant'),
-          value: 'pollutant',
+          value: 'pollutant_name',
           align: 'center',
+          cellClass: 'font-weight-bold',
+        },
+        {
+          text: this.$t('period'),
+          value: 'averaging_period_name',
+          align: 'center',
+          cellClass: 'primary--text',
         },
         {
           text: this.$t('value'),
@@ -464,6 +475,13 @@ export default class ViolationsChart extends Vue {
           text: this.$t('target'),
           value: 'target_value',
           align: 'center',
+          cellClass: 'primary--text',
+        },
+        {
+          text: this.$t('unit'),
+          value: 'target_unit',
+          align: 'center',
+          cellClass: 'primary--text',
         },
       ],
       tableItems: _orderBy(tableItems, 'exceeded', 'desc'),

@@ -7,9 +7,11 @@ export default class Target {
   public name!: string
   public location_id!: City['id']
   public pollutant!: Pollutant['id']
+  public pollutant_name!: Pollutant['name']
   public regulation_id?: Regulation['id']
 
   public target_unit?: string
+  public averaging_period_name?: string
 
   public _violationsNumber?: number
 

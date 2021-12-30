@@ -21,6 +21,7 @@ export default {
   cancel: 'Cancel',
   submit: 'Submit',
   details: 'Details',
+  period: 'Period',
   all: 'All',
   none: 'None',
   level: 'Level',
@@ -92,6 +93,7 @@ export default {
   overshooting: 'Overshooting',
   target_value: 'Target value',
   unit: 'Unit',
+  exceptions_allowed: 'Exceptions allowed',
   average_so_far_this_year: 'Average so far this year',
 
   msg: {

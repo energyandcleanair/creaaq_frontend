@@ -65,7 +65,7 @@ export default class ChartTooltip extends Vue {
   width: max-content;
   min-width: fit-content;
   min-height: fit-content;
-  max-width: 350px !important;
+  max-width: 400px !important;
   max-height: 250px;
   display: flex !important;
   flex-direction: column;
@@ -94,10 +94,10 @@ export default class ChartTooltip extends Vue {
             padding: 2px 5px !important;
             font-size: 12px !important;
 
-            &:nth-child(2),
-            &:nth-child(4) {
-              color: var(--v-grey-darken1) !important;
-            }
+            // &:nth-child(2),
+            // &:nth-child(6) {
+            //   color: var(--v-grey-darken1) !important;
+            // }
           }
         }
       }
