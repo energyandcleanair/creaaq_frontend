@@ -9,16 +9,12 @@ import {
 } from '@/plugins/firebase'
 import config from '@/config'
 import router from '@/router'
+import {getCookie} from '@/utils'
 
 export const forageStore = localForage.createInstance({
   driver: [localForage.INDEXEDDB, localForage.LOCALSTORAGE],
   name: 'crea-cache',
 })
-
-const GTM_CONTAINER_ID: string | undefined =
-  config.get('GTM_ENABLED') === 'true'
-    ? config.get('GTM_CONTAINER_ID')
-    : undefined
 
 const instance = setup({
   baseURL: new URL(config.get('API_ORIGIN') || '')
@@ -44,7 +40,8 @@ instance.interceptors.request.use(
     if (token) config.headers['Authorization'] = token
     const userUID = getUserUID()
     if (userUID) config.headers['user_id'] = userUID
-    if (GTM_CONTAINER_ID) config.headers['ga_client_id'] = GTM_CONTAINER_ID
+    const gAnalyticsClientId = getCookie('_ga')
+    if (gAnalyticsClientId) config.headers['ga_client_id'] = gAnalyticsClientId
     return config
   },
   (error) => {

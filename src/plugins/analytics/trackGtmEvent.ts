@@ -24,6 +24,14 @@ export const trackGtmEvent: ITrackGtmEventHandler = (
 ): void => {
   if (!Vue.gtm.enabled()) return
 
+  if (category === 'auth' && action === 'set_user_id') {
+    Vue.gtm.trackEvent({
+      event: action,
+      userId: rest?.value,
+    })
+    return
+  }
+
   const opts: TrackEventOptions = {
     event: rest?.event ?? 'interaction',
     category,

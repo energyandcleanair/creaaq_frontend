@@ -43,7 +43,7 @@ export const initGtmAnalytics = (router: VueRouter) => {
   Vue.prototype.$trackGtmEvent = Vue.trackGtmEvent = trackGtmEvent
 
   // track unique view changes
-  router.afterEach((to: Route, from: Route) => {
+  router.afterEach((to: Route) => {
     if (typeof to.name !== 'string') return
 
     // this is how you will see this record in the Vue.dataLayer array

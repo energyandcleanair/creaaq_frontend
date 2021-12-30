@@ -21,3 +21,13 @@ interface ITrackGtmEventHandler {
     label?: string
   ): void
 }
+
+type GoogleAnalyticsClientId = string
+interface ITrackGtmEventHandler {
+  (
+    eventCategory: 'auth',
+    action: 'set_user_id',
+    label: null,
+    {value: GoogleAnalyticsClientId}
+  ): void
+}

@@ -60,3 +60,8 @@ export function _runIteration(
     next()
   })
 }
+
+export function getCookie(key: string): string {
+  const cookieObj = new URLSearchParams(document.cookie.replaceAll('; ', '&'))
+  return cookieObj.get(key) || ''
+}
