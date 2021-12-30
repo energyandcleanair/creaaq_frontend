@@ -14,6 +14,7 @@ steps:
       - 'FIREBASE_APP_ID=${_FIREBASE_APP_ID}'
       - 'GTM_ENABLED=${_GTM_ENABLED}'
       - 'GTM_CONTAINER_ID=${_GTM_CONTAINER_ID}'
+      - 'GAE_VERSION=${GAE_VERSION}'
   - name: node:14.10.0
     entrypoint: npm
     args: ['run', 'build']
