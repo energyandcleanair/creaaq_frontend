@@ -350,6 +350,7 @@ export default class ViolationsChart extends Vue {
               $date,
               dateViolations || [],
               this.chartData.targets || [],
+              this.chartData.regulations || [],
               {isMarkOvershoot: !!this.queryParams.overshooting}
             )
 
@@ -405,6 +406,7 @@ export default class ViolationsChart extends Vue {
     $date: Moment,
     violations: Violation[],
     targets: Target[],
+    regulations: Regulation[],
     opts?: {
       isMarkOvershoot: boolean
     }
@@ -415,6 +417,7 @@ export default class ViolationsChart extends Vue {
 
     const tableItems = violations.map((item) => {
       const target = targets.find((i) => i.id === item.target_id)
+      const regulation = regulations.find((i) => i.id === target.regulation_id)
       const value = Math.round(item.value || 0)
       const target_value = Math.round(item.target_value || 0)
       const isOvershoot: boolean =
@@ -442,6 +445,7 @@ export default class ViolationsChart extends Vue {
         target_value: target_value,
         target_unit: target?.target_unit,
         averaging_period_name: target?.averaging_period_name,
+        regulation_name:  regulation?.name
       }
     })
 
@@ -487,6 +491,12 @@ export default class ViolationsChart extends Vue {
           align: 'center',
           cellClass: 'primary--text',
         },
+        {
+          text: this.$t('regulation'),
+          value: 'regulation_name',
+          align: 'center',
+          cellClass: 'primary--text',
+        }
       ],
       tableItems: _orderBy(tableItems, 'exceeded', 'desc'),
     }

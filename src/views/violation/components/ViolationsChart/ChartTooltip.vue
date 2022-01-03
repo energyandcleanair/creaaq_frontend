@@ -70,7 +70,7 @@ export default class ChartTooltip extends Vue {
   width: max-content;
   min-width: fit-content;
   min-height: fit-content;
-  max-width: 400px !important;
+  max-width: 600px !important;
   max-height: 250px;
   display: flex !important;
   flex-direction: column;
