@@ -417,7 +417,7 @@ export default class ViolationsChart extends Vue {
 
     const tableItems = violations.map((item) => {
       const target = targets.find((i) => i.id === item.target_id)
-      const regulation = regulations.find((i) => i.id === target.regulation_id)
+      const regulation = regulations.find((i) => i.id === target?.regulation_id)
       const value = Math.round(item.value || 0)
       const target_value = Math.round(item.target_value || 0)
       const isOvershoot: boolean =
