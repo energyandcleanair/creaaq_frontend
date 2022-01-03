@@ -95,6 +95,7 @@ export default {
   unit: 'Unit',
   exceptions_allowed: 'Exceptions allowed',
   average_so_far_this_year: 'Average so far this year',
+  estimated_average_so_far_this_year: 'Estimated average so far this year',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',
