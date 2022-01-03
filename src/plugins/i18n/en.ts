@@ -95,7 +95,7 @@ export default {
   unit: 'Unit',
   exceptions_allowed: 'Exceptions allowed',
   average_so_far_this_year: 'Average so far this year',
-  estimated_average_so_far_this_year: 'Estimated average so far this year',
+  estimated_average_so_far_this_year: 'Estimated level based on previous year trends and scaled with current year data.',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',
@@ -130,7 +130,7 @@ export default {
     loaded_of_limit: 'Loaded {loaded} with the limit of {limit}',
     rendering_n_items: 'Rendering {n} items',
     no_items_selected: 'No {items} selected',
-    overshooting_tooltip_info: `Overshooting date is the date when a yearly target is exceeded even if air pollution dropped to zero from that day onwards.<br/><br/>Estimated overshooting dates (striped) are assuming average concentrations for the rest of the year.`,
+    overshooting_tooltip_info: `Overshooting date is the date when a yearly target is exceeded even if air pollution dropped to zero from that day onwards.<br/><br/>Estimated overshooting dates (striped) are assuming similar trends than the previous year, scaled with current year data.`,
     cache_has_been_cleared: 'Cache has been cleared',
   },
 
