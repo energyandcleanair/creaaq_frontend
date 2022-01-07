@@ -39,9 +39,9 @@ instance.interceptors.request.use(
     const token = getAccessToken()
     if (token) config.headers['Authorization'] = token
     const userUID = getUserUID()
-    if (userUID) config.headers['user_id'] = userUID
+    if (userUID) config.headers['user-id'] = userUID
     const gAnalyticsClientId = getCookie('_ga')
-    if (gAnalyticsClientId) config.headers['ga_client_id'] = gAnalyticsClientId
+    if (gAnalyticsClientId) config.headers['ga-client-id'] = gAnalyticsClientId
     return config
   },
   (error) => {
