@@ -9,8 +9,9 @@
   >
     <template v-slot:prepend>
       <v-btn
+        v-if="showOpenButton"
         class="drawer-handler"
-        :title="$t('display_parameters')"
+        :title="$t('display_parameters_panel')"
         :style="{'margin-top': $vuetify.application.top + 'px'}"
         color="primary"
         icon
@@ -43,6 +44,9 @@ import {mdiClose, mdiTune} from '@mdi/js'
 export default class PageDrawer extends Vue {
   @Prop({type: Boolean, default: false})
   readonly open!: boolean
+
+  @Prop({type: Boolean, default: true})
+  readonly showOpenButton!: boolean
 
   public mdiClose = mdiClose
   public mdiTune = mdiTune

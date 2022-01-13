@@ -453,6 +453,9 @@ export default class MeasurementsChart extends Vue {
       ? rowItemsLength
       : defaultChartCols
 
+    if (_defaultCols === 1) maxChartCols = 1
+    if (_defaultCols === 2) maxChartCols = 2
+    if (_defaultCols === 3) maxChartCols = 3
     if (_defaultCols > 4 && _defaultCols < 6) maxChartCols = 4
     if (_defaultCols > 6 && _defaultCols < 12) maxChartCols = 6
     if (_defaultCols > 12) maxChartCols = 12

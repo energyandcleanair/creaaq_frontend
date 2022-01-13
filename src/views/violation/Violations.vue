@@ -9,7 +9,7 @@
       class="page-content fill-height pa-0 align-content-start"
       fluid
     >
-      <v-container class="pt-10 pt-md-4 px-8" style="z-index: 15" fluid>
+      <v-container class="pt-10 pt-md-4 pl-8 pr-4" style="z-index: 15" fluid>
         <v-row>
           <v-col cols="12" sm="8" md="6">
             <SelectBoxCities
@@ -21,21 +21,18 @@
             />
           </v-col>
 
-          <v-col
-            class="d-flex justify-end align-center"
-            cols="12"
-            sm="4"
-            md="6"
-          >
+          <v-col class="d-flex justify-end align-start pt-7 pl-3">
             <v-btn
-              class="ml-2"
+              color="primary"
               :disabled="isLoading"
               :loading="isLoading || isChartLoading"
               @click="onClickRefresh"
-              color="primary"
             >
+              <v-icon left>{{ mdiRefresh }}</v-icon>
               {{ $t('refresh') }}
             </v-btn>
+
+            <ViolationsMenu />
           </v-col>
         </v-row>
       </v-container>
@@ -94,6 +91,7 @@ import moment from 'moment'
 import _orderBy from 'lodash.orderby'
 import {Component, Mixins} from 'vue-property-decorator'
 import {VueClass} from 'vue-class-component/lib/declarations'
+import {mdiRefresh} from '@mdi/js'
 import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
@@ -101,6 +99,7 @@ import Pollutant from '@/entities/Pollutant'
 import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
 import Regulation from '@/entities/Regulation'
+import Country from '@/entities/Country'
 import CityAPI from '@/api/CityAPI'
 import PollutantAPI from '@/api/PollutantAPI'
 import RegulationAPI from '@/api/RegulationAPI'
@@ -112,10 +111,10 @@ import KeepAliveQueryMixin, {
 } from '@/mixins/KeepAliveQuery'
 import {toURLStringDate, toQueryString, URL_DATE_FORMAT} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
+import ViolationsMenu from './components/ViolationsMenu.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
 import URLQuery, {URLQueryRaw} from './types/URLQuery'
-import Country from '@/entities/Country'
 
 const JAN_1: number = +moment(0).year(moment().year())
 const _queryToArray = (itm: string | string[] | undefined) =>
@@ -142,6 +141,7 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
   components: {
     ViolationsRightDrawer,
     SelectBoxCities,
+    ViolationsMenu,
     ViolationsChart,
   },
   metaInfo() {
@@ -152,6 +152,7 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
 })
 export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   public isChartLoading: boolean = false
+  public readonly mdiRefresh = mdiRefresh
   public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
@@ -239,6 +240,16 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   }
   public set isRightPanelOpen(value: boolean) {
     this.$store.commit('SET', {key: 'ui.violations.isRightPanelOpen', value})
+  }
+
+  public get isAutoRefreshOnQueryChange(): boolean {
+    return this.$store.getters.GET('ui.violations.isAutoRefreshOnQueryChange')
+  }
+  public set isAutoRefreshOnQueryChange(value: boolean) {
+    this.$store.commit('SET', {
+      key: 'ui.violations.isAutoRefreshOnQueryChange',
+      value,
+    })
   }
 
   public get queryFormCached(): ModuleState['queryForm'] | null {
@@ -520,8 +531,6 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   public async onChangeQuery(query: URLQuery) {
     if (this.isKeepAliveInactive) return
 
-    this.$loader.on()
-
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
@@ -529,9 +538,8 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       query.date_start !== this.urlQuery.date_start || citiesChanged
 
     await this.setUrlQuery(query)
-    if (needRefresh) return this.refresh()
 
-    this.$loader.off()
+    if (this.isAutoRefreshOnQueryChange && needRefresh) return this.refresh()
   }
 
   public async onClickRefresh() {

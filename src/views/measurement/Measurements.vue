@@ -69,7 +69,7 @@
         </v-row>
       </div>
 
-      <v-container class="pt-10 pt-md-4 px-8" fluid style="z-index: 15">
+      <v-container class="pt-10 pt-md-4 pl-8 pr-4" fluid style="z-index: 15">
         <v-row>
           <v-col cols="12" md="5" lg="6" xl="6">
             <SelectBoxCities
@@ -99,16 +99,18 @@
 
           <v-spacer />
 
-          <v-col class="d-flex justify-end align-center">
+          <v-col class="d-flex justify-end align-start pt-7 pl-3">
             <v-btn
-              class="ml-3"
+              color="primary"
               :disabled="isLoading"
               :loading="isLoading || isChartLoading"
               @click="onClickRefresh"
-              color="primary"
             >
+              <v-icon left>{{ mdiRefresh }}</v-icon>
               {{ $t('refresh') }}
             </v-btn>
+
+            <MeasurementsMenu />
           </v-col>
         </v-row>
       </v-container>
@@ -149,7 +151,9 @@ import moment from 'moment'
 import _orderBy from 'lodash.orderby'
 import json2csv from 'json2csv'
 import {saveAs} from 'file-saver'
+import {VueClass} from 'vue-class-component/lib/declarations'
 import {Component, Mixins} from 'vue-property-decorator'
+import {mdiRefresh} from '@mdi/js'
 import {
   URL_DATE_FORMAT,
   toURLStringDate,
@@ -174,14 +178,14 @@ import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInp
 import KeepAliveQueryMixin, {
   IKeepAliveQueryMixin,
 } from '@/mixins/KeepAliveQuery'
+import RunningAverageEnum from './types/RunningAverageEnum'
+import URLQuery, {URLQueryRaw, URLQueryStations} from './types/URLQuery'
 import MeasurementsChart from './components/MeasurementsChart/MeasurementsChart.vue'
 import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 import ChartData from './components/MeasurementsChart/ChartData'
+import MeasurementsMenu from './components/MeasurementsMenu.vue'
 import ChartColumnSize from './components/MeasurementsChart/ChartColumnSize'
-import RunningAverageEnum from './types/RunningAverageEnum'
-import URLQuery, {URLQueryRaw, URLQueryStations} from './types/URLQuery'
-import {VueClass} from 'vue-class-component/lib/declarations'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
@@ -211,6 +215,7 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
     DatesIntervalInput,
     SelectBoxCities,
     MeasurementsChart,
+    MeasurementsMenu,
     ExportBtn,
   },
   metaInfo() {
@@ -222,6 +227,7 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
 export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   public isLoading: boolean = false
   public isChartLoading: boolean = false
+  public readonly mdiRefresh = mdiRefresh
   public readonly LIMIT_RENDER_ITEMS: number = 20
   public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
@@ -365,6 +371,16 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   }
   public set isRightPanelOpen(value: boolean) {
     this.$store.commit('SET', {key: 'ui.measurements.isRightPanelOpen', value})
+  }
+
+  public get isAutoRefreshOnQueryChange(): boolean {
+    return this.$store.getters.GET('ui.measurements.isAutoRefreshOnQueryChange')
+  }
+  public set isAutoRefreshOnQueryChange(value: boolean) {
+    this.$store.commit('SET', {
+      key: 'ui.measurements.isAutoRefreshOnQueryChange',
+      value,
+    })
   }
 
   public get queryFormCached(): ModuleState['queryForm'] | null {
@@ -702,12 +718,6 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
     const stationsChanged = query.stations?.[0] === URLQueryStations.all
     const displayModeChanged = query.display_mode !== this.urlQuery.display_mode
 
-    const needRefresh =
-      query.date_start !== this.urlQuery.date_start ||
-      query.date_end !== this.urlQuery.date_end ||
-      citiesChanged ||
-      stationsChanged
-
     if (
       displayModeChanged &&
       query.display_mode === ChartDisplayModes.SUPERIMPOSED_YEARS
@@ -717,9 +727,15 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
       query.display_mode = ChartDisplayModes.NORMAL
     }
 
+    const needRefresh =
+      query.date_start !== this.urlQuery.date_start ||
+      query.date_end !== this.urlQuery.date_end ||
+      citiesChanged ||
+      stationsChanged
+
     await this.setUrlQuery(query)
 
-    if (needRefresh) this.refresh()
+    if (this.isAutoRefreshOnQueryChange && needRefresh) this.refresh()
   }
 
   public onClickRefresh() {

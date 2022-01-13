@@ -76,7 +76,7 @@ export default {
   superimposed_years: 'Superimposed years',
   clear_cache: 'Clear cache',
   refresh: 'Refresh',
-  display_parameters: 'Display parameters',
+  display_parameters_panel: 'Display parameters panel',
   running_average: 'Running average',
   chart_size: 'Chart size',
   chart_columns: 'Chart columns',
@@ -95,6 +95,7 @@ export default {
   unit: 'Unit',
   exceptions_allowed: 'Exceptions allowed',
   average_so_far_this_year: 'Average so far this year',
+  auto_refresh_on_query_change: 'Auto refresh on query change',
 
   msg: {
     will_be_added_soon: 'Will be added soon. | {title} Will be added soon.',

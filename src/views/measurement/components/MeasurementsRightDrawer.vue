@@ -1,5 +1,5 @@
 <template>
-  <PageDrawer :open="open" @input="toggle($event)">
+  <PageDrawer :open="open" :show-open-button="false" @input="toggle($event)">
     <v-form>
       <v-row no-gutters>
         <v-col class="text-subtitle-1" cols="12">{{
