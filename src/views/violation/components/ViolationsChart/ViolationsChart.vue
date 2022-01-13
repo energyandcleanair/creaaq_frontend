@@ -60,8 +60,8 @@
                 <!-- empty -->
               </template>
 
-              <v-btn
-                v-else-if="future || !col.dates[day]"
+              <v-btn  
+                v-else-if="future && !col.dates[day].tooltip.hasOvershoot"
                 class="not-interactive"
                 :color="'white'"
                 :ripple="false"
@@ -103,6 +103,7 @@
                   :table-headers="col.dates[day].tooltip.tableHeaders"
                   :table-items="col.dates[day].tooltip.tableItems"
                   :has-overshoot="col.dates[day].tooltip.hasOvershoot"
+                  :has-overshoot-estimated="col.dates[day].tooltip.hasOvershootEstimated"
                 />
               </v-menu>
             </template>
@@ -157,6 +158,7 @@ interface TooltipParams {
   tableItems: any[]
   numExceedViolations: number
   hasOvershoot: boolean
+  hasOvershootEstimated: boolean
 }
 
 const TOOLTIP_DEFAULTS = {
@@ -168,6 +170,7 @@ const TOOLTIP_DEFAULTS = {
   tableItems: [],
   numExceedViolations: 0,
   hasOvershoot: false,
+  hasOvershootEstimated: false,
 }
 
 @Component({
@@ -347,6 +350,7 @@ export default class ViolationsChart extends Vue {
               $date,
               dateViolations || [],
               this.chartData.targets || [],
+              this.chartData.regulations || [],
               {isMarkOvershoot: !!this.queryParams.overshooting}
             )
 
@@ -402,23 +406,31 @@ export default class ViolationsChart extends Vue {
     $date: Moment,
     violations: Violation[],
     targets: Target[],
+    regulations: Regulation[],
     opts?: {
       isMarkOvershoot: boolean
     }
   ): TooltipParams {
     let numExceedViolations = 0
     let hasOvershoot = false
+    let hasOvershootEstimated = false
 
     const tableItems = violations.map((item) => {
       const target = targets.find((i) => i.id === item.target_id)
+      const regulation = regulations.find((i) => i.id === target?.regulation_id)
       const value = Math.round(item.value || 0)
       const target_value = Math.round(item.target_value || 0)
       const isOvershoot: boolean =
         !!opts?.isMarkOvershoot &&
         !!(item.is_overshoot_estimated || item.is_overshoot)
+      const isOvershootEstimated: boolean =
+        !!opts?.isMarkOvershoot &&
+        !!(item.is_overshoot_estimated)
       const exceeded = value > target_value
       if (exceeded) numExceedViolations++
       if (isOvershoot && !hasOvershoot) hasOvershoot = true
+      if (isOvershootEstimated && !hasOvershootEstimated) hasOvershootEstimated = true
+      
       return {
         exceeded,
         class: isOvershoot
@@ -433,6 +445,7 @@ export default class ViolationsChart extends Vue {
         target_value: target_value,
         target_unit: target?.target_unit,
         averaging_period_name: target?.averaging_period_name,
+        regulation_name:  regulation?.name
       }
     })
 
@@ -447,6 +460,7 @@ export default class ViolationsChart extends Vue {
       subtitle: $date.format('D MMMM YYYY'),
       numExceedViolations,
       hasOvershoot,
+      hasOvershootEstimated,
       tableHeaders: [
         {
           text: this.$t('pollutant'),
@@ -477,6 +491,12 @@ export default class ViolationsChart extends Vue {
           align: 'center',
           cellClass: 'primary--text',
         },
+        {
+          text: this.$t('regulation'),
+          value: 'regulation_name',
+          align: 'center',
+          cellClass: 'primary--text',
+        }
       ],
       tableItems: _orderBy(tableItems, 'exceeded', 'desc'),
     }
@@ -643,6 +663,10 @@ $violations-chart__calendar--width: 170px;
                     rgba(255, 255, 255, 0.5) 3px,
                     rgba(255, 255, 255, 0.5) 4px
                   );
+                }
+
+                .v-btn__content {
+                  color: white;
                 }
               }
             }

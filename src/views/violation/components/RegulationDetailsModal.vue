@@ -3,7 +3,7 @@
     content-class="regulation-details-modal"
     :value="value"
     scrollable
-    width="500"
+    width="600"
     @input="$emit('input', $event)"
   >
     <v-card v-if="regulation" class="pb-2">

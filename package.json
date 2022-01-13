@@ -1,6 +1,6 @@
 {
   "name": "creaaq_frontend",
-  "version": "0.6.6",
+  "version": "0.6.10",
   "private": true,
   "scripts": {
     "dev": "vue-cli-service serve",
