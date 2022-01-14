@@ -759,10 +759,10 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
       query.date_end !== this.urlQuery.date_end ||
       citiesChanged ||
       stationsChanged
+    this.isChartStateOutdated = needRefresh || this.isChartStateOutdated
 
     await this.setUrlQuery(query)
 
-    this.isChartStateOutdated = needRefresh
     if (this.isAutoRefreshOnQueryChange && needRefresh) this.refresh()
   }
 
