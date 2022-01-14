@@ -7,12 +7,33 @@
     fluid
     v-resize="onResize"
   >
-    <template v-if="loading">
-      <v-skeleton-loader class="mb-2" type="image" style="height: 64px" />
+    <template v-if="outdatedState">
+      <v-row class="fill-width banner-outdated" no-gutters>
+        <v-col class="d-flex justify-center">
+          <v-btn
+            color="primary"
+            :loading="loading"
+            outlined
+            @click="$emit('click:refresh')"
+          >
+            <v-icon left>{{ mdiRefresh }}</v-icon>
+            {{ $t('refresh') }}
+          </v-btn>
+        </v-col>
+      </v-row>
+    </template>
+
+    <template v-if="loading || outdatedState">
+      <v-skeleton-loader
+        class="mb-2"
+        type="image"
+        style="height: 64px"
+        :boilerplate="outdatedState"
+      />
 
       <v-row class="px-2">
         <v-col v-for="i of cols || 2" :key="i">
-          <v-skeleton-loader type="text, image" />
+          <v-skeleton-loader type="text, image" :boilerplate="outdatedState" />
         </v-col>
       </v-row>
     </template>
@@ -102,6 +123,7 @@ import _orderBy from 'lodash.orderby'
 import _debounce from 'lodash.debounce'
 import {Framework} from 'vuetify'
 import {Component, Vue, Prop, Watch} from 'vue-property-decorator'
+import {mdiRefresh} from '@mdi/js'
 import {Plotly} from 'vue-plotly'
 import {
   URL_DATE_FORMAT,
@@ -120,7 +142,7 @@ import RunningAverageEnum, {
   RUNNING_AVERAGE_DAYS_MAP,
 } from '../../types/RunningAverageEnum'
 import URLQuery from '../../types/URLQuery'
-import ChartColumnSize from './ChartColumnSize'
+import ChartColsNum from './ChartColsNum'
 import ChartDisplayModes from './ChartDisplayModes'
 import RangeBox from './RangeBox'
 import ChartRow from './ChartRow'
@@ -168,7 +190,7 @@ export default class MeasurementsChart extends Vue {
   public readonly chartData!: ChartData
 
   @Prop({type: Number})
-  public readonly cols?: ChartColumnSize
+  public readonly cols?: ChartColsNum
 
   @Prop({default: ChartDisplayModes.NORMAL})
   public readonly chartDisplayMode!: ChartDisplayModes
@@ -181,6 +203,9 @@ export default class MeasurementsChart extends Vue {
 
   @Prop({type: Boolean, default: false})
   public readonly displayStations!: boolean
+
+  @Prop({type: Boolean, default: false})
+  public readonly outdatedState!: boolean
 
   @Prop({type: Array, default: () => []})
   public readonly filterSources!: Source['id'][]
@@ -197,6 +222,7 @@ export default class MeasurementsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly frozen!: boolean
 
+  public mdiRefresh = mdiRefresh
   public CHART_REF_PREFIX = CHART_REF_PREFIX
   public get modeBarButtonsToAdd(): any[] {
     return [
@@ -264,13 +290,13 @@ export default class MeasurementsChart extends Vue {
     return this.chartDisplayMode || ChartDisplayModes.NORMAL
   }
 
-  public get _cols(): ChartColumnSize {
+  public get _cols(): ChartColsNum {
     const maxChartCols = MeasurementsChart.getMaxChartCols(
       this.$vuetify,
       this.queryParams.cities.length,
       this.queryParams.pollutants.length
     )
-    return Math.min(this.cols || 0, maxChartCols) as ChartColumnSize
+    return Math.min(this.cols || 0, maxChartCols) as ChartColsNum
   }
 
   public get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
@@ -421,20 +447,18 @@ export default class MeasurementsChart extends Vue {
     return rows
   }
 
-  static getDefaultChartColsBasedOnWindow(
-    $vuetify: Framework
-  ): ChartColumnSize {
+  static getMaxChartColsBasedOnWindow($vuetify: Framework): ChartColsNum {
     switch ($vuetify.breakpoint.name) {
       case 'xs':
         return 1
       case 'sm':
         return 1
       case 'md':
-        return 2
-      case 'lg':
-        return 2
-      case 'xl':
         return 4
+      case 'lg':
+        return 6
+      case 'xl':
+        return 12
       default:
         return 2
     }
@@ -444,23 +468,21 @@ export default class MeasurementsChart extends Vue {
     $vuetify: Framework,
     citiesLength: number = 0,
     pollutantsLength: number = 0
-  ): ChartColumnSize {
+  ): ChartColsNum {
     const rowItemsLength = citiesLength === 1 ? pollutantsLength : citiesLength
-    const defaultChartCols =
-      MeasurementsChart.getDefaultChartColsBasedOnWindow($vuetify)
-    let maxChartCols: ChartColumnSize = 1
-    let _defaultCols: number = rowItemsLength
-      ? rowItemsLength
-      : defaultChartCols
+    if (rowItemsLength === 0) return 1
+    const maxAllowedChartCols =
+      MeasurementsChart.getMaxChartColsBasedOnWindow($vuetify)
+    let maxUsedChartCols: ChartColsNum = 1
 
-    if (_defaultCols === 1) maxChartCols = 1
-    if (_defaultCols === 2) maxChartCols = 2
-    if (_defaultCols === 3) maxChartCols = 3
-    if (_defaultCols > 4 && _defaultCols < 6) maxChartCols = 4
-    if (_defaultCols > 6 && _defaultCols < 12) maxChartCols = 6
-    if (_defaultCols > 12) maxChartCols = 12
+    if (rowItemsLength === 1) maxUsedChartCols = 1
+    else if (rowItemsLength === 2) maxUsedChartCols = 2
+    else if (rowItemsLength === 3) maxUsedChartCols = 3
+    else if (rowItemsLength >= 4 && rowItemsLength < 6) maxUsedChartCols = 4
+    else if (rowItemsLength >= 6 && rowItemsLength < 12) maxUsedChartCols = 6
+    else if (rowItemsLength >= 12) maxUsedChartCols = 12
 
-    return maxChartCols
+    return Math.min(maxAllowedChartCols, maxUsedChartCols) as ChartColsNum
   }
 
   public genChartTraces(
@@ -987,8 +1009,34 @@ function _valuePassesFilter(key: any, filterMap: MapFilter | null): boolean {
 </script>
 
 <style lang="scss">
+@import '~vuetify/src/styles/styles.sass';
+
 .measurements-chart {
-  padding: 0 0.5rem 0 0;
+  padding: 0;
+  position: relative;
+
+  .banner-outdated {
+    position: absolute;
+    z-index: 10;
+    min-height: 200px;
+    height: 100%;
+
+    &:before {
+      content: '';
+      position: absolute;
+      top: -15px;
+      left: -10px;
+      width: calc(100% + (10px * 2));
+      height: calc(100% + (10px * 2));
+      background-color: map-get($yellow, lighten-5);
+      border-radius: 5px;
+      opacity: 0.7;
+    }
+
+    .v-btn {
+      margin-top: 100px;
+    }
+  }
 
   .chart-row {
     position: relative;

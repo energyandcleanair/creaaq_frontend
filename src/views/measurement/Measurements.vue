@@ -69,7 +69,7 @@
         </v-row>
       </div>
 
-      <v-container class="pt-10 pt-md-4 pl-8 pr-4" fluid style="z-index: 15">
+      <v-container class="pt-10 pt-md-4 px-8" fluid style="z-index: 15">
         <v-row>
           <v-col cols="12" md="5" lg="6" xl="6">
             <SelectBoxCities
@@ -99,7 +99,25 @@
 
           <v-spacer />
 
-          <v-col class="d-flex justify-end align-start pt-7 pl-3">
+          <v-col class="d-flex justify-end align-start pt-8 pl-3">
+            <v-list-item
+              class="px-2 mr-2"
+              dense
+              style="flex: 0 1 auto; height: 36px"
+              :title="$t('auto_refresh_on_query_change')"
+              @click="isAutoRefreshOnQueryChange = !isAutoRefreshOnQueryChange"
+            >
+              <v-list-item-action class="mr-1 my-1">
+                <v-checkbox
+                  class="pointer-events-none"
+                  v-model="isAutoRefreshOnQueryChange"
+                  color="primary"
+                  readonly
+                />
+              </v-list-item-action>
+              <v-list-item-title v-text="$t('auto_refresh')" />
+            </v-list-item>
+
             <v-btn
               color="primary"
               :disabled="isLoading"
@@ -110,7 +128,11 @@
               {{ $t('refresh') }}
             </v-btn>
 
-            <MeasurementsMenu />
+            <PageDrawerHandlerBtn
+              v-if="!isRightPanelOpen"
+              class="ml-3"
+              @click="isRightPanelOpen = true"
+            />
           </v-col>
         </v-row>
       </v-container>
@@ -127,8 +149,10 @@
           :filterPollutants="filterPollutants"
           :filterStations="filterStations"
           :maxColHeight="maxColHeight"
+          :outdatedState="!isAutoRefreshOnQueryChange && isChartStateOutdated"
           :loading="isChartLoading"
           :frozen="isKeepAliveInactive"
+          @click:refresh="onClickRefresh"
         />
       </v-container>
     </v-container>
@@ -138,7 +162,7 @@
       :chartData="chartData"
       :open.sync="isRightPanelOpen"
       :loading="isChartLoading"
-      :disabledStations="false"
+      :disabledStations="!isAutoRefreshOnQueryChange && isChartStateOutdated"
       @update:queryParams="onChangeQuery"
       @click:export="onClickExport"
     />
@@ -174,6 +198,7 @@ import PollutantAPI from '@/api/PollutantAPI'
 import MeasurementAPI from '@/api/MeasurementAPI'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
+import PageDrawerHandlerBtn from '@/components/PageDrawer/PageDrawerHandlerBtn.vue'
 import DatesIntervalInput from '@/components/DatesIntervalInput/DatesIntervalInput.vue'
 import KeepAliveQueryMixin, {
   IKeepAliveQueryMixin,
@@ -185,7 +210,7 @@ import ChartDisplayModes from './components/MeasurementsChart/ChartDisplayModes'
 import MeasurementsRightDrawer from './components/MeasurementsRightDrawer.vue'
 import ChartData from './components/MeasurementsChart/ChartData'
 import MeasurementsMenu from './components/MeasurementsMenu.vue'
-import ChartColumnSize from './components/MeasurementsChart/ChartColumnSize'
+import ChartColsNum from './components/MeasurementsChart/ChartColsNum'
 
 const today: string = toURLStringDate(moment().format(URL_DATE_FORMAT))
 const JAN_1__THREE_YEARS_AGO: number = +moment(0).year(moment().year() - 2)
@@ -215,7 +240,7 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
     DatesIntervalInput,
     SelectBoxCities,
     MeasurementsChart,
-    MeasurementsMenu,
+    PageDrawerHandlerBtn,
     ExportBtn,
   },
   metaInfo() {
@@ -227,6 +252,7 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
 export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   public isLoading: boolean = false
   public isChartLoading: boolean = false
+  public isChartStateOutdated: boolean = false
   public readonly mdiRefresh = mdiRefresh
   public readonly LIMIT_RENDER_ITEMS: number = 20
   public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
@@ -266,7 +292,7 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
         ? ((String(q.dspl) || '').toUpperCase() as ChartDisplayModes)
         : undefined,
       running_average: (q.avg as RunningAverageEnum) || undefined,
-      chart_cols: (Number(q.cols) || 0) as ChartColumnSize,
+      chart_cols: (Number(q.cols) || 0) as ChartColsNum,
     }
   }
 
@@ -356,10 +382,10 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
     return h * 0.7
   }
 
-  public get chartCols(): ChartColumnSize | 0 {
+  public get chartCols(): ChartColsNum | 0 {
     return this.urlQuery.chart_cols || 0
   }
-  public set chartCols(cols: ChartColumnSize | 0) {
+  public set chartCols(cols: ChartColsNum | 0) {
     this.setUrlQuery({
       ...this.urlQuery,
       chart_cols: cols,
@@ -650,6 +676,7 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
     })
 
     this.isChartLoading = false
+    this.isChartStateOutdated = false
   }
 
   public async fetchMeasurements(query: {
@@ -735,6 +762,7 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
 
     await this.setUrlQuery(query)
 
+    this.isChartStateOutdated = needRefresh
     if (this.isAutoRefreshOnQueryChange && needRefresh) this.refresh()
   }
 

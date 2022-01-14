@@ -9,7 +9,7 @@
       class="page-content fill-height pa-0 align-content-start"
       fluid
     >
-      <v-container class="pt-10 pt-md-4 pl-8 pr-4" style="z-index: 15" fluid>
+      <v-container class="pt-10 pt-md-4 px-8" style="z-index: 15" fluid>
         <v-row>
           <v-col cols="12" sm="8" md="6">
             <SelectBoxCities
@@ -22,6 +22,24 @@
           </v-col>
 
           <v-col class="d-flex justify-end align-start pt-7 pl-3">
+            <v-list-item
+              class="px-2 mr-2"
+              dense
+              style="flex: 0 1 auto; height: 36px"
+              :title="$t('auto_refresh_on_query_change')"
+              @click="isAutoRefreshOnQueryChange = !isAutoRefreshOnQueryChange"
+            >
+              <v-list-item-action class="mr-1 my-2">
+                <v-checkbox
+                  class="pointer-events-none"
+                  v-model="isAutoRefreshOnQueryChange"
+                  color="primary"
+                  readonly
+                />
+              </v-list-item-action>
+              <v-list-item-title v-text="$t('auto_refresh')" />
+            </v-list-item>
+
             <v-btn
               color="primary"
               :disabled="isLoading"
@@ -32,7 +50,11 @@
               {{ $t('refresh') }}
             </v-btn>
 
-            <ViolationsMenu />
+            <PageDrawerHandlerBtn
+              v-if="!isRightPanelOpen"
+              class="ml-3"
+              @click="isRightPanelOpen = true"
+            />
           </v-col>
         </v-row>
       </v-container>
@@ -106,12 +128,12 @@ import RegulationAPI from '@/api/RegulationAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
+import PageDrawerHandlerBtn from '@/components/PageDrawer/PageDrawerHandlerBtn.vue'
 import KeepAliveQueryMixin, {
   IKeepAliveQueryMixin,
 } from '@/mixins/KeepAliveQuery'
 import {toURLStringDate, URL_DATE_FORMAT} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
-import ViolationsMenu from './components/ViolationsMenu.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
 import URLQuery, {URLQueryRaw} from './types/URLQuery'
@@ -141,8 +163,8 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
   components: {
     ViolationsRightDrawer,
     SelectBoxCities,
-    ViolationsMenu,
     ViolationsChart,
+    PageDrawerHandlerBtn,
   },
   metaInfo() {
     return {

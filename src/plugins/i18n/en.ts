@@ -98,6 +98,7 @@ export default {
   average_so_far_this_year: 'Average so far this year',
   estimated_average_so_far_this_year:
     'Estimated level based on previous year trends and scaled with current year data.',
+  auto_refresh: 'Auto refresh',
   auto_refresh_on_query_change: 'Auto refresh on query change',
 
   msg: {

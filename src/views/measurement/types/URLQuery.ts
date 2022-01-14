@@ -3,7 +3,7 @@ import Pollutant from '@/entities/Pollutant'
 import Source from '@/entities/Source'
 import Station from '@/entities/Station'
 import ChartDisplayModes from '../components/MeasurementsChart/ChartDisplayModes'
-import ChartColumnSize from '../components/MeasurementsChart/ChartColumnSize'
+import ChartColsNum from '../components/MeasurementsChart/ChartColsNum'
 import RunningAverageEnum from './RunningAverageEnum'
 
 enum URLQueryStations {
@@ -20,7 +20,7 @@ export default interface URLQuery {
   date_end?: string
   display_mode?: ChartDisplayModes
   running_average?: RunningAverageEnum
-  chart_cols?: ChartColumnSize | 0
+  chart_cols?: ChartColsNum | 0
 }
 
 export interface URLQueryRaw {

@@ -158,7 +158,12 @@
           />
         </v-col>
 
-        <v-col v-if="_isShowStations" class="pl-2" cols="12">
+        <v-col
+          v-if="_isShowStations"
+          class="pl-2"
+          cols="12"
+          :style="{opacity: disabledStations ? 0.5 : 1}"
+        >
           <SelectBox
             class="mt-4"
             v-for="(group, cityId) of stationsGroupedByCity"
@@ -196,15 +201,15 @@
 import _difference from 'lodash.difference'
 import {mdiInformationOutline} from '@mdi/js'
 import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
-import PageDrawer from '@/components/PageDrawer.vue'
+import PageDrawer from '@/components/PageDrawer/PageDrawer.vue'
 import SelectBox from '@/components/SelectBox.vue'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import Station from '@/entities/Station'
 import City from '@/entities/City'
 import RunningAverageEnum from '../types/RunningAverageEnum'
-import ChartColumnSize, {
+import ChartColsNum, {
   CHART_COLUMN_SIZES,
-} from './MeasurementsChart/ChartColumnSize'
+} from './MeasurementsChart/ChartColsNum'
 import URLQuery, {URLQueryStations} from '../types/URLQuery'
 import ChartDisplayModes from './MeasurementsChart/ChartDisplayModes'
 import ChartData from './MeasurementsChart/ChartData'
@@ -256,7 +261,7 @@ export default class MeasurementsRightDrawer extends Vue {
   }
 
   public get chartCols(): number {
-    const cols: ChartColumnSize =
+    const cols: ChartColsNum =
       this.queryParams.chart_cols ||
       MeasurementsChart.getMaxChartCols(
         this.$vuetify,
@@ -332,7 +337,7 @@ export default class MeasurementsRightDrawer extends Vue {
     }
   }
 
-  public get CHART_SIZE_LABELS(): ChartColumnSize[] {
+  public get CHART_SIZE_LABELS(): ChartColsNum[] {
     return CHART_COLUMN_SIZES.slice()
   }
 

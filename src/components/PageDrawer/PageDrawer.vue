@@ -8,17 +8,12 @@
     @input="toggle($event)"
   >
     <template v-slot:prepend>
-      <v-btn
+      <PageDrawerHandlerBtn
         v-if="showOpenButton"
         class="drawer-handler"
-        :title="$t('display_parameters_panel')"
         :style="{'margin-top': $vuetify.application.top + 'px'}"
-        color="primary"
-        icon
         @click="toggle(!open)"
-      >
-        <v-icon>{{ mdiTune }}</v-icon>
-      </v-btn>
+      />
 
       <v-toolbar height="40" flat>
         <v-spacer />
@@ -39,8 +34,13 @@
 import _difference from 'lodash.difference'
 import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
 import {mdiClose, mdiTune} from '@mdi/js'
+import PageDrawerHandlerBtn from './PageDrawerHandlerBtn.vue'
 
-@Component
+@Component({
+  components: {
+    PageDrawerHandlerBtn,
+  },
+})
 export default class PageDrawer extends Vue {
   @Prop({type: Boolean, default: false})
   readonly open!: boolean
@@ -77,14 +77,11 @@ export default class PageDrawer extends Vue {
 
     .drawer-handler {
       position: absolute;
-      left: -2.7rem;
-      top: 0.5rem;
+      left: -(2.7rem + 1rem);
+      top: 2.2rem;
       width: 2.7rem;
-      height: 2rem;
+      height: 2.7rem;
       z-index: 10;
-      border-radius: 0.2rem;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
     }
   }
 
