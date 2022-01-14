@@ -400,25 +400,25 @@ export default class ViolationsFiltersForm extends Vue {
     item: Regulation | Pollutant | Target,
     type: 'regulation' | 'pollutant' | 'target'
   ): ViolationsFilterItem {
-    let nameProp: keyof (Regulation | Pollutant | Target)
+    let name: string
 
     switch (type) {
       case 'regulation':
-        nameProp = 'name'
+        name = item.name
         break
       case 'pollutant':
-        nameProp = 'name'
+        name = item.name
         break
       case 'target':
-        nameProp = 'name'
+        name = `${item.name} (${(item as Target).regulation_id})`
         break
       default:
-        nameProp = 'name'
+        name = item.name
     }
 
     return {
       id: item.id,
-      name: item[nameProp],
+      name,
       pollutant: (item as Target).pollutant,
       regulation_id: (item as Target).regulation_id,
     }

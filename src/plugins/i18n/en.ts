@@ -20,6 +20,7 @@ export default {
   back: 'Back',
   cancel: 'Cancel',
   submit: 'Submit',
+
   details: 'Details',
   period: 'Period',
   all: 'All',
@@ -94,7 +95,9 @@ export default {
   target_value: 'Target value',
   unit: 'Unit',
   exceptions_allowed: 'Exceptions allowed',
-  estimated_average_so_far_this_year: 'Estimated level based on previous year trends and scaled with current year data.',
+  average_so_far_this_year: 'Average so far this year',
+  estimated_average_so_far_this_year:
+    'Estimated level based on previous year trends and scaled with current year data.',
   auto_refresh_on_query_change: 'Auto refresh on query change',
 
   msg: {

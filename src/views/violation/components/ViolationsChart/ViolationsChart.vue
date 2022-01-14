@@ -60,8 +60,12 @@
                 <!-- empty -->
               </template>
 
-              <v-btn  
-                v-else-if="future && !col.dates[day].tooltip.hasOvershoot"
+              <v-btn
+                v-else-if="
+                  future
+                    ? col.dates[day] && !col.dates[day].tooltip.hasOvershoot
+                    : !col.dates[day]
+                "
                 class="not-interactive"
                 :color="'white'"
                 :ripple="false"
@@ -103,7 +107,9 @@
                   :table-headers="col.dates[day].tooltip.tableHeaders"
                   :table-items="col.dates[day].tooltip.tableItems"
                   :has-overshoot="col.dates[day].tooltip.hasOvershoot"
-                  :has-overshoot-estimated="col.dates[day].tooltip.hasOvershootEstimated"
+                  :has-overshoot-estimated="
+                    col.dates[day].tooltip.hasOvershootEstimated
+                  "
                 />
               </v-menu>
             </template>
@@ -131,6 +137,7 @@ import Violation from '@/entities/Violation'
 import Target from '@/entities/Target'
 import URLQuery from '../../types/URLQuery'
 import ChartTooltip from './ChartTooltip.vue'
+import TooltipParams from './TooltipParams'
 import ChartData from './ChartData'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
@@ -151,19 +158,7 @@ interface MapFilter {
   [id: string]: number
 }
 
-interface TooltipParams {
-  title: string
-  subtitle: string
-  tableHeaders: any[]
-  tableItems: any[]
-  numExceedViolations: number
-  hasOvershoot: boolean
-  hasOvershootEstimated: boolean
-}
-
-const TOOLTIP_DEFAULTS = {
-  visible: false,
-  activator: null,
+const TOOLTIP_DEFAULTS: TooltipParams = {
   title: '',
   subtitle: '',
   tableHeaders: [],
@@ -424,13 +419,13 @@ export default class ViolationsChart extends Vue {
         !!opts?.isMarkOvershoot &&
         !!(item.is_overshoot_estimated || item.is_overshoot)
       const isOvershootEstimated: boolean =
-        !!opts?.isMarkOvershoot &&
-        !!(item.is_overshoot_estimated)
+        !!opts?.isMarkOvershoot && !!item.is_overshoot_estimated
       const exceeded = value > target_value
       if (exceeded) numExceedViolations++
       if (isOvershoot && !hasOvershoot) hasOvershoot = true
-      if (isOvershootEstimated && !hasOvershootEstimated) hasOvershootEstimated = true
-      
+      if (isOvershootEstimated && !hasOvershootEstimated)
+        hasOvershootEstimated = true
+
       return {
         exceeded,
         class: isOvershoot
@@ -445,7 +440,7 @@ export default class ViolationsChart extends Vue {
         target_value: target_value,
         target_unit: target?.target_unit,
         averaging_period_name: target?.averaging_period_name,
-        regulation_name:  regulation?.name
+        regulation_name: regulation?.name,
       }
     })
 
@@ -496,7 +491,7 @@ export default class ViolationsChart extends Vue {
           value: 'regulation_name',
           align: 'center',
           cellClass: 'primary--text',
-        }
+        },
       ],
       tableItems: _orderBy(tableItems, 'exceeded', 'desc'),
     }

@@ -109,7 +109,7 @@ import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import KeepAliveQueryMixin, {
   IKeepAliveQueryMixin,
 } from '@/mixins/KeepAliveQuery'
-import {toURLStringDate, toQueryString, URL_DATE_FORMAT} from '@/utils'
+import {toURLStringDate, URL_DATE_FORMAT} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsMenu from './components/ViolationsMenu.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
@@ -371,30 +371,23 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
         city: this.urlQuery.cities,
         date_from: this.urlQuery.date_start,
         sort_by: 'asc(date)',
+      }).then((violations = []) => {
+        newChartData.violations = violations
       })
-        .then((violations = []) => {
-          newChartData.violations = violations
-          const targetsIds = Array.from(
-            violations.reduce((set: Set<Target['id']>, item: Violation) => {
-              if (!item?.target_id) return set
-              return set.add(item.target_id)
-            }, new Set<Target['id']>())
+    )
+
+    promises.push(
+      this.fetchRegulations({city: this.urlQuery.cities})
+        .then((regulations = []) => {
+          newChartData.regulations = regulations
+
+          const regulationIds: Regulation['id'][] = Array.from(
+            regulations.map((item) => item.id)
           )
-          return this.fetchTargets(targetsIds)
+          return this.fetchTargets({regulation_id: regulationIds})
         })
         .then((targets = []) => {
           newChartData.targets = targets
-
-          const regulationsIds = Array.from(
-            targets.reduce((set: Set<Regulation['id']>, item: Target) => {
-              if (!item?.regulation_id) return set
-              return set.add(item.regulation_id)
-            }, new Set<Regulation['id']>())
-          )
-          return this.fetchRegulations(regulationsIds)
-        })
-        .then((regulations = []) => {
-          newChartData.regulations = regulations
         })
     )
 
@@ -479,7 +472,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT),
     }
 
-    const [err, items] = await to(ViolationAPI.findAll(toQueryString(q)))
+    const [err, items] = await to(ViolationAPI.findAll(q))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -490,8 +483,10 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     return items || []
   }
 
-  public async fetchTargets(ids: Target['id'][]): Promise<Target[]> {
-    const [err, items] = await to(TargetAPI.findAll({id: ids.join(',')}))
+  public async fetchTargets(query: {
+    regulation_id?: string[]
+  }): Promise<Target[]> {
+    const [err, items] = await to(TargetAPI.findAll(query))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -514,10 +509,10 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     return items || []
   }
 
-  public async fetchRegulations(
-    ids: Regulation['id'][]
-  ): Promise<Regulation[]> {
-    let [err, items = []] = await to(RegulationAPI.findAll({id: ids.join(',')}))
+  public async fetchRegulations(query: {
+    city?: string[]
+  }): Promise<Regulation[]> {
+    let [err, items = []] = await to(RegulationAPI.findAll(query))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
