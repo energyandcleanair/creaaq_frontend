@@ -93,11 +93,6 @@ export default class AppDrawer extends Vue {
         icon: mdiMapMarkerRadius,
         to: {name: 'map'},
       },
-      {
-        label: this.$t('download').toString(),
-        icon: mdiFileDownloadOutline,
-        to: {name: 'download'},
-      },
     ]
   }
 }
