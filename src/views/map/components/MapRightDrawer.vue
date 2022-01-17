@@ -98,6 +98,12 @@
           />
         </v-col>
       </v-row> -->
+
+      <v-row no-gutters>
+        <v-col class="d-flex justify-center mt-2" cols="12">
+          <CopyQueryURLBtn :disabled="loading" @click="onClickCopyQueryURL" />
+        </v-col>
+      </v-row>
     </v-form>
   </PageDrawer>
 </template>
@@ -106,6 +112,7 @@
 import _difference from 'lodash.difference'
 import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
 import PageDrawer from '@/components/PageDrawer/PageDrawer.vue'
+import CopyQueryURLBtn from '@/components/CopyQueryURLBtn.vue'
 import SelectBox from '@/components/SelectBox.vue'
 import Pollutant from '@/entities/Pollutant'
 import URLQuery, {MapChartBasemap, MapChartLevel} from '../types/URLQuery'
@@ -117,6 +124,7 @@ import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
     PageDrawer,
     ExportBtn,
     SelectBox,
+    CopyQueryURLBtn,
   },
 })
 export default class MapRightDrawer extends Vue {
@@ -193,5 +201,8 @@ export default class MapRightDrawer extends Vue {
   public emitChange(queryParams: URLQuery) {
     this.$emit('update:queryParams', queryParams)
   }
+
+  @Emit('click:copy_url')
+  public onClickCopyQueryURL($event: MouseEvent) {}
 }
 </script>

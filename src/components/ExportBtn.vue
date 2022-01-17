@@ -1,14 +1,14 @@
 <template>
   <v-sheet class="export-btn">
-    <v-select class="mt-0 pt-2" v-model="value" :items="fileTypes" hide-details>
+    <v-select
+      class="mt-0 pt-2"
+      v-model="value"
+      :items="fileTypes"
+      :disabled="$props.disabled"
+      hide-details
+    >
       <template v-slot:append-outer>
-        <v-btn
-          v-bind="$props"
-          outlined
-          depessed
-          small
-          @click="onClick(value, $event)"
-        >
+        <v-btn v-bind="$props" outlined small @click="onClick(value, $event)">
           <v-icon left>{{ mdiFileDownloadOutline }}</v-icon>
           {{ $t('export') }}
         </v-btn>

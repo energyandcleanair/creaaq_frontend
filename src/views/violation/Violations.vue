@@ -66,11 +66,14 @@
         >
           <v-alert class="text-center my-12 px-12" color="warning lighten-2">
             <div class="d-flex justify-center">
-              {{
-                $t(
-                  'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
-                )
-              }}
+              <span
+                v-html="
+                  $t(
+                    'msg.limit_exceeded__platform_cannot_display__you_can_download_data_by_url',
+                    {url: getAPIQueryURL()}
+                  )
+                "
+              />
             </div>
 
             <b class="d-flex justify-center pt-2">
@@ -93,6 +96,8 @@
           :chartData="chartData"
           :loading="isChartLoading"
           :frozen="isKeepAliveInactive"
+          :outdatedState="!isAutoRefreshOnQueryChange && isChartStateOutdated"
+          @click:refresh="onClickRefresh"
         />
       </v-container>
     </v-container>
@@ -103,6 +108,7 @@
       :open.sync="isRightPanelOpen"
       :loading="isLoading || isChartLoading"
       @update:queryParams="onChangeQuery"
+      @click:copy_url="onClickCopyQueryURL"
     />
   </div>
 </template>
@@ -111,6 +117,7 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
+import clipboardCopy from 'clipboard-copy'
 import {Component, Mixins} from 'vue-property-decorator'
 import {VueClass} from 'vue-class-component/lib/declarations'
 import {mdiRefresh} from '@mdi/js'
@@ -126,13 +133,18 @@ import CityAPI from '@/api/CityAPI'
 import PollutantAPI from '@/api/PollutantAPI'
 import RegulationAPI from '@/api/RegulationAPI'
 import TargetAPI from '@/api/TargetAPI'
-import ViolationAPI from '@/api/ViolationAPI'
+import ViolationAPI, {ViolationQueryFindAll} from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import PageDrawerHandlerBtn from '@/components/PageDrawer/PageDrawerHandlerBtn.vue'
 import KeepAliveQueryMixin, {
   IKeepAliveQueryMixin,
 } from '@/mixins/KeepAliveQuery'
-import {toURLStringDate, toCompactArray, URL_DATE_FORMAT} from '@/utils'
+import {
+  toURLStringDate,
+  toCompactArray,
+  URL_DATE_FORMAT,
+  toQueryString,
+} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
@@ -172,6 +184,7 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
 })
 export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   public isChartLoading: boolean = false
+  public isChartStateOutdated: boolean = false
   public readonly mdiRefresh = mdiRefresh
   public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
@@ -377,12 +390,9 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
 
     const promises: Promise<any>[] = []
 
+    const violationsQuery = this.getViolationsQuery()
     promises.push(
-      this.fetchViolations({
-        city: this.urlQuery.cities,
-        date_from: this.urlQuery.date_start,
-        sort_by: 'asc(date)',
-      }).then((violations = []) => {
+      this.fetchViolations(violationsQuery).then((violations = []) => {
         newChartData.violations = violations
       })
     )
@@ -470,20 +480,13 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     })
 
     this.isChartLoading = false
+    this.isChartStateOutdated = false
   }
 
-  public async fetchViolations(query: {
-    city: string[]
-    date_from?: string
-    sort_by?: string
-  }): Promise<Violation[]> {
-    const $startDate = moment(query.date_from || toURLStringDate(JAN_1))
-    const q = {
-      ...query,
-      date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT),
-    }
-
-    const [err, items] = await to(ViolationAPI.findAll(q))
+  public async fetchViolations(
+    query: ViolationQueryFindAll
+  ): Promise<Violation[]> {
+    const [err, items] = await to(ViolationAPI.findAll(query))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -542,6 +545,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     const citiesChanged = citiesOld !== citiesNew
     const needRefresh =
       query.date_start !== this.urlQuery.date_start || citiesChanged
+    this.isChartStateOutdated = needRefresh || this.isChartStateOutdated
 
     await this.setUrlQuery(query)
 
@@ -551,6 +555,38 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   public async onClickRefresh() {
     this.$trackGtmEvent('violations', 'refresh')
     this.refresh()
+  }
+
+  public onClickCopyQueryURL() {
+    clipboardCopy(this.getAPIQueryURL())
+    this.$dialog.notify.info(
+      this.$t('msg.query_url_copied_to_clipboard').toString()
+    )
+  }
+
+  public getAPIQueryURL(): string {
+    const queryStr: string = toQueryString(this.getViolationsQuery())
+    const url = new URL(
+      `${ViolationAPI.resourceURLPrefix}?${queryStr}`,
+      ViolationAPI.axios.defaults.baseURL
+    ).toString()
+    return url
+  }
+
+  public getViolationsQuery(): ViolationQueryFindAll {
+    const $startDate = moment(
+      this.urlQuery.date_start || toURLStringDate(JAN_1)
+    )
+    const dateEnd = $startDate.month(11).date(31).format(URL_DATE_FORMAT)
+
+    const query: ViolationQueryFindAll = {
+      city: this.urlQuery.cities,
+      date_from: this.urlQuery.date_start,
+      date_to: dateEnd,
+      sort_by: ['asc(date)'],
+      format: 'json',
+    }
+    return query
   }
 }
 </script>

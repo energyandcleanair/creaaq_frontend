@@ -15,11 +15,14 @@
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
           <div class="d-flex justify-center">
-            {{
-              $t(
-                'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
-              )
-            }}
+            <span
+              v-html="
+                $t(
+                  'msg.limit_exceeded__platform_cannot_display__you_can_download_data_by_url',
+                  {url: getAPIQueryURL()}
+                )
+              "
+            />
           </div>
 
           <b class="d-flex justify-center pt-2">
@@ -43,11 +46,14 @@
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-3">
           <div class="d-flex justify-center">
-            {{
-              $t(
-                'msg.limit_exceeded__app_cannot_render_amount__you_can_export_file'
-              )
-            }}
+            <span
+              v-html="
+                $t(
+                  'msg.limit_exceeded__platform_cannot_display__you_can_download_data_by_url',
+                  {url: getAPIQueryURL()}
+                )
+              "
+            />
           </div>
 
           <b class="d-flex justify-center pt-2">
@@ -165,6 +171,7 @@
       :disabledStations="!isAutoRefreshOnQueryChange && isChartStateOutdated"
       @update:queryParams="onChangeQuery"
       @click:export="onClickExport"
+      @click:copy_url="onClickCopyQueryURL"
     />
   </div>
 </template>
@@ -175,6 +182,7 @@ import moment from 'moment'
 import _orderBy from 'lodash.orderby'
 import json2csv from 'json2csv'
 import {saveAs} from 'file-saver'
+import clipboardCopy from 'clipboard-copy'
 import {VueClass} from 'vue-class-component/lib/declarations'
 import {Component, Mixins} from 'vue-property-decorator'
 import {mdiRefresh} from '@mdi/js'
@@ -197,7 +205,7 @@ import CityAPI from '@/api/CityAPI'
 import StationAPI from '@/api/StationAPI'
 import SourceAPI from '@/api/SourceAPI'
 import PollutantAPI from '@/api/PollutantAPI'
-import MeasurementAPI from '@/api/MeasurementAPI'
+import MeasurementAPI, {MeasurementQueryFindAll} from '@/api/MeasurementAPI'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import PageDrawerHandlerBtn from '@/components/PageDrawer/PageDrawerHandlerBtn.vue'
@@ -523,25 +531,32 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
 
     if (!this.urlQuery?.cities.length) return newChartData
 
-    let _dateStart: number = toNumberDate(this.urlQuery.date_start || '0')
-
-    // shift the queried 'from' date by 1 year ago
-    // so the running average display well
-    if ((_dateStart || 0) > 0) {
-      const _date = moment(_dateStart)
-      _dateStart = +_date.year(_date.year() - 1)
-    }
-    const dateStart = _dateStart ? toURLStringDate(_dateStart) : undefined
-    const dateEnd =
-      this.urlQuery.date_end === '0' ? undefined : this.urlQuery.date_end
-
     let sources: Source[] = []
     let stations: Station[] = []
     let pollutants: Pollutant[] = []
-    let measurementsByCities: Measurement[] = []
-    let measurementsByStations: Measurement[] = []
+    let measurements: Measurement[] = []
 
     const promises: Promise<any>[] = []
+
+    const measurementsQuery = this.getMeasurementsQuery()
+    promises.push(
+      this.fetchMeasurements(measurementsQuery)
+        .then((items) => (measurements = items))
+
+        // TODO: remove this .then() after Hubert fixed "process: string[]" in the query.
+        // Currently, it's making query for the first string passed in "process"
+        .then(() => {
+          if (!this.filterStations.length) return []
+          return this.fetchMeasurements({
+            ...measurementsQuery,
+            process: [MeasurementProcesses.station_day_mad],
+          })
+        })
+        .then(
+          (measurementsByStations) =>
+            (measurements = measurements.concat(measurementsByStations))
+        )
+    )
 
     promises.push(
       this.fetchSources().then((items) => (sources = _orderBy(items, 'id')))
@@ -555,28 +570,6 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
 
     promises.push(this.fetchPollutants().then((items) => (pollutants = items)))
 
-    promises.push(
-      this.fetchMeasurements({
-        city: this.urlQuery.cities,
-        date_from: dateStart,
-        date_to: dateEnd,
-        process: MeasurementProcesses.city_day_mad,
-        sort_by: 'asc(pollutant),asc(date)',
-      }).then((items) => (measurementsByCities = items))
-    )
-
-    if (this.filterStations.length) {
-      promises.push(
-        this.fetchMeasurements({
-          city: this.urlQuery.cities,
-          date_from: dateStart,
-          date_to: dateEnd,
-          process: MeasurementProcesses.station_day_mad,
-          sort_by: 'asc(pollutant),asc(date)',
-        }).then((items) => (measurementsByStations = items))
-      )
-    }
-
     const [err] = await to(Promise.all(promises))
     if (err) {
       this.$trackGtmEvent('measurements', 'error', err.message)
@@ -585,9 +578,8 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
       )
       throw err
     }
-    const measurements = measurementsByCities.concat(measurementsByStations)
 
-    const usedPollutantsMap = measurementsByCities.reduce(
+    const usedPollutantsMap = measurements.reduce(
       (memo: {[pollutantId: string]: number}, meas: Measurement) => {
         const pollutantId = meas.pollutant
         if (pollutantId && !memo[pollutantId]) memo[pollutantId] = 1
@@ -597,7 +589,7 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
     )
     pollutants = pollutants.filter((item) => usedPollutantsMap[item.id])
 
-    const usedSourcesMap = measurementsByCities.reduce(
+    const usedSourcesMap = measurements.reduce(
       (memo: {[sourceId: string]: number}, meas: Measurement) => {
         const sourceId = meas.source
         if (sourceId && !memo[sourceId]) memo[sourceId] = 1
@@ -665,13 +657,9 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
     this.isChartStateOutdated = false
   }
 
-  public async fetchMeasurements(query: {
-    city: string[]
-    date_from?: string
-    date_to?: string
-    process?: MeasurementProcesses
-    sort_by?: string
-  }): Promise<Measurement[]> {
+  public async fetchMeasurements(
+    query: MeasurementQueryFindAll
+  ): Promise<Measurement[]> {
     const [err, items] = await to(MeasurementAPI.findAll(toQueryString(query)))
     if (err) {
       this.$dialog.notify.error(
@@ -728,7 +716,11 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
     const citiesChanged = citiesOld !== citiesNew
     if (citiesChanged) query.sources = []
 
-    const stationsChanged = query.stations?.[0] === URLQueryStations.all
+    // const stationsChanged = query.stations?.[0] === URLQueryStations.all
+    const stationsChanged =
+      JSON.stringify(query.stations) !==
+        JSON.stringify(this.urlQuery.stations) ||
+      query.stations?.[0] === URLQueryStations.all
     const displayModeChanged = query.display_mode !== this.urlQuery.display_mode
 
     if (
@@ -849,6 +841,52 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
       )
       throw err
     }
+  }
+
+  public onClickCopyQueryURL() {
+    clipboardCopy(this.getAPIQueryURL())
+    this.$dialog.notify.info(
+      this.$t('msg.query_url_copied_to_clipboard').toString()
+    )
+  }
+
+  public getAPIQueryURL(): string {
+    const queryStr: string = toQueryString(this.getMeasurementsQuery())
+    const url = new URL(
+      `${MeasurementAPI.resourceURLPrefix}?${queryStr}`,
+      MeasurementAPI.axios.defaults.baseURL
+    ).toString()
+    return url
+  }
+
+  public getMeasurementsQuery(): MeasurementQueryFindAll {
+    let _dateStart: number = toNumberDate(this.urlQuery.date_start || '0')
+
+    // shift the queried 'from' date by 1 year ago
+    // so the running average display well
+    if ((_dateStart || 0) > 0) {
+      const _date = moment(_dateStart)
+      _dateStart = +_date.year(_date.year() - 1)
+    }
+    const dateStart = _dateStart ? toURLStringDate(_dateStart) : undefined
+    const dateEnd =
+      this.urlQuery.date_end === '0' ? undefined : this.urlQuery.date_end
+
+    const query: MeasurementQueryFindAll = {
+      city: this.urlQuery.cities,
+      date_from: dateStart,
+      date_to: dateEnd,
+      process: [MeasurementProcesses.city_day_mad],
+      sort_by: ['asc(pollutant)', 'asc(date)'],
+      format: 'json',
+    }
+
+    if (this.filterStations.length) {
+      if (!query.process) query.process = []
+      query.process.push(MeasurementProcesses.station_day_mad)
+    }
+
+    return query
   }
 
   public chooseDefaultSource(sources: Source[] = []): Source | undefined {

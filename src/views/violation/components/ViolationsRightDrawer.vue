@@ -66,6 +66,12 @@
           />
         </v-col>
       </v-row>
+
+      <v-row no-gutters>
+        <v-col class="d-flex justify-center mt-2" cols="12">
+          <CopyQueryURLBtn :disabled="loading" @click="onClickCopyQueryURL" />
+        </v-col>
+      </v-row>
     </v-form>
 
     <RegulationDetailsModal
@@ -84,6 +90,7 @@ import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
 import {mdiInformationOutline} from '@mdi/js'
 import {toURLStringDate} from '@/utils'
 import PageDrawer from '@/components/PageDrawer/PageDrawer.vue'
+import CopyQueryURLBtn from '@/components/CopyQueryURLBtn.vue'
 import Regulation from '@/entities/Regulation'
 import Pollutant from '@/entities/Pollutant'
 import Country from '@/entities/Country'
@@ -101,6 +108,7 @@ import RegulationDetailsModal from './RegulationDetailsModal.vue'
     PageDrawer,
     ViolationsFiltersForm,
     RegulationDetailsModal,
+    CopyQueryURLBtn,
   },
 })
 export default class ViolationsRightDrawer extends Vue {
@@ -217,5 +225,8 @@ export default class ViolationsRightDrawer extends Vue {
   public emitChange(queryParams: URLQuery) {
     this.$emit('update:queryParams', queryParams)
   }
+
+  @Emit('click:copy_url')
+  public onClickCopyQueryURL($event: MouseEvent) {}
 }
 </script>

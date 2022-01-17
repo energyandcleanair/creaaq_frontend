@@ -49,7 +49,23 @@
             </template>
           </v-data-table>
 
-          <ExportBtn class="ml-1 mt-2" :value="'CSV'" @click="onClickExport" />
+          <v-row no-gutters>
+            <v-col>
+              <ExportBtn
+                class="ml-1 mt-2"
+                :value="'CSV'"
+                :disabled="loading"
+                @click="onClickExport"
+              />
+            </v-col>
+
+            <v-col class="d-flex justify-end">
+              <CopyQueryURLBtn
+                class="mt-5"
+                :disabled="loading"
+                @click="onClickCopyQueryURL"
+            /></v-col>
+          </v-row>
         </v-col>
 
         <v-col cols="12" md="5" order="1" order-md="2">
@@ -134,9 +150,10 @@ import {saveAs} from 'file-saver'
 import {mdiArrowExpandAll} from '@mdi/js'
 import Leaflet, {LatLngBounds} from 'leaflet'
 import {LMap, LTileLayer, LCircleMarker, LTooltip} from 'vue2-leaflet'
-import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
+import {Component, Vue, Prop, Ref, Emit} from 'vue-property-decorator'
 import theme from '@/theme'
 import config, {ConfigParams} from '@/config'
+import CopyQueryURLBtn from '@/components/CopyQueryURLBtn.vue'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import Coordinates from '@/entities/Coordinates'
 import City from '@/entities/City'
@@ -157,6 +174,7 @@ interface MapMarker {
     LCircleMarker,
     LTooltip,
     ExportBtn,
+    CopyQueryURLBtn,
   },
 })
 export default class StationsChart extends Vue {
@@ -490,6 +508,9 @@ export default class StationsChart extends Vue {
       this.exportToCSV(this.stations)
     }
   }
+
+  @Emit('click:copy_url')
+  public onClickCopyQueryURL($event: MouseEvent) {}
 }
 </script>
 

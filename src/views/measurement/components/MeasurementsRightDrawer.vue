@@ -190,7 +190,15 @@
         <v-col class="text-subtitle-1" cols="12">{{ $t('export') }}</v-col>
 
         <v-col class="d-flex justify-center" cols="12">
-          <ExportBtn :value="'CSV'" @click="onClickExport" />
+          <ExportBtn
+            :value="'CSV'"
+            :disabled="loading"
+            @click="onClickExport"
+          />
+        </v-col>
+
+        <v-col class="d-flex justify-center mt-7" cols="12">
+          <CopyQueryURLBtn :disabled="loading" @click="onClickCopyQueryURL" />
         </v-col>
       </v-row>
     </v-form>
@@ -204,6 +212,7 @@ import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
 import PageDrawer from '@/components/PageDrawer/PageDrawer.vue'
 import SelectBox from '@/components/SelectBox.vue'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
+import CopyQueryURLBtn from '@/components/CopyQueryURLBtn.vue'
 import RunningAverageEnum from '@/entities/RunningAverageEnum'
 import Station from '@/entities/Station'
 import City from '@/entities/City'
@@ -231,6 +240,7 @@ interface StationsNCitiesMap {
     PageDrawer,
     SelectBox,
     ExportBtn,
+    CopyQueryURLBtn,
   },
 })
 export default class MeasurementsRightDrawer extends Vue {
@@ -364,6 +374,9 @@ export default class MeasurementsRightDrawer extends Vue {
 
   @Emit('click:export')
   public onClickExport(fileType: ExportFileType, $event: MouseEvent) {}
+
+  @Emit('click:copy_url')
+  public onClickCopyQueryURL($event: MouseEvent) {}
 
   public onBlurStationsSelect($event: FocusEvent) {
     const isRealBlur = !$event.relatedTarget

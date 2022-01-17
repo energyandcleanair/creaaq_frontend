@@ -57,6 +57,7 @@
       :loading="isChartLoading"
       @update:queryParams="onChangeQuery"
       @click:export="onClickExport"
+      @click:copy_url="onClickCopyQueryURL"
     />
   </div>
 </template>
@@ -65,13 +66,14 @@
 import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
 import _debounce from 'lodash.debounce'
+import clipboardCopy from 'clipboard-copy'
 import _difference from 'lodash.difference'
 import {Component, Ref, Mixins} from 'vue-property-decorator'
 import {VueClass} from 'vue-class-component/lib/declarations'
 import config from '@/config'
-import {sleep} from '@/utils'
-import CityAPI from '@/api/CityAPI'
-import StationAPI from '@/api/StationAPI'
+import {sleep, toQueryString} from '@/utils'
+import CityAPI, {CityQueryFindAll} from '@/api/CityAPI'
+import StationAPI, {StationQueryFindAll} from '@/api/StationAPI'
 import SourceAPI from '@/api/SourceAPI'
 import PollutantAPI from '@/api/PollutantAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
@@ -268,7 +270,8 @@ export default class ViewMap extends Mixins(keepAliveQueryMixin) {
     }
 
     if (this.urlQuery.level === MapChartLevel.city) {
-      const cities = await this.fetchCities()
+      const violationsQuery = this.getViolationsQuery() as CityQueryFindAll
+      const cities = await this.fetchCities(violationsQuery)
       this.chartData.cities = cities
       this.chartData.pollutants = this.filterUsedPollutantsFromItems(
         pollutants,
@@ -276,7 +279,8 @@ export default class ViewMap extends Mixins(keepAliveQueryMixin) {
       )
       this.chartData.sources = this.filterUsedSourcesFromItems(sources, cities)
     } else if (this.urlQuery.level === MapChartLevel.station) {
-      const stations = await this.fetchStations()
+      const violationsQuery = this.getViolationsQuery() as StationQueryFindAll
+      const stations = await this.fetchStations(violationsQuery)
       this.chartData.stations = stations
       this.chartData.pollutants = this.filterUsedPollutantsFromItems(
         pollutants,
@@ -343,8 +347,8 @@ export default class ViewMap extends Mixins(keepAliveQueryMixin) {
 
   public mountedAfterFetch() {}
 
-  public async fetchCities(): Promise<City[]> {
-    const [err, cities] = await to(CityAPI.findAll({count: 10}))
+  public async fetchCities(query: CityQueryFindAll): Promise<City[]> {
+    const [err, cities] = await to(CityAPI.findAll(query))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -379,8 +383,8 @@ export default class ViewMap extends Mixins(keepAliveQueryMixin) {
     return items || []
   }
 
-  public async fetchStations(): Promise<Station[]> {
-    let [err, items = []] = await to(StationAPI.findAll())
+  public async fetchStations(query: StationQueryFindAll): Promise<Station[]> {
+    let [err, items = []] = await to(StationAPI.findAll(query))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -439,7 +443,6 @@ export default class ViewMap extends Mixins(keepAliveQueryMixin) {
 
   public get onChangeQuery() {
     return _debounce(async (query: URLQuery) => {
-      console.trace('Map onChangeQuery: ')
       if (this.isKeepAliveInactive) return
 
       this.isChartLoading = true
@@ -574,6 +577,39 @@ export default class ViewMap extends Mixins(keepAliveQueryMixin) {
     //   )
     //   throw err
     // }
+  }
+
+  public onClickCopyQueryURL() {
+    clipboardCopy(this.getAPIQueryURL())
+    this.$dialog.notify.info(
+      this.$t('msg.query_url_copied_to_clipboard').toString()
+    )
+  }
+
+  public getAPIQueryURL(): string {
+    let url: string = ''
+    const queryStr: string = toQueryString(this.getViolationsQuery())
+
+    if (this.urlQuery.level === MapChartLevel.city) {
+      url = new URL(
+        `${CityAPI.resourceURLPrefix}${queryStr ? '?' + queryStr : queryStr}`,
+        CityAPI.axios.defaults.baseURL
+      ).toString()
+    } else if (this.urlQuery.level === MapChartLevel.station) {
+      url = new URL(
+        `${StationAPI.resourceURLPrefix}${
+          queryStr ? '?' + queryStr : queryStr
+        }`,
+        StationAPI.axios.defaults.baseURL
+      ).toString()
+    }
+    return url
+  }
+
+  public getViolationsQuery(): CityQueryFindAll | StationQueryFindAll {
+    return {
+      format: 'json',
+    }
   }
 }
 </script>

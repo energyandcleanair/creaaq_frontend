@@ -19,9 +19,14 @@ export const toNumberDate = (d: string): number =>
 
 export const toQueryString = (obj: Record<string, any>): string => {
   const searchParams = new URLSearchParams()
-  Object.keys(obj).forEach(
-    (key) => obj[key] !== undefined && searchParams.append(key, obj[key])
-  )
+  Object.keys(obj).forEach((key) => {
+    if (obj[key] === undefined) return
+    if (Array.isArray(obj[key])) {
+      searchParams.append(key, obj[key].join(','))
+    } else {
+      searchParams.append(key, obj[key])
+    }
+  })
   return searchParams.toString()
 }
 

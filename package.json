@@ -26,6 +26,7 @@
     "axios": "^0.21.1",
     "axios-cache-adapter": "^2.7.3",
     "chroma-js": "^2.1.2",
+    "clipboard-copy": "^4.0.1",
     "file-saver": "^2.0.5",
     "firebase": "^8.6.8",
     "json2csv": "^5.0.6",

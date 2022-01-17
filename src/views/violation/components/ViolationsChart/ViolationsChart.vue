@@ -1,11 +1,32 @@
 <template>
   <v-container class="violations-chart" fluid>
-    <template v-if="loading">
-      <v-skeleton-loader class="mb-2" type="image" style="height: 64px" />
+    <template v-if="outdatedState">
+      <v-row class="fill-width banner-outdated" no-gutters>
+        <v-col class="d-flex justify-center">
+          <v-btn
+            color="primary"
+            :loading="loading"
+            outlined
+            @click="$emit('click:refresh')"
+          >
+            <v-icon left>{{ mdiRefresh }}</v-icon>
+            {{ $t('refresh') }}
+          </v-btn>
+        </v-col>
+      </v-row>
+    </template>
+
+    <template v-if="loading || outdatedState">
+      <v-skeleton-loader
+        class="mb-2"
+        type="image"
+        style="height: 64px"
+        :boilerplate="outdatedState"
+      />
 
       <v-row class="px-2">
         <v-col v-for="i of 12 / vCols" :key="i">
-          <v-skeleton-loader type="text, image" />
+          <v-skeleton-loader type="text, image" :boilerplate="outdatedState" />
         </v-col>
       </v-row>
     </template>
@@ -125,6 +146,7 @@ import chroma from 'chroma-js'
 import _get from 'lodash.get'
 import _set from 'lodash.set'
 import _orderBy from 'lodash.orderby'
+import {mdiRefresh} from '@mdi/js'
 import moment, {Moment} from 'moment'
 import {Component, Vue, Prop, Ref} from 'vue-property-decorator'
 import {Plotly} from 'vue-plotly'
@@ -190,6 +212,10 @@ export default class ViolationsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly frozen!: boolean
 
+  @Prop({type: Boolean, default: false})
+  public readonly outdatedState!: boolean
+
+  public readonly mdiRefresh = mdiRefresh
   public tooltip: TooltipParams = TOOLTIP_DEFAULTS
   public tooltips: any[] = []
 
@@ -534,11 +560,35 @@ function _valuePassesFilter(
 </script>
 
 <style lang="scss">
+@import '~vuetify/src/styles/styles.sass';
 $violations-chart__calendar--width: 170px;
 
 .violations-chart {
   padding: 0 0.5rem 0 0;
   position: relative;
+
+  .banner-outdated {
+    position: absolute;
+    z-index: 10;
+    min-height: 200px;
+    height: 100%;
+
+    &:before {
+      content: '';
+      position: absolute;
+      top: -15px;
+      left: -10px;
+      width: calc(100% + (10px * 2));
+      height: calc(100% + (10px * 2));
+      background-color: map-get($yellow, lighten-5);
+      border-radius: 5px;
+      opacity: 0.7;
+    }
+
+    .v-btn {
+      margin-top: 100px;
+    }
+  }
 
   .chart-row {
     position: relative;

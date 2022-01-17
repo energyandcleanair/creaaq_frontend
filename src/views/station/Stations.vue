@@ -12,14 +12,20 @@
           />
         </v-col>
 
-        <v-col class="d-flex justify-end align-center" cols="12" sm="4" md="6">
+        <v-col
+          class="d-flex justify-end align-start pt-8"
+          cols="12"
+          sm="4"
+          md="6"
+        >
           <v-btn
             class="ml-2"
+            color="primary"
             :disabled="isLoading"
             :loading="isLoading || isChartLoading"
             @click="onClickRefresh"
-            color="primary"
           >
+            <v-icon left>{{ mdiRefresh }}</v-icon>
             {{ $t('refresh') }}
           </v-btn>
         </v-col>
@@ -33,11 +39,14 @@
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
           <div class="d-flex justify-center">
-            {{
-              $t(
-                'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
-              )
-            }}
+            <span
+              v-html="
+                $t(
+                  'msg.limit_exceeded__platform_cannot_display__you_can_download_data_by_url',
+                  {url: getAPIQueryURL()}
+                )
+              "
+            />
           </div>
 
           <b class="d-flex justify-center pt-2">
@@ -62,6 +71,7 @@
         :loading="isChartLoading"
         :frozen="isKeepAliveInactive"
         @update:queryParams="onChangeQuery"
+        @click:copy_url="onClickCopyQueryURL"
       />
     </v-container>
   </div>
@@ -69,8 +79,10 @@
 
 <script lang="ts">
 import to from 'await-to-js'
+import {mdiRefresh} from '@mdi/js'
 import _orderBy from 'lodash.orderby'
 import _difference from 'lodash.difference'
+import clipboardCopy from 'clipboard-copy'
 import {Component, Ref, Mixins} from 'vue-property-decorator'
 import {VueClass} from 'vue-class-component/lib/declarations'
 import config from '@/config'
@@ -82,7 +94,7 @@ import Source from '@/entities/Source'
 import CityAPI from '@/api/CityAPI'
 import SourceAPI from '@/api/SourceAPI'
 import PollutantAPI from '@/api/PollutantAPI'
-import StationAPI from '@/api/StationAPI'
+import StationAPI, {StationQueryFindAll} from '@/api/StationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import KeepAliveQueryMixin, {
   IKeepAliveQueryMixin,
@@ -123,6 +135,7 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
   @Ref('stationsChart')
   readonly $stationsChart?: StationsChart
 
+  public readonly mdiRefresh = mdiRefresh
   public isMounted: boolean = false
   public isFetched: boolean = false
   public isLoading: boolean = false
@@ -382,8 +395,9 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
 
     if (!this.urlQuery?.cities.length) return newChartData
 
+    const stationsQuery = this.getStationsQuery()
     let [err, stations = []] = await to<Station[]>(
-      this.fetchStations({city: this.urlQuery.cities})
+      this.fetchStations(stationsQuery)
     )
 
     if (err) {
@@ -429,7 +443,7 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
     this.isChartLoading = false
   }
 
-  public async fetchStations(query: {city: string[]}): Promise<Station[]> {
+  public async fetchStations(query: StationQueryFindAll): Promise<Station[]> {
     let [err, items = []] = await to(StationAPI.findAll(toQueryString(query)))
     if (err) {
       this.$dialog.notify.error(
@@ -463,6 +477,30 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()
+  }
+
+  public onClickCopyQueryURL() {
+    clipboardCopy(this.getAPIQueryURL())
+    this.$dialog.notify.info(
+      this.$t('msg.query_url_copied_to_clipboard').toString()
+    )
+  }
+
+  public getAPIQueryURL(): string {
+    const queryStr: string = toQueryString(this.getStationsQuery())
+    const url = new URL(
+      `${StationAPI.resourceURLPrefix}?${queryStr}`,
+      StationAPI.axios.defaults.baseURL
+    ).toString()
+    return url
+  }
+
+  public getStationsQuery(): StationQueryFindAll {
+    const query: StationQueryFindAll = {
+      city: this.urlQuery.cities,
+      format: 'json',
+    }
+    return query
   }
 }
 </script>

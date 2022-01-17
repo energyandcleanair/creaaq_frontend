@@ -7,4 +7,9 @@ export class CityAPI extends CRUD<City> {
   }
 }
 
+export interface CityQueryFindAll {
+  id: City['id'][]
+  format?: 'json' | 'scv'
+}
+
 export default new CityAPI()

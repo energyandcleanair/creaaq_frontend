@@ -99,6 +99,7 @@ export default {
   overshooting: 'Overshooting',
   target_value: 'Target value',
   unit: 'Unit',
+  copy_query_url: 'Copy Query URL',
   exceptions_allowed: 'Exceptions allowed',
   average_so_far_this_year: 'Average so far this year',
   estimated_average_so_far_this_year:
@@ -131,8 +132,8 @@ export default {
     no_results_found: 'No results found',
     limit_exceeded__server_cannot_process_amount__reduce_query:
       'The limit is exceeded. The server cannot process such a large request. Please reduce the amount of data requested.',
-    limit_exceeded__app_cannot_render_amount__you_can_export_file:
-      'The limit is exceeded. The app cannot render too much charts, but you still can export the data to a file.',
+    limit_exceeded__platform_cannot_display__you_can_download_data_by_url:
+      'The limit is exceeded. The platform cannot display such a large request. Please reduce the amount of data requested or click <a href="{url}" target="_blank">here</a> to download the data',
     too_large_url: 'Too large URL',
     too_large_query: 'Too large query',
     queried_of_limit: 'Queried {queried} with the limit of {limit}',
@@ -141,6 +142,7 @@ export default {
     no_items_selected: 'No {items} selected',
     overshooting_tooltip_info: `Overshooting date is the date when a yearly target is exceeded even if air pollution dropped to zero from that day onwards.<br/><br/>Estimated overshooting dates (striped) are assuming similar trends than the previous year, scaled with current year data.`,
     cache_has_been_cleared: 'Cache has been cleared',
+    query_url_copied_to_clipboard: 'Query URL copied to clipboard',
   },
 
   auth: {
