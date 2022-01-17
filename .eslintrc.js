@@ -42,6 +42,10 @@ module.exports = {
     'no-unused-vars': 'off',
     'object-curly-spacing': 'off',
     'vue/valid-v-slot': 'off',
+    'no-loss-of-precision': 'off',
+    '@typescript-eslint/no-loss-of-precision': ['error'],
+    'no-unnecessary-type-annotation': 'off',
+    '@typescript-eslint/no-unnecessary-type-annotation': 'off',
   },
   overrides: [
     {

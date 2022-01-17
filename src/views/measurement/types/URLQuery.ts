@@ -4,7 +4,7 @@ import Source from '@/entities/Source'
 import Station from '@/entities/Station'
 import RunningAverageEnum from '@/entities/RunningAverageEnum'
 import ChartDisplayModes from '../components/MeasurementsChart/ChartDisplayModes'
-import ChartColumnSize from '../components/MeasurementsChart/ChartColumnSize'
+import ChartColsNum from '../components/MeasurementsChart/ChartColsNum'
 
 export type yyyymmdd = string
 
@@ -22,7 +22,7 @@ export default interface URLQuery {
   date_end?: yyyymmdd
   display_mode?: ChartDisplayModes
   running_average?: RunningAverageEnum
-  chart_cols?: ChartColumnSize | 0
+  chart_cols?: ChartColsNum | 0
 }
 
 export interface URLQueryRaw {

@@ -1,14 +1,12 @@
 <template>
   <v-container class="violations-chart" fluid>
     <template v-if="loading">
-      <v-skeleton-loader class="mb-2" type="image" style="height: 64px;" />
+      <v-skeleton-loader class="mb-2" type="image" style="height: 64px" />
 
       <v-row class="px-2">
-        <template v-for="i of 12 / vCols">
-          <v-col :key="i">
-            <v-skeleton-loader type="text, image" />
-          </v-col>
-        </template>
+        <v-col v-for="i of 12 / vCols" :key="i">
+          <v-skeleton-loader type="text, image" />
+        </v-col>
       </v-row>
     </template>
 
@@ -63,7 +61,11 @@
               </template>
 
               <v-btn
-                v-else-if="future || !col.dates[day]"
+                v-else-if="
+                  future
+                    ? col.dates[day] && !col.dates[day].tooltip.hasOvershoot
+                    : !col.dates[day]
+                "
                 class="not-interactive"
                 :color="'white'"
                 :ripple="false"
@@ -86,6 +88,7 @@
                 <template v-slot:activator="{on, attrs}">
                   <v-btn
                     v-if="!outside"
+                    :class="col.dates[day].class"
                     :color="col.dates[day].color || 'white'"
                     :ripple="false"
                     small
@@ -103,6 +106,10 @@
                   :subtitle="col.dates[day].tooltip.subtitle"
                   :table-headers="col.dates[day].tooltip.tableHeaders"
                   :table-items="col.dates[day].tooltip.tableItems"
+                  :has-overshoot="col.dates[day].tooltip.hasOvershoot"
+                  :has-overshoot-estimated="
+                    col.dates[day].tooltip.hasOvershootEstimated
+                  "
                 />
               </v-menu>
             </template>
@@ -125,17 +132,19 @@ import {URL_DATE_FORMAT} from '@/utils'
 import theme from '@/theme'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
-import Organization from '@/entities/Organization'
+import Regulation from '@/entities/Regulation'
 import Violation from '@/entities/Violation'
 import Target from '@/entities/Target'
 import URLQuery from '../../types/URLQuery'
 import ChartTooltip from './ChartTooltip.vue'
+import TooltipParams from './TooltipParams'
 import ChartData from './ChartData'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
-import Guideline from '@/entities/Guideline'
 
 const COL_ID_DIVIDER = '--'
+export const OVERSHOOT_VIOLATION_COLOR_CLASS = 'purple--text text--lighten-1'
+export const OVERSHOOT_VIOLATION_COLOR = theme.colors.purple.lighten1
 
 interface ViolationsCalendar {
   [year: string]: {
@@ -149,22 +158,14 @@ interface MapFilter {
   [id: string]: number
 }
 
-interface TooltipParams {
-  title: string
-  subtitle: string
-  tableHeaders: any[]
-  tableItems: any[]
-  numExceedViolations: number
-}
-
-const TOOLTIP_DEFAULTS = {
-  visible: false,
-  activator: null,
+const TOOLTIP_DEFAULTS: TooltipParams = {
   title: '',
   subtitle: '',
   tableHeaders: [],
   tableItems: [],
   numExceedViolations: 0,
+  hasOvershoot: false,
+  hasOvershootEstimated: false,
 }
 
 @Component({
@@ -186,6 +187,9 @@ export default class ViolationsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly loading!: boolean
 
+  @Prop({type: Boolean, default: false})
+  public readonly frozen!: boolean
+
   public tooltip: TooltipParams = TOOLTIP_DEFAULTS
   public tooltips: any[] = []
 
@@ -201,8 +205,8 @@ export default class ViolationsChart extends Vue {
     return this.chartData.pollutants || []
   }
 
-  public get guidelines(): Guideline[] {
-    return this.chartData.guidelines || []
+  public get regulations(): Regulation[] {
+    return this.chartData.regulations || []
   }
 
   public get targets(): Target[] {
@@ -231,12 +235,6 @@ export default class ViolationsChart extends Vue {
     )
     if (!Object.keys(filterPollutants).length) filterPollutants = null
 
-    let filterGuidelines: MapFilter | null = this.queryParams.guidelines.reduce(
-      (memo: MapFilter, id: Guideline['id']) => (memo[id] = 1) && memo,
-      {}
-    )
-    if (!Object.keys(filterGuidelines).length) filterGuidelines = null
-
     let filterTargets: MapFilter | null = this.queryParams.targets.reduce(
       (memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo,
       {}
@@ -251,7 +249,6 @@ export default class ViolationsChart extends Vue {
       if (
         !_valuePassesFilter(cityId, filterCities) ||
         !_valuePassesFilter(violation.pollutant, filterPollutants) ||
-        !_valuePassesFilter(violation.guideline, filterGuidelines) ||
         !_valuePassesFilter(violation.target_id, filterTargets)
       ) {
         continue
@@ -287,17 +284,17 @@ export default class ViolationsChart extends Vue {
       const $date = moment(violation.date, URL_DATE_FORMAT)
       const calendarProp = $date.format('YYYY.MM.DD')
 
-      let violations: Violation[] | undefined = (_get(
+      let violations: Violation[] | undefined = _get(
         violationsCalendar,
         calendarProp
-      ) as any) as Violation[] | undefined
+      ) as any as Violation[] | undefined
 
       if (!violations) {
         _set<Violation[]>(violationsCalendar, calendarProp, [])
-        violations = (_get(
+        violations = _get(
           violationsCalendar,
           calendarProp
-        ) as any) as Violation[]
+        ) as any as Violation[]
       }
       violations.push(violation)
     }
@@ -339,18 +336,22 @@ export default class ViolationsChart extends Vue {
             const dateStr = date < 10 ? `0${date}` : String(date)
             const key = `${y_m}-${dateStr}`
             const $date = moment(key, 'YYYY-MM-DD')
-            const dateViolations: Violation[] | undefined = (_get(
+            const dateViolations: Violation[] | undefined = _get(
               violationsCalendar,
               key.replace(/-/g, '.')
-            ) as any) as Violation[] | undefined
+            ) as any as Violation[] | undefined
 
             const tooltipParams = this.genDateTooltipParams(
               $date,
               dateViolations || [],
-              this.chartData.targets || []
+              this.chartData.targets || [],
+              this.chartData.regulations || [],
+              {isMarkOvershoot: !!this.queryParams.overshooting}
             )
 
             let violationsNum: number | undefined
+            let overshootEstimatedViolation: Violation | undefined
+            let overshootViolation: Violation | undefined
 
             if (dateViolations?.length) {
               if (+$date >= _tomorrow) {
@@ -358,10 +359,25 @@ export default class ViolationsChart extends Vue {
               } else {
                 violationsNum = tooltipParams.numExceedViolations || 0
               }
+
+              if (this.queryParams.overshooting === true) {
+                overshootEstimatedViolation = dateViolations?.find(
+                  (v) => v.is_overshoot_estimated
+                )
+                if (!overshootEstimatedViolation) {
+                  overshootViolation = dateViolations?.find(
+                    (v) => v.is_overshoot
+                  )
+                }
+              }
             }
 
             col.dates[date] = {
-              color: _getViolationsColor(violationsNum),
+              class: overshootEstimatedViolation ? 'v-btn--striped' : '',
+              color:
+                overshootViolation || overshootEstimatedViolation
+                  ? OVERSHOOT_VIOLATION_COLOR
+                  : _getViolationsColor(violationsNum),
               violations: dateViolations || [],
               tooltip: tooltipParams,
             }
@@ -384,23 +400,47 @@ export default class ViolationsChart extends Vue {
   public genDateTooltipParams(
     $date: Moment,
     violations: Violation[],
-    targets: Target[]
+    targets: Target[],
+    regulations: Regulation[],
+    opts?: {
+      isMarkOvershoot: boolean
+    }
   ): TooltipParams {
     let numExceedViolations = 0
+    let hasOvershoot = false
+    let hasOvershootEstimated = false
 
     const tableItems = violations.map((item) => {
       const target = targets.find((i) => i.id === item.target_id)
+      const regulation = regulations.find((i) => i.id === target?.regulation_id)
       const value = Math.round(item.value || 0)
       const target_value = Math.round(item.target_value || 0)
+      const isOvershoot: boolean =
+        !!opts?.isMarkOvershoot &&
+        !!(item.is_overshoot_estimated || item.is_overshoot)
+      const isOvershootEstimated: boolean =
+        !!opts?.isMarkOvershoot && !!item.is_overshoot_estimated
       const exceeded = value > target_value
       if (exceeded) numExceedViolations++
+      if (isOvershoot && !hasOvershoot) hasOvershoot = true
+      if (isOvershootEstimated && !hasOvershootEstimated)
+        hasOvershootEstimated = true
+
       return {
         exceeded,
-        class: exceeded ? 'red--text' : 'green--text',
-        title: target?.name || item.guideline || item.pollutant || '?',
-        pollutant: (item.pollutant || '?').toUpperCase(),
-        value: value,
+        class: isOvershoot
+          ? OVERSHOOT_VIOLATION_COLOR_CLASS
+          : exceeded
+          ? 'red--text'
+          : 'green--text',
+        title: target?.name || item.pollutant || '?',
+        pollutant_name:
+          target?.pollutant_name || (item.pollutant || '?').toUpperCase(),
+        value: isOvershoot ? `${value}*` : value,
         target_value: target_value,
+        target_unit: target?.target_unit,
+        averaging_period_name: target?.averaging_period_name,
+        regulation_name: regulation?.name,
       }
     })
 
@@ -414,16 +454,20 @@ export default class ViolationsChart extends Vue {
       ).toLowerCase(),
       subtitle: $date.format('D MMMM YYYY'),
       numExceedViolations,
+      hasOvershoot,
+      hasOvershootEstimated,
       tableHeaders: [
         {
-          text: '',
-          value: 'title',
+          text: this.$t('pollutant'),
+          value: 'pollutant_name',
           align: 'start',
+          cellClass: 'font-weight-bold',
         },
         {
-          text: this.$t('pollutant'),
-          value: 'pollutant',
+          text: this.$t('period'),
+          value: 'averaging_period_name',
           align: 'center',
+          cellClass: 'primary--text',
         },
         {
           text: this.$t('value'),
@@ -434,6 +478,19 @@ export default class ViolationsChart extends Vue {
           text: this.$t('target'),
           value: 'target_value',
           align: 'center',
+          cellClass: 'primary--text',
+        },
+        {
+          text: this.$t('unit'),
+          value: 'target_unit',
+          align: 'center',
+          cellClass: 'primary--text',
+        },
+        {
+          text: this.$t('regulation'),
+          value: 'regulation_name',
+          align: 'center',
+          cellClass: 'primary--text',
         },
       ],
       tableItems: _orderBy(tableItems, 'exceeded', 'desc'),
@@ -581,6 +638,31 @@ $violations-chart__calendar--width: 170px;
               &.not-interactive {
                 cursor: auto !important;
                 pointer-events: none;
+              }
+
+              &.v-btn--striped {
+                &::after {
+                  content: '';
+                  pointer-events: none;
+                  position: absolute;
+                  bottom: 0;
+                  left: 0;
+                  right: 0;
+                  top: 0;
+                  background-size: auto auto;
+                  background-color: transparent;
+                  background-image: repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 3px,
+                    rgba(255, 255, 255, 0.5) 3px,
+                    rgba(255, 255, 255, 0.5) 4px
+                  );
+                }
+
+                .v-btn__content {
+                  color: white;
+                }
               }
             }
           }

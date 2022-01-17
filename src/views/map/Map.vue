@@ -6,14 +6,15 @@
     }"
   >
     <v-container class="page-content fill-height pa-0" fluid>
-      <template
+      <div
         v-if="
           urlQuery &&
-            urlQuery.pollutants &&
-            urlQuery.pollutants.length > LIMIT_FETCH_ITEMS_FROM_API
+          urlQuery.pollutants &&
+          urlQuery.pollutants.length > LIMIT_FETCH_ITEMS_FROM_API
         "
+        class="view-map__message-banner pa-12"
       >
-        <v-alert class="text-center my-12 px-12" color="warning lighten-2">
+        <v-alert class="text-center ma-0" color="warning lighten-2">
           <div class="d-flex justify-center">
             {{
               $t(
@@ -35,15 +36,15 @@
             }}
           </b>
         </v-alert>
-      </template>
+      </div>
 
       <MapChart
-        v-else
         ref="map"
         class="fill-height"
         :queryParams="urlQuery"
         :chartData="chartData"
         :loading="isChartLoading || isLoading"
+        :frozen="isKeepAliveInactive"
         @click:markerAction="onClickMapMarkerAction"
         @update:queryParams="onChangeQuery"
       />
@@ -65,7 +66,8 @@ import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
 import _debounce from 'lodash.debounce'
 import _difference from 'lodash.difference'
-import {Component, Ref, Vue} from 'vue-property-decorator'
+import {Component, Ref, Mixins} from 'vue-property-decorator'
+import {VueClass} from 'vue-class-component/lib/declarations'
 import config from '@/config'
 import {sleep} from '@/utils'
 import CityAPI from '@/api/CityAPI'
@@ -76,10 +78,12 @@ import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import {URLQueryRaw as MeasurementPageURLQueryRaw} from '@/views/measurement/types/URLQuery'
 import {ExportFileType} from '@/components/ExportBtn.vue'
 import Pollutant from '@/entities/Pollutant'
-import Source from '@/entities/Source'
 import Station from '@/entities/Station'
+import Source from '@/entities/Source'
 import City from '@/entities/City'
-// import {MeasurementLevels} from '@/entities/Measurement'
+import KeepAliveQueryMixin, {
+  IKeepAliveQueryMixin,
+} from '@/mixins/KeepAliveQuery'
 import MapRightDrawer from './components/MapRightDrawer.vue'
 import MapChart from './components/MapChart/MapChart.vue'
 import ChartData from './components/MapChart/MapChartData'
@@ -92,14 +96,27 @@ import URLQuery, {
 const _queryToArray = (itm: string | string[] | undefined) =>
   (Array.isArray(itm) ? itm : ([itm] as any[])).filter((i) => i)
 
+const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
+  KeepAliveQueryMixin<ViewMap>({
+    hooksMap: {
+      reload: 'init',
+    },
+  })
+
 @Component({
+  name: 'ViewMap',
   components: {
     SelectBoxCities,
     MapChart,
     MapRightDrawer,
   },
+  metaInfo() {
+    return {
+      title: `${this.$t('map')} - ${config.get('APP_PUBLIC_NAME')}`,
+    }
+  },
 })
-export default class ViewMap extends Vue {
+export default class ViewMap extends Mixins(keepAliveQueryMixin) {
   @Ref('map')
   readonly $map?: MapChart
 
@@ -157,7 +174,10 @@ export default class ViewMap extends Vue {
     }
 
     if (this.$route.fullPath !== newRoute.href) {
-      await this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href, undefined, (err) =>
+        console.error(err)
+      )
+      this.cacheCurrentRouteSnapshot()
     }
   }
 
@@ -193,8 +213,13 @@ export default class ViewMap extends Vue {
   }
 
   public async beforeMount() {
+    // see init()
+  }
+
+  public async init() {
     this.isLoading = true
-    await this.fetch()
+    await to(this.fetch())
+    this.cacheCurrentRouteSnapshot()
     this.isFetched = true
     this.isLoading = false
   }
@@ -208,6 +233,20 @@ export default class ViewMap extends Vue {
     this.isChartLoading = true
 
     await this.setUrlQueryDefaults()
+
+    if (
+      (this.urlQuery?.pollutants?.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API
+    ) {
+      this.isChartLoading = false
+      this.$loader.off()
+      this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
+      this.$trackGtmEvent(
+        'violations',
+        'error_too_large_query',
+        String(this.urlQuery?.pollutants?.length || 0)
+      )
+      throw new Error('exit')
+    }
 
     let err: any
     let pollutants: Pollutant[]
@@ -373,12 +412,6 @@ export default class ViewMap extends Vue {
     }, new Set<Pollutant['id']>())
   }
 
-  // public execSourcesFromStations(items: Station[]): Source[] {
-  //   const map = this.execSourcesMapFromStations(items)
-  //   const sources = _orderBy(Object.values(map), 'id')
-  //   return sources
-  // }
-
   public filterUsedSourcesFromItems(
     sources: Source[],
     items: (Station | City)[]
@@ -406,6 +439,9 @@ export default class ViewMap extends Vue {
 
   public get onChangeQuery() {
     return _debounce(async (query: URLQuery) => {
+      console.trace('Map onChangeQuery: ')
+      if (this.isKeepAliveInactive) return
+
       this.isChartLoading = true
 
       await sleep(0)
@@ -434,16 +470,17 @@ export default class ViewMap extends Vue {
       const query: MeasurementPageURLQueryRaw = {
         ct: [item.id],
       }
-      this.$router.push({name: 'measurements', query: query as any})
+      await this.$router.push({name: 'measurements', query: query as any})
     } else if ((item as Station).level === 'station') {
       const query: MeasurementPageURLQueryRaw = {
         ct: [(item as Station).city_id],
         st: [item.id],
       }
-      this.$router.push({name: 'measurements', query: query as any})
+      await this.$router.push({name: 'measurements', query: query as any})
     } else {
       console.error('Unknown marker level', item)
     }
+    this.isChartLoading = false
   }
 
   public async onClickRefresh() {
@@ -546,15 +583,35 @@ $right_panel--width: 250px;
 
 .view-map {
   overflow: auto;
-
-  > .toolbar {
-    position: relative;
-    z-index: 5;
-  }
+  position: unset;
 
   > .page-content {
     position: relative;
     z-index: 1;
+  }
+
+  &__message-banner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: var(--v-grey-lighten5);
+      opacity: 0.7;
+    }
   }
 
   &.right-panel-open {

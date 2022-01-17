@@ -27,8 +27,9 @@
     </v-container>
 
     <v-container class="page-content mt-4 px-8" fluid>
-      <template
+      <div
         v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+        class="view-stations__message-banner pa-12"
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
           <div class="d-flex justify-center">
@@ -52,14 +53,14 @@
             }}
           </b>
         </v-alert>
-      </template>
+      </div>
 
       <StationsChart
-        v-else
         ref="stationsChart"
         :queryParams="urlQuery"
         :chartData="chartData"
         :loading="isChartLoading"
+        :frozen="isKeepAliveInactive"
         @update:queryParams="onChangeQuery"
       />
     </v-container>
@@ -70,30 +71,55 @@
 import to from 'await-to-js'
 import _orderBy from 'lodash.orderby'
 import _difference from 'lodash.difference'
-import {Component, Ref, Vue} from 'vue-property-decorator'
+import {Component, Ref, Mixins} from 'vue-property-decorator'
+import {VueClass} from 'vue-class-component/lib/declarations'
 import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Station from '@/entities/Station'
+import Pollutant from '@/entities/Pollutant'
+import Source from '@/entities/Source'
 import CityAPI from '@/api/CityAPI'
 import SourceAPI from '@/api/SourceAPI'
 import PollutantAPI from '@/api/PollutantAPI'
 import StationAPI from '@/api/StationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import {toCompactArray, toQueryString} from '@/utils'
+import KeepAliveQueryMixin, {
+  IKeepAliveQueryMixin,
+} from '@/mixins/KeepAliveQuery'
+import {toQueryString, toCompactArray} from '@/utils'
 import StationsChart from './components/StationsChart/StationsChart.vue'
 import ChartData from './components/StationsChart/ChartData'
 import URLQuery, {URLQueryRaw} from './types/URLQuery'
-import Pollutant from '@/entities/Pollutant'
-import Source from '@/entities/Source'
+
+const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
+  KeepAliveQueryMixin<ViewStations>({
+    hooksMap: {
+      reload: 'init',
+    },
+    sharedQueryGetter(vm) {
+      const localStorageQuery: ModuleState['queryForm'] | null =
+        vm.$store.getters.GET('queryForm') || null
+      const sharedQuery: URLQueryRaw = {
+        ct: localStorageQuery?.cities || undefined,
+      }
+      return sharedQuery
+    },
+  })
 
 @Component({
+  name: 'ViewStations',
   components: {
     SelectBoxCities,
     StationsChart,
   },
+  metaInfo() {
+    return {
+      title: `${this.$t('stations')} - ${config.get('APP_PUBLIC_NAME')}`,
+    }
+  },
 })
-export default class ViewStations extends Vue {
+export default class ViewStations extends Mixins(keepAliveQueryMixin) {
   @Ref('stationsChart')
   readonly $stationsChart?: StationsChart
 
@@ -147,7 +173,10 @@ export default class ViewStations extends Vue {
         key: 'queryForm.cities',
         value: newRouteQuery.ct,
       })
-      await this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href, undefined, (err) =>
+        console.error(err)
+      )
+      this.cacheCurrentRouteSnapshot()
     }
   }
 
@@ -187,8 +216,13 @@ export default class ViewStations extends Vue {
   }
 
   public async beforeMount() {
+    // see init()
+  }
+
+  public async init() {
     this.isLoading = true
-    await this.fetch()
+    await to(this.fetch())
+    this.cacheCurrentRouteSnapshot()
     this.isFetched = true
     this.isLoading = false
   }
@@ -331,6 +365,11 @@ export default class ViewStations extends Vue {
   public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
+      this.$trackGtmEvent(
+        'stations',
+        'error_too_large_query',
+        String(this.urlQuery?.cities.length)
+      )
       throw new Error('exit')
     }
 
@@ -348,6 +387,7 @@ export default class ViewStations extends Vue {
     )
 
     if (err) {
+      this.$trackGtmEvent('stations', 'error', err.message)
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
@@ -403,16 +443,23 @@ export default class ViewStations extends Vue {
   }
 
   public async onChangeQuery(query: URLQuery) {
+    if (this.isKeepAliveInactive) return
+
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
     const citiesChanged = citiesOld !== citiesNew
 
     await this.setUrlQuery(query)
 
-    if (citiesChanged) this.onClickRefresh()
+    if (citiesChanged) this.refresh()
   }
 
   public async onClickRefresh() {
+    this.$trackGtmEvent('stations', 'refresh')
+    this.refresh()
+  }
+
+  public async refresh() {
     this.$loader.on()
     await this.refreshChartData()
     this.$loader.off()
@@ -422,6 +469,33 @@ export default class ViewStations extends Vue {
 
 <style lang="scss">
 .view-stations {
+  overflow: auto;
+  position: unset;
+
+  &__message-banner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: var(--v-grey-lighten5);
+      opacity: 0.7;
+    }
+  }
+
   > .toolbar {
     position: relative;
     z-index: 5;

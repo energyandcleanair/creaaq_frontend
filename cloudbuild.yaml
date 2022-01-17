@@ -1,22 +1,26 @@
 steps:
-- name: node:10.15.1
-  entrypoint: npm
-  args: ["install"]
-- name: node:10.15.1
-  entrypoint: npm
-  args: ["run", "prod:create-env"]
-  env:
-    - 'FIREBASE_API_KEY=${_FIREBASE_API_KEY}'
-    - 'FIREBASE_AUTH_DOMAIN=${_FIREBASE_AUTH_DOMAIN}'
-    - 'FIREBASE_PROJECT_ID=${_FIREBASE_PROJECT_ID}'
-    - 'FIREBASE_APP_ID=${_FIREBASE_APP_ID}'
-- name: node:10.15.1
-  entrypoint: npm
-  args: ["run", "build"]
-- name: "gcr.io/cloud-builders/gcloud"
-  entrypoint: bash
-  args:
-    - '-c'
-    - |
-      gcloud app deploy app.yaml --quiet -v $(echo $TAG_NAME | sed 's/\./-/g')
-timeout: "1600s"
+  - name: node:14.10.0
+    entrypoint: npm
+    args: ['install']
+  - name: node:14.10.0
+    entrypoint: npm
+    args: ['run', 'prod:create-env']
+    # set the values in the trigger settings
+    # https://console.cloud.google.com/cloud-build/triggers
+    env:
+      - 'FIREBASE_API_KEY=${_FIREBASE_API_KEY}'
+      - 'FIREBASE_AUTH_DOMAIN=${_FIREBASE_AUTH_DOMAIN}'
+      - 'FIREBASE_PROJECT_ID=${_FIREBASE_PROJECT_ID}'
+      - 'FIREBASE_APP_ID=${_FIREBASE_APP_ID}'
+      - 'GTM_ENABLED=${_GTM_ENABLED}'
+      - 'GTM_CONTAINER_ID=${_GTM_CONTAINER_ID}'
+  - name: node:14.10.0
+    entrypoint: npm
+    args: ['run', 'build']
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        gcloud app deploy app.yaml --quiet -v $(echo $TAG_NAME | sed 's/\./-/g')
+timeout: '1600s'

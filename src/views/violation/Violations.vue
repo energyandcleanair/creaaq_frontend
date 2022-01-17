@@ -5,66 +5,96 @@
       'right-panel-open': isRightPanelOpen,
     }"
   >
-    <v-container class="pt-10 pt-md-4 px-8" fluid>
-      <v-row>
-        <v-col cols="12" sm="8" md="6">
-          <SelectBoxCities
-            :value="urlQuery.cities"
-            :label="$t('cities')"
-            :items="chartData.cities"
-            :disabled="isLoading"
-            @input="onChangeQuery({...urlQuery, cities: $event})"
-          />
-        </v-col>
+    <v-container
+      class="page-content fill-height pa-0 align-content-start"
+      fluid
+    >
+      <v-container class="pt-10 pt-md-4 px-8" style="z-index: 15" fluid>
+        <v-row>
+          <v-col cols="12" sm="8" md="6">
+            <SelectBoxCities
+              :value="urlQuery.cities"
+              :label="$t('cities')"
+              :items="chartData.cities"
+              :disabled="isLoading"
+              @input="onChangeQuery({...urlQuery, cities: $event})"
+            />
+          </v-col>
 
-        <v-col class="d-flex justify-end align-center" cols="12" sm="4" md="6">
-          <v-btn
-            class="ml-2"
-            :disabled="isLoading"
-            :loading="isLoading || isChartLoading"
-            @click="onClickRefresh"
-            color="primary"
-          >
-            {{ $t('refresh') }}
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-container>
+          <v-col class="d-flex justify-end align-start pt-7 pl-3">
+            <v-list-item
+              class="px-2 mr-2"
+              dense
+              style="flex: 0 1 auto; height: 36px"
+              :title="$t('auto_refresh_on_query_change')"
+              @click="isAutoRefreshOnQueryChange = !isAutoRefreshOnQueryChange"
+            >
+              <v-list-item-action class="mr-1 my-2">
+                <v-checkbox
+                  class="pointer-events-none"
+                  v-model="isAutoRefreshOnQueryChange"
+                  color="primary"
+                  readonly
+                />
+              </v-list-item-action>
+              <v-list-item-title v-text="$t('auto_refresh')" />
+            </v-list-item>
 
-    <v-container class="mt-4 px-8" fluid>
-      <template
-        v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
-      >
-        <v-alert class="text-center my-12 px-12" color="warning lighten-2">
-          <div class="d-flex justify-center">
-            {{
-              $t(
-                'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
-              )
-            }}
-          </div>
+            <v-btn
+              color="primary"
+              :disabled="isLoading"
+              :loading="isLoading || isChartLoading"
+              @click="onClickRefresh"
+            >
+              <v-icon left>{{ mdiRefresh }}</v-icon>
+              {{ $t('refresh') }}
+            </v-btn>
 
-          <b class="d-flex justify-center pt-2">
-            {{
-              $t('msg.queried_of_limit', {
-                queried: `${urlQuery.cities.length} ${$t('cities')
-                  .toString()
-                  .toLowerCase()}`,
-                limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities')
-                  .toString()
-                  .toLowerCase()}`,
-              })
-            }}
-          </b>
-        </v-alert>
-      </template>
+            <PageDrawerHandlerBtn
+              v-if="!isRightPanelOpen"
+              class="ml-3"
+              @click="isRightPanelOpen = true"
+            />
+          </v-col>
+        </v-row>
+      </v-container>
 
-      <ViolationsChart
-        v-else
-        :queryParams="urlQuery"
-        :chartData="chartData"
-        :loading="isChartLoading"
-      />
+      <v-container class="mt-4 px-8" fluid>
+        <div
+          v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+          class="view-violations__message-banner pa-12"
+        >
+          <v-alert class="text-center my-12 px-12" color="warning lighten-2">
+            <div class="d-flex justify-center">
+              {{
+                $t(
+                  'msg.limit_exceeded__server_cannot_process_amount__reduce_query'
+                )
+              }}
+            </div>
+
+            <b class="d-flex justify-center pt-2">
+              {{
+                $t('msg.queried_of_limit', {
+                  queried: `${urlQuery.cities.length} ${$t('cities')
+                    .toString()
+                    .toLowerCase()}`,
+                  limit: `${LIMIT_FETCH_ITEMS_FROM_API} ${$t('cities')
+                    .toString()
+                    .toLowerCase()}`,
+                })
+              }}
+            </b>
+          </v-alert>
+        </div>
+
+        <ViolationsChart
+          :queryParams="urlQuery"
+          :chartData="chartData"
+          :loading="isChartLoading"
+          :frozen="isKeepAliveInactive"
+        />
+      </v-container>
     </v-container>
 
     <ViolationsRightDrawer
@@ -81,25 +111,28 @@
 import to from 'await-to-js'
 import moment from 'moment'
 import _orderBy from 'lodash.orderby'
-import {Component, Vue} from 'vue-property-decorator'
+import {Component, Mixins} from 'vue-property-decorator'
+import {VueClass} from 'vue-class-component/lib/declarations'
+import {mdiRefresh} from '@mdi/js'
 import config from '@/config'
 import {ModuleState} from '@/store'
 import City from '@/entities/City'
 import Pollutant from '@/entities/Pollutant'
-import Guideline from '@/entities/Guideline'
 import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
+import Regulation from '@/entities/Regulation'
+import Country from '@/entities/Country'
 import CityAPI from '@/api/CityAPI'
 import PollutantAPI from '@/api/PollutantAPI'
+import RegulationAPI from '@/api/RegulationAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
-import {
-  toURLStringDate,
-  toQueryString,
-  URL_DATE_FORMAT,
-  toCompactArray,
-} from '@/utils'
+import PageDrawerHandlerBtn from '@/components/PageDrawer/PageDrawerHandlerBtn.vue'
+import KeepAliveQueryMixin, {
+  IKeepAliveQueryMixin,
+} from '@/mixins/KeepAliveQuery'
+import {toURLStringDate, toCompactArray, URL_DATE_FORMAT} from '@/utils'
 import ViolationsChart from './components/ViolationsChart/ViolationsChart.vue'
 import ViolationsRightDrawer from './components/ViolationsRightDrawer.vue'
 import ChartData from './components/ViolationsChart/ChartData'
@@ -107,23 +140,48 @@ import URLQuery, {URLQueryRaw} from './types/URLQuery'
 
 const JAN_1: number = +moment(0).year(moment().year())
 
+const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
+  KeepAliveQueryMixin<ViewViolations>({
+    hooksMap: {
+      reload: 'init',
+    },
+    sharedQueryGetter(vm) {
+      const localStorageQuery: ModuleState['queryForm'] | null =
+        vm.$store.getters.GET('queryForm') || null
+      const sharedQuery: URLQueryRaw = {
+        ct: localStorageQuery?.cities || undefined,
+        start: localStorageQuery?.dateStart || undefined,
+      }
+      return sharedQuery
+    },
+  })
+
 @Component({
+  name: 'ViewViolations',
   components: {
     ViolationsRightDrawer,
     SelectBoxCities,
     ViolationsChart,
+    PageDrawerHandlerBtn,
+  },
+  metaInfo() {
+    return {
+      title: `${this.$t('violations')} - ${config.get('APP_PUBLIC_NAME')}`,
+    }
   },
 })
-export default class ViewViolations extends Vue {
+export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   public isChartLoading: boolean = false
+  public readonly mdiRefresh = mdiRefresh
   public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
     Number(config.get('LIMIT_FETCH_ITEMS_FROM_API')) || 100
 
   public chartData: ChartData = {
     cities: [],
+    countriesMap: new Map<Country['id'], Country>(),
     violations: [],
     pollutants: [],
-    guidelines: [],
+    regulations: [],
     targets: [],
   }
 
@@ -137,8 +195,9 @@ export default class ViewViolations extends Vue {
       cities: toCompactArray(q.ct),
       pollutants: toCompactArray(q.pl),
       targets: toCompactArray(q.tg),
-      guidelines: toCompactArray(q.gl),
+      regulations: toCompactArray(q.rg),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
+      overshooting: q.ovshoot === 'true',
     }
   }
 
@@ -147,10 +206,11 @@ export default class ViewViolations extends Vue {
       ct: inputQuery.cities,
       pl: _orderBy(inputQuery.pollutants),
       tg: _orderBy(inputQuery.targets),
-      gl: _orderBy(inputQuery.guidelines),
+      rg: _orderBy(inputQuery.regulations),
       start: inputQuery.date_start
         ? toURLStringDate(inputQuery.date_start)
         : undefined,
+      ovshoot: inputQuery.overshooting === true ? 'true' : undefined,
     }
 
     for (const _key in query) {
@@ -179,7 +239,10 @@ export default class ViewViolations extends Vue {
         key: 'queryForm.dateStart',
         value: newRouteQuery.start,
       })
-      await this.$router.replace(newRoute.href)
+      await this.$router.replace(newRoute.href, undefined, (err) =>
+        console.error(err)
+      )
+      this.cacheCurrentRouteSnapshot()
     }
   }
 
@@ -190,12 +253,33 @@ export default class ViewViolations extends Vue {
     this.$store.commit('SET', {key: 'ui.violations.isRightPanelOpen', value})
   }
 
+  public get isAutoRefreshOnQueryChange(): boolean {
+    return this.$store.getters.GET('ui.violations.isAutoRefreshOnQueryChange')
+  }
+  public set isAutoRefreshOnQueryChange(value: boolean) {
+    this.$store.commit('SET', {
+      key: 'ui.violations.isAutoRefreshOnQueryChange',
+      value,
+    })
+  }
+
   public get queryFormCached(): ModuleState['queryForm'] | null {
     return this.$store.getters.GET('queryForm') || null
   }
 
   public beforeMount() {
-    this.fetch()
+    // see init()
+  }
+
+  public async init() {
+    await this.fetch()
+    this.cacheCurrentRouteSnapshot()
+  }
+
+  public async refresh() {
+    this.$loader.on()
+    await this.refreshChartData()
+    this.$loader.off()
   }
 
   public async fetch() {
@@ -206,18 +290,23 @@ export default class ViewViolations extends Vue {
 
     const cities = await this.fetchCities()
     this.chartData.cities = cities
+    this.chartData.countriesMap = cities.reduce(
+      (map: Map<Country['id'], Country>, city: City) => {
+        map.set(city.country_id, {
+          id: city.country_id,
+          name: city.country_name,
+          level: 'country',
+        })
+        return map
+      },
+      new Map<Country['id'], Country>()
+    )
 
     if (this.urlQuery.cities.length) {
       // filter only existing cities
-      const idsMap = this.urlQuery.cities.reduce(
-        (memo: {[id: string]: number}, id: City['id']) => {
-          memo[id] = 1
-          return memo
-        },
-        {}
-      )
-      const existingCities = Object.keys(idsMap).length
-        ? cities.filter((city) => idsMap[city.id])
+      const idsSet = new Set<City['id']>(this.urlQuery.cities)
+      const existingCities = idsSet.size
+        ? cities.filter((city) => idsSet.has(city.id))
         : []
 
       await this.setUrlQuery({
@@ -267,46 +356,59 @@ export default class ViewViolations extends Vue {
   public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
+      this.$trackGtmEvent(
+        'violations',
+        'error_too_large_query',
+        String(this.urlQuery?.cities.length)
+      )
       throw new Error('exit')
     }
 
     const newChartData: ChartData = {
       cities: this.chartData.cities,
+      countriesMap: this.chartData.countriesMap,
       violations: [],
       pollutants: [],
-      guidelines: [],
+      regulations: [],
       targets: [],
     }
 
     if (!this.urlQuery?.cities.length) return newChartData
 
-    let [err, violations = []] = await to<Violation[]>(
+    const promises: Promise<any>[] = []
+
+    promises.push(
       this.fetchViolations({
         city: this.urlQuery.cities,
         date_from: this.urlQuery.date_start,
         sort_by: 'asc(date)',
+      }).then((violations = []) => {
+        newChartData.violations = violations
       })
     )
-    if (err) {
-      this.$dialog.notify.error(
-        err?.message || '' + this.$t('msg.something_went_wrong')
-      )
-      throw err
-    }
 
-    const targetsIds = Object.keys(
-      violations.reduce(
-        (memo: {[targetId: string]: number}, item: Violation) => {
-          if (!item.target_id) return memo
-          if (!memo[item.target_id]) memo[item.target_id] = 1
-          return memo
-        },
-        {}
-      )
+    promises.push(
+      this.fetchRegulations({city: this.urlQuery.cities})
+        .then((regulations = []) => {
+          newChartData.regulations = regulations
+
+          const regulationIds: Regulation['id'][] = Array.from(
+            regulations.map((item) => item.id)
+          )
+          return this.fetchTargets({regulation_id: regulationIds})
+        })
+        .then((targets = []) => {
+          newChartData.targets = targets
+        })
     )
 
-    let targets: Target[]
-    ;[err, targets = []] = await to<Target[]>(this.fetchTargets(targetsIds))
+    promises.push(
+      this.fetchPollutants().then((pollutants = []) => {
+        newChartData.pollutants = pollutants
+      })
+    )
+
+    const [err] = await to(Promise.all(promises))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -314,48 +416,18 @@ export default class ViewViolations extends Vue {
       throw err
     }
 
-    let pollutants: Pollutant[]
-    ;[err, pollutants = []] = await to<Pollutant[]>(this.fetchPollutants())
-    if (err) {
-      this.$dialog.notify.error(
-        err?.message || '' + this.$t('msg.something_went_wrong')
-      )
-      throw err
-    }
-
-    const usedPollutantsMap = targets.reduce(
-      (memo: {[pollutantId: string]: number}, item: Target) => {
-        const pollutantId = item.pollutant
-        if (pollutantId && !memo[pollutantId]) memo[pollutantId] = 1
-        return memo
+    const usedPollutantsSet = newChartData.targets.reduce(
+      (set: Set<Pollutant['id']>, item: Target) => {
+        if (!item?.pollutant) return set
+        return set.add(item.pollutant)
       },
-      {}
+      new Set<Pollutant['id']>()
     )
-    pollutants = pollutants.filter((item) => usedPollutantsMap[item.id])
 
-    const guidelinesMap = targets.reduce(
-      (memo: {[guidelineId: string]: Guideline}, item: Target) => {
-        if (!item.guideline) return memo
-        if (memo[item.guideline]) {
-          memo[item.guideline]._violationsNumber =
-            1 + (memo[item.guideline]?._violationsNumber || 0)
-        } else {
-          memo[item.guideline] = {
-            id: item.guideline,
-            name: item.guideline,
-            _violationsNumber: 0,
-          }
-        }
-        return memo
-      },
-      {}
+    newChartData.pollutants = newChartData.pollutants.filter((item) =>
+      usedPollutantsSet.has(item.id)
     )
-    const guidelines = _orderBy(Object.values(guidelinesMap), 'id')
 
-    newChartData.violations = violations
-    newChartData.pollutants = pollutants
-    newChartData.guidelines = guidelines
-    newChartData.targets = targets
     return newChartData
   }
 
@@ -373,9 +445,9 @@ export default class ViewViolations extends Vue {
       return
     }
 
-    const allGuidelines = chartData.guidelines
-    let visibleGuidelines = this.urlQuery.guidelines.filter((id) =>
-      allGuidelines.find((p) => p.id === id)
+    const allRegulations = chartData.regulations
+    let visibleRegulations = this.urlQuery.regulations.filter((id) =>
+      allRegulations.find((p) => p.id === id)
     )
 
     const allPollutants = chartData.pollutants
@@ -392,7 +464,7 @@ export default class ViewViolations extends Vue {
     this.chartData = chartData
     await this.setUrlQuery({
       ...this.urlQuery,
-      guidelines: visibleGuidelines,
+      regulations: visibleRegulations,
       pollutants: visiblePollutants,
       targets: visibleTargets,
     })
@@ -408,13 +480,10 @@ export default class ViewViolations extends Vue {
     const $startDate = moment(query.date_from || toURLStringDate(JAN_1))
     const q = {
       ...query,
-      date_to: $startDate
-        .month(11)
-        .date(31)
-        .format(URL_DATE_FORMAT),
+      date_to: $startDate.month(11).date(31).format(URL_DATE_FORMAT),
     }
 
-    const [err, items] = await to(ViolationAPI.findAll(toQueryString(q)))
+    const [err, items] = await to(ViolationAPI.findAll(q))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -425,8 +494,10 @@ export default class ViewViolations extends Vue {
     return items || []
   }
 
-  public async fetchTargets(ids: Target['id'][]): Promise<Target[]> {
-    const [err, items] = await to(TargetAPI.findAll({id: ids.join(',')}))
+  public async fetchTargets(query: {
+    regulation_id?: string[]
+  }): Promise<Target[]> {
+    const [err, items] = await to(TargetAPI.findAll(query))
     if (err) {
       this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
@@ -449,8 +520,22 @@ export default class ViewViolations extends Vue {
     return items || []
   }
 
+  public async fetchRegulations(query: {
+    city?: string[]
+  }): Promise<Regulation[]> {
+    let [err, items = []] = await to(RegulationAPI.findAll(query))
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
   public async onChangeQuery(query: URLQuery) {
-    this.$loader.on()
+    if (this.isKeepAliveInactive) return
 
     const citiesOld = [...this.urlQuery.cities].sort().join(',')
     const citiesNew = [...query.cities].sort().join(',')
@@ -459,15 +544,13 @@ export default class ViewViolations extends Vue {
       query.date_start !== this.urlQuery.date_start || citiesChanged
 
     await this.setUrlQuery(query)
-    if (needRefresh) return this.onClickRefresh()
 
-    this.$loader.off()
+    if (this.isAutoRefreshOnQueryChange && needRefresh) return this.refresh()
   }
 
   public async onClickRefresh() {
-    this.$loader.on()
-    await this.refreshChartData()
-    this.$loader.off()
+    this.$trackGtmEvent('violations', 'refresh')
+    this.refresh()
   }
 }
 </script>
@@ -478,6 +561,36 @@ $right_panel--width: 250px;
 
 .view-violations {
   overflow: auto;
+  position: unset;
+
+  > .page-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  &__message-banner {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: var(--v-grey-lighten5);
+      opacity: 0.7;
+    }
+  }
 
   &.right-panel-open {
     width: calc(100% - #{$right_panel--width});

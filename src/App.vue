@@ -91,7 +91,16 @@
     <AppDrawer :open="!!$auth.currentUser" />
 
     <v-main>
-      <RouterView />
+      <keep-alive
+        :include="[
+          'ViewMeasurements',
+          'ViewViolations',
+          'ViewStations',
+          'ViewMap',
+        ]"
+      >
+        <RouterView :key="$route.path" />
+      </keep-alive>
     </v-main>
 
     <CustomLoader />
@@ -99,16 +108,18 @@
 </template>
 
 <script lang="ts">
+import axios from 'axios'
 import {Component, Vue} from 'vue-property-decorator'
 import {
   mdiLogout,
   mdiAccountCircle,
   mdiAccount,
   mdiHelpCircleOutline,
+  mdiCached,
 } from '@mdi/js'
-import AppDrawer from '@/components/AppDrawer.vue'
-import axios from 'axios'
+import {forageStore} from '@/api/API'
 import config from '@/config'
+import AppDrawer from '@/components/AppDrawer.vue'
 
 @Component({
   components: {
@@ -140,6 +151,20 @@ export default class App extends Vue {
         icon: mdiAccount,
         disabled: this.$route.name === 'profile',
         action: () => this.$router.push({name: 'profile'}),
+      },
+      {
+        id: 'clear_cache',
+        label: this.$t('clear_cache'),
+        icon: mdiCached,
+        disabled: false,
+        action: async () => {
+          this.$trackGtmEvent('profile', 'clear_cache')
+          await forageStore.clear()
+          this.$dialog.notify.success(
+            '' + this.$t('msg.cache_has_been_cleared'),
+            {timeout: 2000}
+          )
+        },
       },
       {
         id: 'help-n-support',
@@ -188,6 +213,8 @@ export default class App extends Vue {
   }
 
   public signOut() {
+    this.isMenuOpen = false
+    this.$trackGtmEvent('auth', 'logout')
     this.$auth.logout().then(() => this.$router.push({name: 'signIn'}))
   }
 }

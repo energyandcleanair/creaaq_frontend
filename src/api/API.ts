@@ -1,9 +1,15 @@
 import _get from 'lodash.get'
 import localForage from 'localforage'
 import {setup} from 'axios-cache-adapter'
-import {auth, refreshAccessToken, getAccessToken} from '@/plugins/firebase'
+import {
+  auth,
+  refreshAccessToken,
+  getAccessToken,
+  getUserUID,
+} from '@/plugins/firebase'
 import config from '@/config'
 import router from '@/router'
+import {getCookie} from '@/utils'
 
 export const forageStore = localForage.createInstance({
   driver: [localForage.INDEXEDDB, localForage.LOCALSTORAGE],
@@ -32,6 +38,10 @@ instance.interceptors.request.use(
   (config) => {
     const token = getAccessToken()
     if (token) config.headers['Authorization'] = token
+    const userUID = getUserUID()
+    if (userUID) config.headers['user-id'] = userUID
+    const gAnalyticsClientId = getCookie('_ga')
+    if (gAnalyticsClientId) config.headers['ga-client-id'] = gAnalyticsClientId
     return config
   },
   (error) => {

@@ -28,7 +28,9 @@
 import {forageStore} from '@/api/API'
 import {Component, Vue} from 'vue-property-decorator'
 
-@Component
+@Component({
+  name: 'ViewProfile',
+})
 export default class ViewProfile extends Vue {
   public isLoading: boolean = false
 
@@ -36,9 +38,13 @@ export default class ViewProfile extends Vue {
     this.$router.push({name: 'changePassword'})
   }
 
-  public clearCache() {
+  public async clearCache() {
+    this.$trackGtmEvent('profile', 'clear_cache')
     this.isLoading = true
-    forageStore.clear()
+    await forageStore.clear()
+    this.$dialog.notify.success('' + this.$t('msg.cache_has_been_cleared'), {
+      timeout: 2000,
+    })
     setTimeout(() => (this.isLoading = false), 1000)
   }
 }

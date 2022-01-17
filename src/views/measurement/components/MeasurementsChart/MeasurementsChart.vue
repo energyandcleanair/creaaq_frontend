@@ -7,12 +7,33 @@
     fluid
     v-resize="onResize"
   >
-    <template v-if="loading">
-      <v-skeleton-loader class="mb-2" type="image" style="height: 64px" />
+    <template v-if="outdatedState">
+      <v-row class="fill-width banner-outdated" no-gutters>
+        <v-col class="d-flex justify-center">
+          <v-btn
+            color="primary"
+            :loading="loading"
+            outlined
+            @click="$emit('click:refresh')"
+          >
+            <v-icon left>{{ mdiRefresh }}</v-icon>
+            {{ $t('refresh') }}
+          </v-btn>
+        </v-col>
+      </v-row>
+    </template>
+
+    <template v-if="loading || outdatedState">
+      <v-skeleton-loader
+        class="mb-2"
+        type="image"
+        style="height: 64px"
+        :boilerplate="outdatedState"
+      />
 
       <v-row class="px-2">
         <v-col v-for="i of cols || 2" :key="i">
-          <v-skeleton-loader type="text, image" />
+          <v-skeleton-loader type="text, image" :boilerplate="outdatedState" />
         </v-col>
       </v-row>
     </template>
@@ -102,6 +123,7 @@ import _orderBy from 'lodash.orderby'
 import _debounce from 'lodash.debounce'
 import {Framework} from 'vuetify'
 import {Component, Vue, Prop, Watch} from 'vue-property-decorator'
+import {mdiRefresh} from '@mdi/js'
 import {Plotly} from 'vue-plotly'
 import {
   URL_DATE_FORMAT,
@@ -109,6 +131,7 @@ import {
   computeMovingAverage,
   isObjEmpty,
 } from '@/utils'
+import {fillGapsInDatesArray} from '@/utils/computeMovingAverage/computeMovingAverage'
 import Measurement, {MeasurementProcesses} from '@/entities/Measurement'
 import Pollutant from '@/entities/Pollutant'
 import City from '@/entities/City'
@@ -119,7 +142,7 @@ import RunningAverageEnum, {
   RUNNING_AVERAGE_DAYS_MAP,
 } from '@/entities/RunningAverageEnum'
 import URLQuery from '../../types/URLQuery'
-import ChartColumnSize from './ChartColumnSize'
+import ChartColsNum from './ChartColsNum'
 import ChartDisplayModes from './ChartDisplayModes'
 import RangeBox from './RangeBox'
 import ChartRow from './ChartRow'
@@ -127,7 +150,6 @@ import ChartCol from './ChartCol'
 import ChartTrace, {ChartTraceLevels} from './ChartTrace'
 import ChartTracePoint from './ChartTracePoint'
 import ChartData from './ChartData'
-import {fillGapsInDatesArray} from '@/utils/computeMovingAverage/computeMovingAverage'
 
 const CHART_REF_PREFIX = 'chart:'
 const COL_ID_DIVIDER = '--'
@@ -141,11 +163,7 @@ const PRIMARY_LINE_STYLE = {
 const SECONDARY_LINE_STYLE = {color: '#ddd', width: 1}
 const PRIMARY_TRACE_COLOR_SCALE = chroma.scale(
   // Can't seem to reverse using domain([1,0]) so using this trick
-  chroma
-    .scale('OrRd')
-    .padding([0.2, 0.1])
-    .colors(10)
-    .reverse()
+  chroma.scale('OrRd').padding([0.2, 0.1]).colors(10).reverse()
 )
 
 interface MapFilter {
@@ -154,8 +172,7 @@ interface MapFilter {
 
 var icon = {
   width: 1000,
-  path:
-    'm250 850l-187 0-63 0 0-62 0-188 63 0 0 188 187 0 0 62z m688 0l-188 0 0-62 188 0 0-188 62 0 0 188 0 62-62 0z m-875-938l0 188-63 0 0-188 0-62 63 0 187 0 0 62-187 0z m875 188l0-188-188 0 0-62 188 0 62 0 0 62 0 188-62 0z m-125 188l-1 0-93-94-156 156 156 156 92-93 2 0 0 250-250 0 0-2 93-92-156-156-156 156 94 92 0 2-250 0 0-250 0 0 93 93 157-156-157-156-93 94 0 0 0-250 250 0 0 0-94 93 156 157 156-157-93-93 0 0 250 0 0 250z',
+  path: 'm250 850l-187 0-63 0 0-62 0-188 63 0 0 188 187 0 0 62z m688 0l-188 0 0-62 188 0 0-188 62 0 0 188 0 62-62 0z m-875-938l0 188-63 0 0-188 0-62 63 0 187 0 0 62-187 0z m875 188l0-188-188 0 0-62 188 0 62 0 0 62 0 188-62 0z m-125 188l-1 0-93-94-156 156 156 156 92-93 2 0 0 250-250 0 0-2 93-92-156-156-156 156 94 92 0 2-250 0 0-250 0 0 93 93 157-156-157-156-93 94 0 0 0-250 250 0 0 0-94 93 156 157 156-157-93-93 0 0 250 0 0 250z',
   ascent: 850,
   descent: -150,
 }
@@ -173,7 +190,7 @@ export default class MeasurementsChart extends Vue {
   public readonly chartData!: ChartData
 
   @Prop({type: Number})
-  public readonly cols?: ChartColumnSize
+  public readonly cols?: ChartColsNum
 
   @Prop({default: ChartDisplayModes.NORMAL})
   public readonly chartDisplayMode!: ChartDisplayModes
@@ -187,6 +204,9 @@ export default class MeasurementsChart extends Vue {
   @Prop({type: Boolean, default: false})
   public readonly displayStations!: boolean
 
+  @Prop({type: Boolean, default: false})
+  public readonly outdatedState!: boolean
+
   @Prop({type: Array, default: () => []})
   public readonly filterSources!: Source['id'][]
 
@@ -199,6 +219,10 @@ export default class MeasurementsChart extends Vue {
   @Prop({type: Number, default: 15000})
   public readonly maxColHeight?: number
 
+  @Prop({type: Boolean, default: false})
+  public readonly frozen!: boolean
+
+  public mdiRefresh = mdiRefresh
   public CHART_REF_PREFIX = CHART_REF_PREFIX
   public get modeBarButtonsToAdd(): any[] {
     return [
@@ -266,13 +290,13 @@ export default class MeasurementsChart extends Vue {
     return this.chartDisplayMode || ChartDisplayModes.NORMAL
   }
 
-  public get _cols(): ChartColumnSize {
+  public get _cols(): ChartColsNum {
     const maxChartCols = MeasurementsChart.getMaxChartCols(
       this.$vuetify,
       this.queryParams.cities.length,
       this.queryParams.pollutants.length
     )
-    return Math.min(this.cols || 0, maxChartCols) as ChartColumnSize
+    return Math.min(this.cols || 0, maxChartCols) as ChartColsNum
   }
 
   public get vCols(): number /* Vuetify <v-col> size: [1, 12] */ {
@@ -423,33 +447,18 @@ export default class MeasurementsChart extends Vue {
     return rows
   }
 
-  public mounted() {
-    if (!this.cols) {
-      this.$emit(
-        'update:cols',
-        MeasurementsChart.getMaxChartCols(
-          this.$vuetify,
-          this.queryParams.cities.length,
-          this.queryParams.pollutants.length
-        )
-      )
-    }
-  }
-
-  static getDefaultChartColsBasedOnWindow(
-    $vuetify: Framework
-  ): ChartColumnSize {
+  static getMaxChartColsBasedOnWindow($vuetify: Framework): ChartColsNum {
     switch ($vuetify.breakpoint.name) {
       case 'xs':
         return 1
       case 'sm':
         return 1
       case 'md':
-        return 2
-      case 'lg':
-        return 2
-      case 'xl':
         return 4
+      case 'lg':
+        return 6
+      case 'xl':
+        return 12
       default:
         return 2
     }
@@ -459,20 +468,21 @@ export default class MeasurementsChart extends Vue {
     $vuetify: Framework,
     citiesLength: number = 0,
     pollutantsLength: number = 0
-  ): ChartColumnSize {
+  ): ChartColsNum {
     const rowItemsLength = citiesLength === 1 ? pollutantsLength : citiesLength
-    const defaultChartCols = MeasurementsChart.getDefaultChartColsBasedOnWindow(
-      $vuetify
-    )
-    let _defaultCols: number = rowItemsLength
-      ? rowItemsLength
-      : defaultChartCols
+    if (rowItemsLength === 0) return 1
+    const maxAllowedChartCols =
+      MeasurementsChart.getMaxChartColsBasedOnWindow($vuetify)
+    let maxUsedChartCols: ChartColsNum = 1
 
-    if (_defaultCols > 4 && _defaultCols < 6) _defaultCols = 5
-    if (_defaultCols > 6 && _defaultCols < 12) _defaultCols = 6
-    if (_defaultCols > 12) _defaultCols = 12
+    if (rowItemsLength === 1) maxUsedChartCols = 1
+    else if (rowItemsLength === 2) maxUsedChartCols = 2
+    else if (rowItemsLength === 3) maxUsedChartCols = 3
+    else if (rowItemsLength >= 4 && rowItemsLength < 6) maxUsedChartCols = 4
+    else if (rowItemsLength >= 6 && rowItemsLength < 12) maxUsedChartCols = 6
+    else if (rowItemsLength >= 12) maxUsedChartCols = 12
 
-    return _defaultCols as ChartColumnSize
+    return Math.min(maxAllowedChartCols, maxUsedChartCols) as ChartColsNum
   }
 
   public genChartTraces(
@@ -650,6 +660,7 @@ export default class MeasurementsChart extends Vue {
   public onResize = _debounce(() => this.resize(), 100)
 
   public resize() {
+    if (this.frozen) return
     for (const refId in this.$refs) {
       const $refList = this.$refs[refId] as any[]
       const $ref: typeof Plotly = $refList?.[0]
@@ -668,9 +679,9 @@ export default class MeasurementsChart extends Vue {
 
     if (!rangeBox) return
 
-    const $ref: typeof Plotly | undefined = (this.$refs[
-      `${CHART_REF_PREFIX}${colId}`
-    ] as HTMLElement[])?.[0]
+    const $ref: typeof Plotly | undefined = (
+      this.$refs[`${CHART_REF_PREFIX}${colId}`] as HTMLElement[]
+    )?.[0]
 
     const paramsToUpdate: {[key: string]: any} = {}
 
@@ -688,9 +699,9 @@ export default class MeasurementsChart extends Vue {
     const hasAxisX = Object.keys($event).find((key) => /^xaxis/.test(key))
     if (!hasAxisX) return
 
-    const $colRef: HTMLElement | undefined = (this.$refs[
-      `${CHART_REF_PREFIX}${colId}`
-    ] as HTMLElement[])?.[0]
+    const $colRef: HTMLElement | undefined = (
+      this.$refs[`${CHART_REF_PREFIX}${colId}`] as HTMLElement[]
+    )?.[0]
 
     if (!$colRef) return
 
@@ -839,9 +850,8 @@ function _setLineStylesToChartTraces(
     0
   )
 
-  const PALETTE_COLORS = PRIMARY_TRACE_COLOR_SCALE.mode('lab').colors(
-    citiesTracesNumber
-  )
+  const PALETTE_COLORS =
+    PRIMARY_TRACE_COLOR_SCALE.mode('lab').colors(citiesTracesNumber)
 
   let counterCitiesTraces = 0
   const widthStep = PRIMARY_LINE_STYLE.widthStep
@@ -999,8 +1009,34 @@ function _valuePassesFilter(key: any, filterMap: MapFilter | null): boolean {
 </script>
 
 <style lang="scss">
+@import '~vuetify/src/styles/styles.sass';
+
 .measurements-chart {
-  padding: 0 0.5rem 0 0;
+  padding: 0;
+  position: relative;
+
+  .banner-outdated {
+    position: absolute;
+    z-index: 10;
+    min-height: 200px;
+    height: 100%;
+
+    &:before {
+      content: '';
+      position: absolute;
+      top: -15px;
+      left: -10px;
+      width: calc(100% + (10px * 2));
+      height: calc(100% + (10px * 2));
+      background-color: map-get($yellow, lighten-5);
+      border-radius: 5px;
+      opacity: 0.7;
+    }
+
+    .v-btn {
+      margin-top: 100px;
+    }
+  }
 
   .chart-row {
     position: relative;

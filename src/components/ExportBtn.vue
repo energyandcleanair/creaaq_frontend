@@ -33,7 +33,7 @@ export enum ExportFileType {
 })
 export default class ExportBtn extends VBtn {
   @Model('input', {type: String})
-  readonly value!: any[]
+  readonly value!: string
 
   public mdiFileDownloadOutline = mdiFileDownloadOutline
 

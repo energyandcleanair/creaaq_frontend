@@ -463,7 +463,7 @@ export default class StationsChart extends Vue {
       const blob = new Blob([csv], {type: 'application/csvcharset=utf-8'})
       saveAs(blob, filename)
       this.$loader.off()
-    } catch (err) {
+    } catch (err: any) {
       this.$loader.off()
       console.error(err)
       this.$dialog.notify.error(
@@ -486,6 +486,7 @@ export default class StationsChart extends Vue {
 
   public onClickExport(fileType: ExportFileType, $event: MouseEvent) {
     if (fileType === ExportFileType.CSV) {
+      this.$trackGtmEvent('stations', 'export_to_file', 'csv')
       this.exportToCSV(this.stations)
     }
   }

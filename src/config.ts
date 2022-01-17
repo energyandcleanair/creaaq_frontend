@@ -12,6 +12,8 @@ export interface ConfigParams {
   FIREBASE_AUTH_DOMAIN: string
   FIREBASE_PROJECT_ID: string
   FIREBASE_APP_ID: string
+  GTM_CONTAINER_ID: string
+  GTM_ENABLED: string
   LIMIT_FETCH_ITEMS_FROM_API: string
   MAP_LAYERS: {
     SATELLITE: MapLayerConfig
@@ -30,11 +32,12 @@ export default class ConfigProvider {
       FIREBASE_AUTH_DOMAIN: '$FIREBASE_AUTH_DOMAIN',
       FIREBASE_PROJECT_ID: '$FIREBASE_PROJECT_ID',
       FIREBASE_APP_ID: '$FIREBASE_APP_ID',
+      GTM_CONTAINER_ID: '$GTM_CONTAINER_ID',
+      GTM_ENABLED: '$GTM_ENABLED',
       LIMIT_FETCH_ITEMS_FROM_API: '$LIMIT_FETCH_ITEMS_FROM_API',
       MAP_LAYERS: {
         SATELLITE: {
-          url:
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
           attribution:
             'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
         },

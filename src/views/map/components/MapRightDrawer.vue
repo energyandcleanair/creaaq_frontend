@@ -105,7 +105,7 @@
 <script lang="ts">
 import _difference from 'lodash.difference'
 import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
-import PageDrawer from '@/components/PageDrawer.vue'
+import PageDrawer from '@/components/PageDrawer/PageDrawer.vue'
 import SelectBox from '@/components/SelectBox.vue'
 import Pollutant from '@/entities/Pollutant'
 import URLQuery, {MapChartBasemap, MapChartLevel} from '../types/URLQuery'

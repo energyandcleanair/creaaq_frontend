@@ -1,3 +1,4 @@
+import Vue from 'vue'
 import firebase from 'firebase/app'
 import 'firebase/auth'
 import config from '@/config'
@@ -28,10 +29,14 @@ export const getAccessToken = (): string => accessToken
 export const refreshAccessToken = async (
   isForce: boolean = true
 ): Promise<any> => {
-  const user: any = auth.currentUser
+  const user: firebase.User | null = auth.currentUser
   setAccessToken((await user?.getIdToken(isForce)) || '')
 }
+export const getUserUID = (): string | null => {
+  return auth.currentUser?.uid || null
+}
 
-auth.onIdTokenChanged(async (user: any) => {
+auth.onIdTokenChanged(async (user: firebase.User | null) => {
+  Vue.trackGtmEvent('auth', 'set_user_id', null, {value: user?.uid || ''})
   setAccessToken((await user?.getIdToken()) || '')
 })

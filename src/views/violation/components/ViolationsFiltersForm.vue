@@ -12,23 +12,38 @@
       <v-col v-if="primaryFilterTree.length" class="pl-1" cols="12">
         <v-treeview
           ref="primaryFilterTree"
-          class="v-treeview--hide-children v-treeview--hide-toggle"
+          class="v-treeview--hide-children v-treeview--hide-toggle v-treeview--label-no-truncate"
           :value="primaryFilterValue"
           :items="primaryFilterTree"
           :expand-icon="mdiMenuDown"
+          :open-all="false"
           item-key="id"
           item-text="name"
           item-disabled="disabled"
           selected-color="primary"
           selection-type="leaf"
           selectable
-          open-all
           @input="onChangeTree('primary', $event)"
         >
           <template v-slot:label="{item}">
             <v-tooltip bottom>
               <template v-slot:activator="{on, attrs}">
-                <span v-bind="attrs" v-on="on" v-text="item.name" />
+                <span
+                  class="d-inline-block text-truncate"
+                  v-bind="attrs"
+                  v-on="on"
+                  v-text="item.name"
+                  style="max-width: calc(100% - 25px)"
+                />
+
+                <v-icon
+                  class="ml-2"
+                  color="grey lighten-1"
+                  @click="onClickDetails(filterPrimary, item)"
+                  small
+                >
+                  {{ mdiInformationOutline }}
+                </v-icon>
               </template>
               <span>{{ item.name }}</span>
             </v-tooltip>
@@ -49,12 +64,12 @@
           :value="secondaryFilterValue"
           :items="secondaryFilterTree"
           :expand-icon="mdiMenuDown"
+          :open-all="false"
           item-key="id"
           item-disabled="disabled"
           selected-color="primary"
           selection-type="leaf"
           selectable
-          open-all
           @input="onChangeTree('secondary', $event)"
         >
           <template v-slot:label="{item}">
@@ -73,14 +88,14 @@
 
 <script lang="ts">
 import _uniqBy from 'lodash.uniqby'
-import {mdiMenuDown} from '@mdi/js'
+import {mdiInformationOutline, mdiMenuDown} from '@mdi/js'
 import {Vue, Component, Prop, Ref} from 'vue-property-decorator'
 import Pollutant from '@/entities/Pollutant'
-import Guideline from '@/entities/Guideline'
+import Regulation from '@/entities/Regulation'
 import Target from '@/entities/Target'
 
 export enum ViolationsPrimaryFilter {
-  guidelines = 'guidelines',
+  regulations = 'regulations',
 }
 
 export enum ViolationsSecondaryFilter {
@@ -88,7 +103,7 @@ export enum ViolationsSecondaryFilter {
 }
 
 export type ViolationsFilterValue =
-  | Guideline['id']
+  | Regulation['id']
   | Pollutant['id']
   | Target['id']
 
@@ -97,7 +112,7 @@ export interface ViolationsFilterItem {
   name: string
   description?: string
   disabled?: boolean
-  guideline?: Guideline['id']
+  regulation_id?: Regulation['id']
   pollutant?: Pollutant['id']
 }
 
@@ -127,7 +142,7 @@ export default class ViolationsFiltersForm extends Vue {
   public readonly $secondaryFilterTree: any | undefined
 
   @Prop({type: Array, required: true})
-  public readonly valueGuidelines!: Guideline['id'][]
+  public readonly valueRegulations!: Regulation['id'][]
 
   @Prop({type: Array, required: true})
   public readonly valuePollutants!: Pollutant['id'][]
@@ -150,7 +165,7 @@ export default class ViolationsFiltersForm extends Vue {
   public readonly filterSecondary!: ViolationsSecondaryFilter
 
   @Prop({type: Array, required: true})
-  public readonly guidelines!: Guideline[]
+  public readonly regulations!: Regulation[]
 
   @Prop({type: Array, required: true})
   public readonly pollutants!: Pollutant[]
@@ -162,13 +177,16 @@ export default class ViolationsFiltersForm extends Vue {
   readonly disabled!: boolean
 
   public mdiMenuDown = mdiMenuDown
+  public mdiInformationOutline = mdiInformationOutline
 
   public get primaryFilterItems(): ViolationsFilterItem[] {
     return this._getPrimaryFilterItems(this.filterPrimary)
   }
 
-  // link to the secondaryFilterValue because the primary filter tree
+  // INFO: link to the secondaryFilterValue because the primary filter tree
   // is based on the secondaryFilterValue
+  // WHY: the primary filter has hidden children which
+  // are the secondaryFilterItems
   public get primaryFilterValue(): ViolationsFilterValue[] {
     return this.secondaryFilterValue
   }
@@ -194,7 +212,7 @@ export default class ViolationsFiltersForm extends Vue {
         this.filterSecondary === ViolationsSecondaryFilter['pollutants/targets']
       ) {
         for (const secondaryItem of this.secondaryFilterItems) {
-          if (secondaryItem.guideline === primaryItem.id) {
+          if (secondaryItem.regulation_id === primaryItem.id) {
             children.push(secondaryItem)
           }
         }
@@ -244,7 +262,7 @@ export default class ViolationsFiltersForm extends Vue {
 
   public onChangeTree(tree: 'primary' | 'secondary', values: string[]) {
     const componentValue = {
-      guidelines: this.valueGuidelines,
+      regulations: this.valueRegulations,
       pollutants: this.valuePollutants,
       targets: this.valueTargets,
     }
@@ -279,12 +297,12 @@ export default class ViolationsFiltersForm extends Vue {
           this.$secondaryFilterTree
         )
 
-        if (this.filterPrimary === ViolationsPrimaryFilter.guidelines) {
-          componentValue.guidelines = values.reduce(
+        if (this.filterPrimary === ViolationsPrimaryFilter.regulations) {
+          componentValue.regulations = values.reduce(
             (ids: string[], id: string) => {
               const tg = this.secondaryFilterItems.find((itm) => itm.id === id)
-              if (tg?.guideline && !ids.includes(tg?.guideline)) {
-                ids.push(tg?.guideline)
+              if (tg?.regulation_id && !ids.includes(tg?.regulation_id)) {
+                ids.push(tg?.regulation_id)
               }
               return ids
             },
@@ -297,7 +315,11 @@ export default class ViolationsFiltersForm extends Vue {
     this.onChangeForm(componentValue)
   }
 
-  public onChangeForm(value: any) {
+  public onChangeForm(value: {
+    regulations: Regulation['id'][]
+    pollutants: Pollutant['id'][]
+    targets: Target['id'][]
+  }) {
     this.$emit('change', value)
   }
 
@@ -315,16 +337,29 @@ export default class ViolationsFiltersForm extends Vue {
     return selectedIds
   }
 
+  public onClickDetails(
+    type: ViolationsPrimaryFilter,
+    filterItem: ViolationsFilterItem
+  ) {
+    let item
+
+    if (type === ViolationsPrimaryFilter.regulations) {
+      item = this.regulations.find(({id}) => id === filterItem.id)
+    }
+
+    this.$emit('click:item-details', type, item)
+  }
+
   public _getPrimaryFilterItems(
     filter: ViolationsPrimaryFilter
   ): ViolationsFilterItem[] {
     let items = []
-    let type: 'guideline' | 'pollutant' | 'target'
+    let type: 'regulation' | 'pollutant' | 'target'
 
     switch (filter) {
-      case ViolationsPrimaryFilter.guidelines:
-        type = 'guideline'
-        items = this.guidelines
+      case ViolationsPrimaryFilter.regulations:
+        type = 'regulation'
+        items = this.regulations
         break
       default:
         throw new Error(`Unknown filter name: ${filter}`)
@@ -336,7 +371,7 @@ export default class ViolationsFiltersForm extends Vue {
     filter: ViolationsSecondaryFilter
   ): ViolationsFilterItem[] {
     let items = []
-    let type: 'guideline' | 'pollutant' | 'target'
+    let type: 'regulation' | 'pollutant' | 'target'
 
     switch (filter) {
       case ViolationsSecondaryFilter['pollutants/targets']:
@@ -362,27 +397,30 @@ export default class ViolationsFiltersForm extends Vue {
   }
 
   public _parseToFilterItem(
-    item: any,
-    type: 'guideline' | 'pollutant' | 'target'
+    item: Regulation | Pollutant | Target,
+    type: 'regulation' | 'pollutant' | 'target'
   ): ViolationsFilterItem {
-    let nameProp: string
+    let name: string
 
     switch (type) {
+      case 'regulation':
+        name = item.name
+        break
       case 'pollutant':
-        nameProp = 'name'
+        name = item.name
         break
       case 'target':
-        nameProp = 'name'
+        name = `${item.name} (${(item as Target).regulation_id})`
         break
       default:
-        nameProp = 'name'
+        name = item.name
     }
 
     return {
       id: item.id,
-      name: item[nameProp],
-      pollutant: item.pollutant,
-      guideline: item.guideline,
+      name,
+      pollutant: (item as Target).pollutant,
+      regulation_id: (item as Target).regulation_id,
     }
   }
 }
@@ -405,6 +443,16 @@ export default class ViolationsFiltersForm extends Vue {
     max-width: 100%;
     overflow: hidden;
     margin-left: -12px;
+
+    &.v-treeview--label-no-truncate {
+      .v-treeview-node__label {
+        text-overflow: initial !important;
+
+        > * {
+          vertical-align: middle;
+        }
+      }
+    }
 
     &.v-treeview--hide-children {
       .v-treeview-node__children {

@@ -12,9 +12,11 @@ Vue.use(Vuex)
 interface UIParams {
   measurements: {
     isRightPanelOpen: boolean
+    isAutoRefreshOnQueryChange: boolean
   }
   violations: {
     isRightPanelOpen: boolean
+    isAutoRefreshOnQueryChange: boolean
   }
   map: {
     isRightPanelOpen: boolean
@@ -37,9 +39,11 @@ export class ModuleState {
   public ui: UIParams = {
     measurements: {
       isRightPanelOpen: true,
+      isAutoRefreshOnQueryChange: true,
     },
     violations: {
       isRightPanelOpen: true,
+      isAutoRefreshOnQueryChange: true,
     },
     map: {
       isRightPanelOpen: true,

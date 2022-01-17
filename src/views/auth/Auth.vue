@@ -35,6 +35,7 @@ import FormResetPasswordMessage from './ResetPasswordMessage.form.vue'
 import FormChangePassword from './ChangePassword.form.vue'
 
 @Component({
+  name: 'ViewAuth',
   components: {
     FormSignIn,
     FormSignUp,
@@ -43,7 +44,7 @@ import FormChangePassword from './ChangePassword.form.vue'
     FormChangePassword,
   },
 })
-export default class PageAuth extends Vue {
+export default class ViewAuth extends Vue {
   @Ref('form')
   readonly $form: any
 
@@ -119,11 +120,11 @@ export default class PageAuth extends Vue {
     const provider = new fb.auth.GoogleAuthProvider()
     provider.addScope('profile')
     provider.addScope('email')
-    provider.setCustomParameters({
-      prompt: 'select_account',
-    })
+    provider.setCustomParameters({prompt: 'select_account'})
 
-    const [err, res]: any[] = await to(auth.signInWithPopup(provider))
+    const [err, res]: [any, fb.auth.UserCredential | undefined] = await to(
+      auth.signInWithPopup(provider)
+    )
 
     if (err) {
       if (err.code === 'auth/popup-closed-by-user') {
@@ -133,9 +134,16 @@ export default class PageAuth extends Vue {
 
       console.error(err)
       this.$loader.off()
+      this.$trackGtmEvent('auth', 'error_auth_google', err.message)
       return this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
+    }
+
+    if (res?.additionalUserInfo?.isNewUser === true) {
+      this.$trackGtmEvent('auth', 'registration_google')
+    } else {
+      this.$trackGtmEvent('auth', 'login_google')
     }
 
     await refreshAccessToken(false)
@@ -157,11 +165,13 @@ export default class PageAuth extends Vue {
     if (err) {
       console.error(err)
       this.$loader.off()
+      this.$trackGtmEvent('profile', 'error_reset_password', err.message)
       return this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
+    this.$trackGtmEvent('profile', 'reset_password')
     this.$router.push({name: 'resetPasswordMessage'})
     this.$loader.off()
   }
@@ -185,6 +195,7 @@ export default class PageAuth extends Vue {
     if (err) {
       console.error(err)
       this.$loader.off()
+      this.$trackGtmEvent('profile', 'error_change_password', err.message)
       return this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
@@ -203,6 +214,7 @@ export default class PageAuth extends Vue {
     if (err) {
       console.error(err)
       this.$loader.off()
+      this.$trackGtmEvent('profile', 'error_change_password', err.message)
       return this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
@@ -213,6 +225,7 @@ export default class PageAuth extends Vue {
     this.formValues.password = ''
     this.formValues.newPassword = ''
     this.formValues.newPasswordConfirm = ''
+    this.$trackGtmEvent('profile', 'change_password')
     return this.$dialog.notify.success(
       '' + this.$t('auth.password_successfully_changed')
     )
@@ -221,7 +234,7 @@ export default class PageAuth extends Vue {
   public async signIn(): Promise<void> {
     this.$loader.on()
 
-    const [err, res] = await to<fb.auth.UserCredential>(
+    const [err] = await to<fb.auth.UserCredential>(
       auth.signInWithEmailAndPassword(
         this.formValues.email,
         this.formValues.password
@@ -231,11 +244,13 @@ export default class PageAuth extends Vue {
     if (err) {
       console.error(err)
       this.$loader.off()
+      this.$trackGtmEvent('auth', 'error_login_email_and_password', err.message)
       return this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
+    this.$trackGtmEvent('auth', 'login_email_and_password')
     await refreshAccessToken(false)
 
     this.$router.push({name: 'home'})
@@ -255,6 +270,11 @@ export default class PageAuth extends Vue {
     if (err) {
       console.error(err)
       this.$loader.off()
+      this.$trackGtmEvent(
+        'auth',
+        'error_registration_email_and_password',
+        err.message
+      )
       return this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
@@ -267,19 +287,23 @@ export default class PageAuth extends Vue {
     }
 
     ;[err] = await to(
-      auth.currentUser.updateProfile({
-        displayName: this.formValues.name,
-      })
+      auth.currentUser.updateProfile({displayName: this.formValues.name})
     )
 
     if (err) {
       console.error(err)
       this.$loader.off()
+      this.$trackGtmEvent(
+        'auth',
+        'error_registration_email_and_password',
+        err.message
+      )
       return this.$dialog.notify.error(
         err?.message || '' + this.$t('msg.something_went_wrong')
       )
     }
 
+    this.$trackGtmEvent('auth', 'registration_email_and_password')
     await refreshAccessToken(false)
 
     this.$loader.off()

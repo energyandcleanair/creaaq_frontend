@@ -1,4 +1,5 @@
 import Violation from '@/entities/Violation'
+import TooltipParams from './TooltipParams'
 
 export default interface ChartCol {
   id: string
@@ -8,12 +9,8 @@ export default interface ChartCol {
     [date: number]: {
       color: string
       violations: Violation[]
-      tooltip: {
-        title: string
-        subtitle: string
-        tableHeaders: any[]
-        tableItems: any[]
-      }
+      class?: string
+      tooltip: TooltipParams
     }
   }
   isEmpty?: boolean
