@@ -113,6 +113,10 @@
     }
   }
 
+  .v-btn {
+    @extend .text-button;
+  }
+
   p {
     color: $text-color;
   }

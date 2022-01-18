@@ -59,12 +59,14 @@
               />
             </v-col>
 
-            <v-col class="d-flex justify-end">
+            <!-- TODO: temporarily hidden -->
+            <!-- <v-col class="d-flex justify-end">
               <CopyQueryURLBtn
                 class="mt-5"
                 :disabled="loading"
                 @click="onClickCopyQueryURL"
-            /></v-col>
+              />
+            </v-col> -->
           </v-row>
         </v-col>
 

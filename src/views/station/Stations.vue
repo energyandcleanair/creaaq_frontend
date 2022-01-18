@@ -34,7 +34,7 @@
 
     <v-container class="page-content mt-4 px-8" fluid>
       <div
-        v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+        v-if="isCitiesLimitExceeded"
         class="view-stations__message-banner pa-12"
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
@@ -42,14 +42,25 @@
             <span
               v-html="
                 $t(
-                  'msg.limit_exceeded__platform_cannot_display__you_can_download_data_by_url',
-                  {url: getAPIQueryURL()}
+                  'msg.limit_exceeded__platform_cannot_display__you_can_download_data_by_url'
                 )
               "
             />
           </div>
 
-          <b class="d-flex justify-center pt-2">
+          <v-btn
+            class="mt-2"
+            small
+            outlined
+            color="black"
+            target="_blank"
+            :href="getAPIQueryURL()"
+          >
+            <v-icon left>{{ mdiApi }}</v-icon>
+            {{ $t('download') }}
+          </v-btn>
+
+          <b class="d-flex justify-center pt-5 pb-1">
             {{
               $t('msg.queried_of_limit', {
                 queried: `${urlQuery.cities.length} ${$t('cities')
@@ -79,7 +90,7 @@
 
 <script lang="ts">
 import to from 'await-to-js'
-import {mdiRefresh} from '@mdi/js'
+import {mdiApi, mdiRefresh} from '@mdi/js'
 import _orderBy from 'lodash.orderby'
 import _difference from 'lodash.difference'
 import clipboardCopy from 'clipboard-copy'
@@ -135,6 +146,7 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
   @Ref('stationsChart')
   readonly $stationsChart?: StationsChart
 
+  public readonly mdiApi = mdiApi
   public readonly mdiRefresh = mdiRefresh
   public isMounted: boolean = false
   public isFetched: boolean = false
@@ -191,6 +203,13 @@ export default class ViewStations extends Mixins(keepAliveQueryMixin) {
       )
       this.cacheCurrentRouteSnapshot()
     }
+  }
+
+  public get isCitiesLimitExceeded(): boolean {
+    return (
+      this.urlQuery &&
+      this.urlQuery.cities.length > this.LIMIT_FETCH_ITEMS_FROM_API
+    )
   }
 
   public get selectedCities(): City[] {

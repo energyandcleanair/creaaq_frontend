@@ -197,9 +197,10 @@
           />
         </v-col>
 
-        <v-col class="d-flex justify-center mt-7" cols="12">
+        <!-- TODO: temporarily hidden -->
+        <!-- <v-col class="d-flex justify-center mt-7" cols="12">
           <CopyQueryURLBtn :disabled="loading" @click="onClickCopyQueryURL" />
-        </v-col>
+        </v-col> -->
       </v-row>
     </v-form>
   </PageDrawer>

@@ -10,7 +10,7 @@
       fluid
     >
       <div
-        v-if="urlQuery && urlQuery.cities.length > LIMIT_FETCH_ITEMS_FROM_API"
+        v-if="isCitiesLimitExceeded"
         class="view-measurements__message-banner pa-12"
       >
         <v-alert class="text-center my-12 px-12" color="warning lighten-2">
@@ -18,14 +18,25 @@
             <span
               v-html="
                 $t(
-                  'msg.limit_exceeded__platform_cannot_display__you_can_download_data_by_url',
-                  {url: getAPIQueryURL()}
+                  'msg.limit_exceeded__platform_cannot_display__you_can_download_data_by_url'
                 )
               "
             />
           </div>
 
-          <b class="d-flex justify-center pt-2">
+          <v-btn
+            class="mt-2"
+            small
+            outlined
+            color="black"
+            target="_blank"
+            :href="getAPIQueryURL()"
+          >
+            <v-icon left>{{ mdiApi }}</v-icon>
+            {{ $t('download') }}
+          </v-btn>
+
+          <b class="d-flex justify-center pt-5 pb-1">
             {{
               $t('msg.queried_of_limit', {
                 queried: `${urlQuery.cities.length} ${$t('cities')
@@ -155,7 +166,11 @@
           :filterPollutants="filterPollutants"
           :filterStations="filterStations"
           :maxColHeight="maxColHeight"
-          :outdatedState="!isAutoRefreshOnQueryChange && isChartStateOutdated"
+          :outdatedState="
+            !isAutoRefreshOnQueryChange &&
+            isChartStateOutdated &&
+            !isCitiesLimitExceeded
+          "
           :loading="isChartLoading"
           :frozen="isKeepAliveInactive"
           @click:refresh="onClickRefresh"
@@ -185,7 +200,7 @@ import {saveAs} from 'file-saver'
 import clipboardCopy from 'clipboard-copy'
 import {VueClass} from 'vue-class-component/lib/declarations'
 import {Component, Mixins} from 'vue-property-decorator'
-import {mdiRefresh} from '@mdi/js'
+import {mdiRefresh, mdiApi} from '@mdi/js'
 import {
   URL_DATE_FORMAT,
   toURLStringDate,
@@ -259,6 +274,7 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   public isLoading: boolean = false
   public isChartLoading: boolean = false
   public isChartStateOutdated: boolean = false
+  public readonly mdiApi = mdiApi
   public readonly mdiRefresh = mdiRefresh
   public readonly LIMIT_RENDER_ITEMS: number = 20
   public readonly LIMIT_FETCH_ITEMS_FROM_API: number =
@@ -344,6 +360,13 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
       )
       this.cacheCurrentRouteSnapshot()
     }
+  }
+
+  public get isCitiesLimitExceeded(): boolean {
+    return (
+      this.urlQuery &&
+      this.urlQuery.cities.length > this.LIMIT_FETCH_ITEMS_FROM_API
+    )
   }
 
   public get filterSources(): Source['id'][] {

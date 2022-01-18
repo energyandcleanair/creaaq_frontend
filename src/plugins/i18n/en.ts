@@ -133,7 +133,7 @@ export default {
     limit_exceeded__server_cannot_process_amount__reduce_query:
       'The limit is exceeded. The server cannot process such a large request. Please reduce the amount of data requested.',
     limit_exceeded__platform_cannot_display__you_can_download_data_by_url:
-      'The limit is exceeded. The platform cannot display such a large request. Please reduce the amount of data requested or click <a href="{url}" target="_blank">here</a> to download the data',
+      'The limit is exceeded. The platform cannot display such a large request. Please reduce the amount of data requested or download the data directly from the API.',
     too_large_url: 'Too large URL',
     too_large_query: 'Too large query',
     queried_of_limit: 'Queried {queried} with the limit of {limit}',

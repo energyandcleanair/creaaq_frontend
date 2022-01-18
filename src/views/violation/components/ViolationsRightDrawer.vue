@@ -67,11 +67,12 @@
         </v-col>
       </v-row>
 
-      <v-row no-gutters>
+      <!-- TODO: temporarily hidden -->
+      <!-- <v-row no-gutters>
         <v-col class="d-flex justify-center mt-2" cols="12">
           <CopyQueryURLBtn :disabled="loading" @click="onClickCopyQueryURL" />
         </v-col>
-      </v-row>
+      </v-row> -->
     </v-form>
 
     <RegulationDetailsModal
