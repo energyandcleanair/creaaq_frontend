@@ -563,22 +563,9 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
 
     const measurementsQuery = this.getMeasurementsQuery()
     promises.push(
-      this.fetchMeasurements(measurementsQuery)
-        .then((items) => (measurements = items))
-
-        // TODO: remove this .then() after Hubert fixed "process: string[]" in the query.
-        // Currently, it's making query for the first string passed in "process"
-        .then(() => {
-          if (!this.filterStations.length) return []
-          return this.fetchMeasurements({
-            ...measurementsQuery,
-            process: [MeasurementProcesses.station_day_mad],
-          })
-        })
-        .then(
-          (measurementsByStations) =>
-            (measurements = measurements.concat(measurementsByStations))
-        )
+      this.fetchMeasurements(measurementsQuery).then(
+        (items) => (measurements = items)
+      )
     )
 
     promises.push(
