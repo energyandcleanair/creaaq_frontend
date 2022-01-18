@@ -8,8 +8,9 @@ export default class Target {
   public location_id!: City['id']
   public pollutant!: Pollutant['id']
   public pollutant_name!: Pollutant['name']
-  public regulation_id?: Regulation['id']
 
+  public regulation_id?: Regulation['id']
+  public regulation?: Regulation
   public target_unit?: string
   public averaging_period_name?: string
 

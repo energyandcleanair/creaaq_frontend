@@ -75,9 +75,30 @@
           <template v-slot:label="{item}">
             <v-tooltip bottom>
               <template v-slot:activator="{on, attrs}">
-                <span v-bind="attrs" v-on="on" v-text="item.name" />
+                <!-- <span v-if="item.tag" v-text="item.tag" /> -->
+                <!-- <br /> -->
+                <!-- <span v-bind="attrs" v-on="on" v-text="item.name" /> -->
+
+                <v-list-item
+                  class="min-height-auto px-0"
+                  two-line
+                  v-bind="attrs"
+                  v-on="on"
+                >
+                  <v-list-item-content class="py-0">
+                    <v-list-item-subtitle
+                      v-if="item.tag"
+                      v-text="item.tag"
+                      style="font-size: 0.7em"
+                    />
+                    <v-list-item-title v-text="item.name" />
+                  </v-list-item-content>
+                </v-list-item>
               </template>
-              <span>{{ item.description || item.name }}</span>
+              <span
+                >{{ item.tag ? `${item.tag} &mdash; ` : ''
+                }}{{ item.description || item.name }}</span
+              >
             </v-tooltip>
           </template>
         </v-treeview>
@@ -110,6 +131,7 @@ export type ViolationsFilterValue =
 export interface ViolationsFilterItem {
   id: ViolationsFilterValue
   name: string
+  tag?: string
   description?: string
   disabled?: boolean
   regulation_id?: Regulation['id']
@@ -400,7 +422,8 @@ export default class ViolationsFiltersForm extends Vue {
     item: Regulation | Pollutant | Target,
     type: 'regulation' | 'pollutant' | 'target'
   ): ViolationsFilterItem {
-    let name: string
+    let name: ViolationsFilterItem['name']
+    let tag: ViolationsFilterItem['tag'] = undefined
 
     switch (type) {
       case 'regulation':
@@ -409,9 +432,15 @@ export default class ViolationsFiltersForm extends Vue {
       case 'pollutant':
         name = item.name
         break
-      case 'target':
-        name = `${item.name} (${(item as Target).regulation_id})`
+      case 'target': {
+        const regulation = (item as Target).regulation
+        tag =
+          regulation?.short_name ||
+          regulation?.name ||
+          (item as Target).regulation_id
+        name = item.name
         break
+      }
       default:
         name = item.name
     }
@@ -419,6 +448,7 @@ export default class ViolationsFiltersForm extends Vue {
     return {
       id: item.id,
       name,
+      tag,
       pollutant: (item as Target).pollutant,
       regulation_id: (item as Target).regulation_id,
     }

@@ -5,6 +5,7 @@ export default class Regulation {
   public name!: string
   public country!: Country['id'][]
 
+  public short_name?: string | null
   public comment?: string | null
   public link?: string | null
   public location_id?: string | null
