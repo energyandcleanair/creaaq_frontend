@@ -98,6 +98,17 @@ const routes: Array<RouteConfig> = [
     },
   },
   {
+    path: '/tropomi/no2',
+    name: 'tropomiNo2',
+    component: () =>
+      import(
+        /* webpackChunkName: "tropomiNo2" */ '@/views/tropomi/TropomiNo2.vue'
+      ),
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
     path: '/profile',
     name: 'profile',
     component: () =>

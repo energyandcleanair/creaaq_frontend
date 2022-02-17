@@ -97,6 +97,7 @@
           'ViewViolations',
           'ViewStations',
           'ViewMap',
+          'ViewTropomiNo2',
         ]"
       >
         <RouterView :key="$route.path" />

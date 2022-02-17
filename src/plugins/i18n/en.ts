@@ -20,6 +20,7 @@ export default {
   back: 'Back',
   cancel: 'Cancel',
   submit: 'Submit',
+  advanced: 'Advanced',
 
   details: 'Details',
   period: 'Period',

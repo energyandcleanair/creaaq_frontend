@@ -10,25 +10,30 @@
     <v-container class="d-flex flex-column fill-height pa-0" fluid>
       <v-list class="fill-width" dense>
         <v-list-item-group :value="selectedItemIndex" color="primary">
-          <v-list-item
-            :class="{
-              'grey--text text--darken-1': item.disabled,
-            }"
-            v-for="(item, i) in menuItems"
-            :key="i"
-            :to="item.to"
-            :disabled="item.disabled || selectedItemIndex === i"
-          >
-            <v-list-item-icon class="mr-4">
-              <v-icon>{{ item.icon }}</v-icon>
-            </v-list-item-icon>
+          <template v-for="(item, i) in menuItems">
+            <v-subheader
+              v-if="item.section"
+              :key="`section-` + i"
+              v-text="item.section"
+            />
 
-            <v-list-item-content>
-              <v-list-item-title class="text-body-1">{{
-                item.label
-              }}</v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
+            <v-list-item
+              :class="{
+                'grey--text text--darken-1': item.disabled,
+              }"
+              :key="i"
+              :to="item.to"
+              :disabled="item.disabled || selectedItemIndex === i"
+            >
+              <v-list-item-icon class="mr-4">
+                <v-icon>{{ item.icon }}</v-icon>
+              </v-list-item-icon>
+
+              <v-list-item-content>
+                <v-list-item-title class="text-body-1" v-text="item.label" />
+              </v-list-item-content>
+            </v-list-item>
+          </template>
         </v-list-item-group>
       </v-list>
 
@@ -46,7 +51,7 @@ import {
   mdiMapMarkerRadius,
   mdiCalendarMonth,
   mdiFactory,
-  mdiFileDownloadOutline,
+  mdiEarth,
 } from '@mdi/js'
 import {Location} from 'vue-router'
 import pkg from '../../package.json'
@@ -56,6 +61,7 @@ interface MenuItem {
   icon: string
   to?: Location
   disabled?: boolean
+  section?: string
 }
 
 @Component
@@ -92,6 +98,12 @@ export default class AppDrawer extends Vue {
         label: this.$t('map').toString(),
         icon: mdiMapMarkerRadius,
         to: {name: 'map'},
+      },
+      {
+        section: this.$t('advanced').toString(),
+        label: 'TROPOMI NO2',
+        icon: mdiEarth,
+        to: {name: 'tropomiNo2'},
       },
     ]
   }
