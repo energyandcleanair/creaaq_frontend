@@ -21,7 +21,7 @@ export default {
   cancel: 'Cancel',
   submit: 'Submit',
   advanced: 'Advanced',
-
+  update_and_reload_page: 'Update and reload page',
   details: 'Details',
   period: 'Period',
   all: 'All',
@@ -144,6 +144,7 @@ export default {
     overshooting_tooltip_info: `Overshooting date is the date when a yearly target is exceeded even if air pollution dropped to zero from that day onwards.<br/><br/>Estimated overshooting dates (striped) are assuming similar trends than the previous year, scaled with current year data.`,
     cache_has_been_cleared: 'Cache has been cleared',
     query_url_copied_to_clipboard: 'Query URL copied to clipboard',
+    new_app_version_available: 'The new app version is available.',
   },
 
   auth: {

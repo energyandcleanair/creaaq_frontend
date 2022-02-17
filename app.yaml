@@ -1,11 +1,16 @@
 runtime: nodejs14
 service: frontend
 handlers:
+  - url: /service-worker.js
+    static_files: dist/service-worker.js
+    upload: dist/service-worker.js
+    secure: always
+    expiration: '0d 59m'
   # Serve all static files with urls ending with a file extension
   - url: /(.*\..+)$
     static_files: dist/\1
     upload: dist/(.*\..+)$
-    # catch all handler to index.html
+  # catch all handler to index.html
   - url: /.*
     static_files: dist/index.html
     upload: dist/index.html

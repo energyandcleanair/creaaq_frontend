@@ -105,31 +105,57 @@
     </v-main>
 
     <CustomLoader />
+
+    <v-snackbar
+      bottom
+      left
+      :value="swUpdateExists"
+      vertical
+      :timeout="-1"
+      color="grey darken-4"
+    >
+      {{ $t('msg.new_app_version_available') }}
+      <template v-slot:action="{attrs}">
+        <v-btn
+          class="px-3"
+          v-bind="attrs"
+          color="info lighten-2"
+          text
+          @click="swRefreshApp"
+        >
+          <v-icon left>{{ mdiRefresh }}</v-icon>
+          {{ $t('update_and_reload_page') }}
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-app>
 </template>
 
 <script lang="ts">
 import axios from 'axios'
-import {Component, Vue} from 'vue-property-decorator'
+import {Component, Mixins} from 'vue-property-decorator'
 import {
   mdiLogout,
   mdiAccountCircle,
   mdiAccount,
   mdiHelpCircleOutline,
   mdiCached,
+  mdiRefresh,
 } from '@mdi/js'
 import {forageStore} from '@/api/API'
 import config from '@/config'
 import AppDrawer from '@/components/AppDrawer.vue'
+import KeepAliveQueryMixin from '@/mixins/ServiceWorkerUpdate'
 
 @Component({
   components: {
     AppDrawer,
   },
 })
-export default class App extends Vue {
+export default class App extends Mixins(KeepAliveQueryMixin) {
   public mdiAccount = mdiAccount
   public mdiAccountCircle = mdiAccountCircle
+  public mdiRefresh = mdiRefresh
   public isMenuOpen: boolean = false
 
   public get userName(): string {
