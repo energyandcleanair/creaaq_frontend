@@ -23,6 +23,7 @@ export default class Station {
 
   public _source?: Source
   public _pollutants?: Pollutant[]
+  public _getSourceColor?: (station?: Station) => string | undefined
 
   constructor(data: Station) {
     Object.assign(this, data)

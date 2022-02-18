@@ -35,8 +35,16 @@
             @click:row="onClickTableRow"
           >
             <!-- eslint-disable-next-line vue/valid-v-slot -->
-            <template v-slot:item._source="{value}">
-              {{ value ? value.short_name || value.name : '' }}
+            <template v-slot:item._source="{item, value}">
+              <v-chip
+                text-color="white"
+                :color="
+                  item._getSourceColor ? item._getSourceColor(item) : '#000'
+                "
+                small
+              >
+                {{ value ? value.short_name || value.name : '' }}
+              </v-chip>
             </template>
 
             <!-- eslint-disable-next-line vue/valid-v-slot -->
@@ -83,13 +91,23 @@
             />
 
             <l-circle-marker
+              v-bind="
+                selectedMarkersIdsMap[marker.id]
+                  ? {
+                      ...iconSelected,
+                      fillColor: marker.overrideColor || iconSelected.fillColor,
+                      color: marker.overrideColor || iconSelected.color,
+                    }
+                  : {
+                      ...iconPrimary,
+                      fillColor: marker.overrideColor || iconPrimary.fillColor,
+                      color: marker.overrideColor || iconPrimary.color,
+                    }
+              "
               :ref="`marker--${marker.id}`"
               v-for="marker of mapMarkers"
               :key="marker.id"
               :lat-lng="marker.coordinates"
-              v-bind="
-                selectedMarkersIdsMap[marker.id] ? iconSelected : iconPrimary
-              "
               @click="onClickMapMarker(marker.station.id)"
             >
               <l-tooltip
@@ -107,20 +125,25 @@
                   </b>
                 </div>
 
-                <!-- <div
-                  class="text-body-2"
-                  v-for="header of tooltipInfoHeaders"
-                  :key="header.value"
-                >
-                  <b>{{ header.text }}:</b> {{ marker.station[header.value] }}
-                </div> -->
-
                 <div
-                  class="text-body-2"
                   v-for="(val, key) of genTooltipDetailsList(marker.station)"
                   :key="key"
+                  class="text-body-2"
+                  :class="{
+                    'v-chip theme--light v-size--x-small white--text px-2 mb-2':
+                      key === $t('source').toString(),
+                  }"
+                  :style="
+                    key === $t('source').toString()
+                      ? {
+                          backgroundColor: marker.station._getSourceColor
+                            ? marker.station._getSourceColor(marker.station)
+                            : '#000',
+                        }
+                      : {}
+                  "
                 >
-                  <b>{{ key }}:</b> {{ val }}
+                  <b>{{ key }}:</b>&nbsp;{{ val }}
                 </div>
               </l-tooltip>
             </l-circle-marker>
@@ -146,6 +169,8 @@
 import 'leaflet/dist/leaflet.css'
 import _set from 'lodash.set'
 import _orderBy from 'lodash.orderby'
+import _sortBy from 'lodash.sortby'
+import chroma from 'chroma-js'
 import moment from 'moment'
 import json2csv from 'json2csv'
 import {saveAs} from 'file-saver'
@@ -162,11 +187,25 @@ import City from '@/entities/City'
 import Station from '@/entities/Station'
 import URLQuery from '../../types/URLQuery'
 import ChartData from './ChartData'
+import Source from '@/entities/Source'
+
+const SOURCES_SCALE = chroma
+  .scale([
+    theme.colors.darkRed.base,
+    theme.colors.orange.base,
+    theme.colors.deepOrange.base,
+    theme.colors.darkBlue.base,
+    theme.colors.pink.base,
+    theme.colors.purple.lighten1,
+    theme.colors.brown.base,
+  ])
+  .gamma(0.5)
 
 interface MapMarker {
   id: string
   station: Station
   coordinates: number[]
+  overrideColor?: string
 }
 
 @Component({
@@ -235,6 +274,14 @@ export default class StationsChart extends Vue {
     return this.chartData.cities || []
   }
 
+  public get citiesMap(): Map<City['id'], City> {
+    const map = new Map<City['id'], City>()
+    for (const city of this.cities) {
+      map.set(city.id, city)
+    }
+    return map
+  }
+
   public get stations(): Station[] {
     return this.chartData.stations || []
   }
@@ -288,34 +335,37 @@ export default class StationsChart extends Vue {
     ].filter((i) => i)
   }
 
-  // public get tooltipDetailsList(): any[] {
-  //   return this.tableHeaders.filter((header) => header.value !== 'name')
-  // }
-
-  public genTooltipDetailsList(station: Station): Record<string, string> {
+  public tooltipDetailsCache = new Map<Station['id'], Record<string, any>>()
+  public genTooltipDetailsList(station: Station): Record<string, any> {
+    const cachedDetails = this.tooltipDetailsCache.get(station.id)
+    if (cachedDetails) return cachedDetails
     const detailsList: Record<string, any> = {}
-    detailsList[this.$t('id').toString()] = station.id
-    detailsList[this.$t('type').toString()] = station.type
-    detailsList[this.$t('source').toString()] = station.source
     detailsList[this.$t('source').toString()] = station._source
       ? station._source.short_name || station._source.name
       : ''
+    detailsList[this.$t('id').toString()] = station.id
+    detailsList[this.$t('type').toString()] = station.type
     detailsList[this.$t('pollutants').toString()] =
       station._pollutants?.map((i) => i.name).join(', ') || ''
     detailsList[this.$t('attribution').toString()] = station.attribution
     detailsList[this.$t('last_updated').toString()] = station.last_updated
+    this.tooltipDetailsCache.set(station.id, detailsList)
     return detailsList
   }
 
   public get tableItems(): Station[] {
     const EMPTY = '—'
-    return this.chartData.stations.map((_station) => {
+
+    const usedSourcesSet = new Set<Source['id']>()
+    let sourceColorsMap = new Map<Source['id'], string>()
+    let sourcesPaletteColors: string[] = []
+
+    const stations = this.stations.map((_station) => {
       const station = {..._station}
 
+      if (station.source) usedSourcesSet.add(station.source)
       if (this.showCitiesCol && station.city_id) {
-        const city = this.chartData.cities.find(
-          (itm) => itm.id === station.city_id
-        )
+        const city = this.citiesMap.get(station.city_id)
         station.city_name = city?.name || EMPTY
       }
 
@@ -327,8 +377,29 @@ export default class StationsChart extends Vue {
         ? moment(station.last_updated).format('YYYY-MM-DD HH:mm')
         : '-'
 
+      station._getSourceColor = (
+        _station?: Station & {__sourceColor?: string}
+      ) => {
+        let cachedColor = _station?.__sourceColor
+        if (!_station || cachedColor) return cachedColor
+        cachedColor = _station.__sourceColor = _station.source
+          ? sourceColorsMap.get(_station.source)
+          : undefined
+        return cachedColor
+      }
+
       return station
     })
+
+    sourcesPaletteColors = SOURCES_SCALE.mode('lch').colors(
+      usedSourcesSet.size + 1
+    )
+    const usedSources = _sortBy(Array.from(usedSourcesSet))
+    for (let i = 0; i < usedSources.length; i++) {
+      sourceColorsMap.set(usedSources[i], sourcesPaletteColors[i + 1])
+    }
+
+    return stations
   }
 
   public get mapOptions(): Leaflet.MapOptions {
@@ -351,7 +422,8 @@ export default class StationsChart extends Vue {
 
         const marker: MapMarker = {
           id: station.id,
-          station: station,
+          station,
+          overrideColor: station._getSourceColor?.(station),
           coordinates: [
             station.coordinates.latitude,
             station.coordinates.longitude,

@@ -536,7 +536,7 @@ const PALETTE_COLORS = VIOLATIONS_SCALE.mode('lch').colors(
 )
 function _getViolationsColor(num: undefined | number): string {
   // no data
-  if (num === undefined) return theme.colors.grey.base
+  if (num === undefined) return theme.colors.gray.base
 
   // transparent (in the future for example)
   if (num === -1) return ''

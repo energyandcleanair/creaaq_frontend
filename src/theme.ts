@@ -17,11 +17,8 @@ export const colors = {
   green: {
     base: '#75b44c',
   },
-  darkGray: {
-    base: '#333333',
-  },
-  lightGray: {
-    base: '#cacaca',
+  teal: {
+    base: '#75b44c',
   },
   yellow: {
     base: '#fff2cc',
@@ -41,11 +38,26 @@ export const colors = {
   darkPurple: {
     base: '#741b47',
   },
+  pink: {
+    base: '#E91E63',
+  },
   purple: {
     lighten1: '#b71bdc',
   },
-  grey: {
+  brown: {
+    base: '#795548',
+  },
+  deepOrange: {
+    base: '#FF5722',
+  },
+  gray: {
     base: '#ccc',
+  },
+  darkGray: {
+    base: '#333333',
+  },
+  lightGray: {
+    base: '#cacaca',
   },
 }
 
@@ -69,10 +81,7 @@ export default {
         .brighten(2)
         .saturate(3)
         .toString(),
-      color: chroma(colors.darkBlue.base)
-        .brighten(2)
-        .saturate(3)
-        .toString(),
+      color: chroma(colors.darkBlue.base).brighten(2).saturate(3).toString(),
     },
   },
 }
