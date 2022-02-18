@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import _get from 'lodash.get'
+import _debounce from 'lodash.debounce'
 import VueRouter, {RouteConfig} from 'vue-router'
 
 Vue.use(VueRouter)
@@ -138,9 +139,21 @@ const router = new VueRouter({
   routes,
 })
 
-router.beforeEach(async (to, _, next) => {
-  const requiresAuth = to.matched.some((x) => x.meta.requiresAuth)
+let UPDATE_SERVICE_WORKER_DELAY_MS: number = 1000 * 15 // 15sec
+const _updateServiceWorker = _debounce(
+  () => {
+    const serviceWorker = window.navigator?.serviceWorker
+    serviceWorker
+      ?.getRegistrations()
+      .then((registrationsArray) => registrationsArray[0].update())
+  },
+  UPDATE_SERVICE_WORKER_DELAY_MS,
+  {leading: false, trailing: true}
+)
 
+router.beforeEach(async (to, _, next) => {
+  _updateServiceWorker()
+  const requiresAuth = to.matched.some((x) => x.meta.requiresAuth)
   if (requiresAuth) {
     if (!Vue.auth.currentUser) await Vue.auth.onInitialized()
     if (!Vue.auth.currentUser) return next({name: 'signIn'})

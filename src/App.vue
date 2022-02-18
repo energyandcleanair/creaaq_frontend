@@ -13,7 +13,7 @@
         <RouterLink to="/">
           <v-badge class="logo-badge" bottom content="beta">
             <v-img
-              alt="Vuetify Logo"
+              alt="CREA"
               class="shrink mr-2"
               contain
               src="/img/logo.svg"
