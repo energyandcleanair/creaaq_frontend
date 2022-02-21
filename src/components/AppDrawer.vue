@@ -9,7 +9,7 @@
     width="200"
   >
     <v-container class="d-flex flex-column fill-height pa-0" fluid>
-      <v-list class="fill-width fill-height" dense>
+      <v-list class="fill-width fill-height pt-2 pb-6" dense>
         <v-list-item-group
           class="fill-height"
           :value="selectedItemIndex"
@@ -22,6 +22,7 @@
               v-if="item.section"
               :key="`section-` + i"
               v-text="item.section"
+              style="height: 30px"
             />
 
             <v-list-item
@@ -122,18 +123,19 @@ export default class AppDrawer extends Vue {
 <style lang="scss">
 .app-drawer {
   // TODO: complete
-  // .v-navigation-drawer__content {
-  //   .v-list {
-  //     .v-item-group {
-  //       display: flex;
-  //       flex-direction: column;
+  .v-navigation-drawer__content {
+    .v-list {
+      .v-item-group {
+        display: flex;
+        flex-direction: column;
 
-  //       .v-list-item {
-  //         color: red;
-  //       }
-  //     }
-  //   }
-  // }
+        .v-list-item {
+          display: flex;
+          flex: 0 0 auto;
+        }
+      }
+    }
+  }
 
   &__footer {
     position: absolute;

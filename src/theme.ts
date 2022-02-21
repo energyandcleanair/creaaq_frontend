@@ -68,7 +68,7 @@ export default {
       radius: 6,
       weight: 1,
       opacity: 1,
-      fillOpacity: 0.5,
+      fillOpacity: 0.7,
       fillColor: colors.darkRed.base,
       color: colors.darkRed.base,
     },
@@ -76,7 +76,7 @@ export default {
       radius: 8,
       weight: 3,
       opacity: 1,
-      fillOpacity: 0.5,
+      fillOpacity: 0.7,
       fillColor: chroma(colors.darkBlue.base)
         .brighten(2)
         .saturate(3)
