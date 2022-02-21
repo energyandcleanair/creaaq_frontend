@@ -183,11 +183,11 @@ import config, {ConfigParams} from '@/config'
 import CopyQueryURLBtn from '@/components/CopyQueryURLBtn.vue'
 import ExportBtn, {ExportFileType} from '@/components/ExportBtn.vue'
 import Coordinates from '@/entities/Coordinates'
-import City from '@/entities/City'
 import Station from '@/entities/Station'
+import Source from '@/entities/Source'
+import City from '@/entities/City'
 import URLQuery from '../../types/URLQuery'
 import ChartData from './ChartData'
-import Source from '@/entities/Source'
 
 const SOURCES_SCALE = chroma
   .scale([

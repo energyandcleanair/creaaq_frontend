@@ -35,6 +35,57 @@
       </v-row>
 
       <v-row no-gutters>
+        <v-col class="text-subtitle-1" cols="12">{{ $t('sources') }}</v-col>
+
+        <v-col v-if="chartData.usedSources.length" class="pl-1" cols="12">
+          <v-checkbox
+            v-for="item of chartData.usedSources"
+            :input-value="queryParams.sources"
+            :key="item.id"
+            :value="item.id"
+            color="primary"
+            hide-details
+            :disabled="
+              queryParams.sources.length <= 1 &&
+              queryParams.sources.includes(item.id)
+            "
+            @change="onChangeForm('sources', $event)"
+          >
+            <template v-slot:label>
+              <v-menu bottom open-on-hover>
+                <template v-slot:activator="{on, attrs}">
+                  {{ item.name }}
+                  <v-icon
+                    class="ml-1"
+                    v-bind="attrs"
+                    v-on="on"
+                    color="grey lighten-2"
+                    small
+                  >
+                    {{ mdiInformationOutline }}
+                  </v-icon>
+                </template>
+
+                <v-card>
+                  <v-card-title
+                    v-text="
+                      item.name +
+                      (item.short_name && item.short_name !== item.name
+                        ? ` (${item.short_name})`
+                        : '')
+                    "
+                  />
+                  <v-card-text v-if="item.url">
+                    <a :href="item.url" target="_blank" v-text="item.url" />
+                  </v-card-text>
+                </v-card>
+              </v-menu>
+            </template>
+          </v-checkbox>
+        </v-col>
+      </v-row>
+
+      <v-row no-gutters>
         <v-col class="text-subtitle-1 d-flex align-center" cols="12">
           <label class="d-inline-flex" for="overshooting-switch">
             <v-tooltip max-width="400" bottom>
@@ -42,10 +93,10 @@
                 {{ $t('overshooting') }}
                 <v-icon
                   class="ml-1"
-                  color="grey lighten-2"
-                  small
                   v-bind="attrs"
                   v-on="on"
+                  color="grey lighten-2"
+                  small
                 >
                   {{ mdiInformationOutline }}
                 </v-icon>

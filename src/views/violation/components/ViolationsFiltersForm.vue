@@ -81,9 +81,9 @@
 
                 <v-list-item
                   class="min-height-auto px-0"
-                  two-line
                   v-bind="attrs"
                   v-on="on"
+                  two-line
                 >
                   <v-list-item-content class="py-0">
                     <v-list-item-subtitle
@@ -95,10 +95,10 @@
                   </v-list-item-content>
                 </v-list-item>
               </template>
-              <span
-                >{{ item.tag ? `${item.tag} &mdash; ` : ''
-                }}{{ item.description || item.name }}</span
-              >
+              <span>
+                {{ item.tag ? `${item.tag} &mdash; ` : ''
+                }}{{ item.description || item.name }}
+              </span>
             </v-tooltip>
           </template>
         </v-treeview>

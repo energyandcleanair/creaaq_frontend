@@ -94,17 +94,24 @@
                     {{ item.short_name || item.name }}
                     <v-icon
                       class="ml-1"
-                      color="grey lighten-2"
-                      small
                       v-bind="attrs"
                       v-on="on"
+                      color="grey lighten-2"
+                      small
                     >
                       {{ mdiInformationOutline }}
                     </v-icon>
                   </template>
 
                   <v-card>
-                    <v-card-title v-text="item.name" />
+                    <v-card-title
+                      v-text="
+                        item.name +
+                        (item.short_name && item.short_name !== item.name
+                          ? ` (${item.short_name})`
+                          : '')
+                      "
+                    />
                     <v-card-text v-if="item.url">
                       <a :href="item.url" target="_blank" v-text="item.url" />
                     </v-card-text>

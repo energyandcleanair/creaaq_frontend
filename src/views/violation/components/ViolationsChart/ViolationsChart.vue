@@ -109,13 +109,13 @@
                 <template v-slot:activator="{on, attrs}">
                   <v-btn
                     v-if="!outside"
+                    v-bind="attrs"
+                    v-on="on"
                     :class="col.dates[day].class"
                     :color="col.dates[day].color || 'white'"
                     :ripple="false"
                     small
                     depressed
-                    v-bind="attrs"
-                    v-on="on"
                   >
                     {{ day }}
                   </v-btn>
@@ -163,6 +163,7 @@ import TooltipParams from './TooltipParams'
 import ChartData from './ChartData'
 import ChartRow from './ChartRow'
 import ChartCol from './ChartCol'
+import Source from '@/entities/Source'
 
 const COL_ID_DIVIDER = '--'
 export const OVERSHOOT_VIOLATION_COLOR_CLASS = 'purple--text text--lighten-1'
@@ -261,6 +262,12 @@ export default class ViolationsChart extends Vue {
     )
     if (!Object.keys(filterPollutants).length) filterPollutants = null
 
+    let filterSources: MapFilter | null = this.queryParams.sources.reduce(
+      (memo: MapFilter, id: Source['id']) => (memo[id] = 1) && memo,
+      {}
+    )
+    if (!Object.keys(filterSources).length) filterSources = null
+
     let filterTargets: MapFilter | null = this.queryParams.targets.reduce(
       (memo: MapFilter, id: Target['id']) => (memo[id] = 1) && memo,
       {}
@@ -275,7 +282,8 @@ export default class ViolationsChart extends Vue {
       if (
         !_valuePassesFilter(cityId, filterCities) ||
         !_valuePassesFilter(violation.pollutant, filterPollutants) ||
-        !_valuePassesFilter(violation.target_id, filterTargets)
+        !_valuePassesFilter(violation.target_id, filterTargets) ||
+        !_valuePassesFilter(violation.source, filterSources)
       ) {
         continue
       }
@@ -436,7 +444,7 @@ export default class ViolationsChart extends Vue {
     let hasOvershoot = false
     let hasOvershootEstimated = false
 
-    const tableItems = violations.map((item) => {
+    const tableItems: TooltipParams['tableItems'] = violations.map((item) => {
       const target = targets.find((i) => i.id === item.target_id)
       const regulation = regulations.find((i) => i.id === target?.regulation_id)
       const value = Math.round(item.value || 0)
@@ -462,6 +470,9 @@ export default class ViolationsChart extends Vue {
         title: target?.name || item.pollutant || '?',
         pollutant_name:
           target?.pollutant_name || (item.pollutant || '?').toUpperCase(),
+        source: item._source
+          ? item._source.short_name || item._source.name
+          : '',
         value: isOvershoot ? `${value}*` : value,
         target_value: target_value,
         target_unit: target?.target_unit,
@@ -484,36 +495,42 @@ export default class ViolationsChart extends Vue {
       hasOvershootEstimated,
       tableHeaders: [
         {
-          text: this.$t('pollutant'),
+          text: this.$t('pollutant').toString(),
           value: 'pollutant_name',
           align: 'start',
           cellClass: 'font-weight-bold',
         },
         {
-          text: this.$t('period'),
+          text: this.$t('period').toString(),
           value: 'averaging_period_name',
           align: 'center',
           cellClass: 'primary--text',
         },
         {
-          text: this.$t('value'),
+          text: this.$t('value').toString(),
           value: 'value',
           align: 'center',
         },
         {
-          text: this.$t('target'),
+          text: this.$t('target').toString(),
           value: 'target_value',
           align: 'center',
           cellClass: 'primary--text',
         },
         {
-          text: this.$t('unit'),
+          text: this.$t('unit').toString(),
           value: 'target_unit',
           align: 'center',
           cellClass: 'primary--text',
         },
         {
-          text: this.$t('regulation'),
+          text: this.$t('source').toString(),
+          value: 'source',
+          align: 'center',
+          cellClass: 'primary--text',
+        },
+        {
+          text: this.$t('regulation').toString(),
           value: 'regulation_name',
           align: 'center',
           cellClass: 'primary--text',

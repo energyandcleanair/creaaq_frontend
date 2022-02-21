@@ -144,9 +144,11 @@ import Target from '@/entities/Target'
 import Violation from '@/entities/Violation'
 import Regulation from '@/entities/Regulation'
 import Country from '@/entities/Country'
+import Source from '@/entities/Source'
 import CityAPI from '@/api/CityAPI'
 import PollutantAPI from '@/api/PollutantAPI'
 import RegulationAPI from '@/api/RegulationAPI'
+import SourceAPI from '@/api/SourceAPI'
 import TargetAPI from '@/api/TargetAPI'
 import ViolationAPI, {ViolationQueryFindAll} from '@/api/ViolationAPI'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
@@ -212,6 +214,8 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     pollutants: [],
     regulations: [],
     targets: [],
+    sources: [],
+    usedSources: [],
   }
 
   public get isLoading(): boolean {
@@ -232,6 +236,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       pollutants: toCompactArray(q.pl),
       targets: toCompactArray(q.tg),
       regulations: toCompactArray(q.rg),
+      sources: toCompactArray(q.sr),
       date_start: q.start ? toURLStringDate(q.start as string) : '',
       overshooting: q.ovshoot === 'true',
     }
@@ -243,6 +248,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       pl: _orderBy(inputQuery.pollutants),
       tg: _orderBy(inputQuery.targets),
       rg: _orderBy(inputQuery.regulations),
+      sr: inputQuery.sources,
       start: inputQuery.date_start
         ? toURLStringDate(inputQuery.date_start)
         : undefined,
@@ -324,35 +330,55 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
 
     await this.setUrlQueryDefaults()
 
-    const cities = await this.fetchCities()
-    this.chartData.cities = cities
-    this.chartData.countriesMap = cities.reduce(
-      (map: Map<Country['id'], Country>, city: City) => {
-        map.set(city.country_id, {
-          id: city.country_id,
-          name: city.country_name,
-          level: 'country',
+    const promises: Promise<any>[] = []
+
+    promises.push(
+      this.fetchCities()
+        .then((items) => (this.chartData.cities = items))
+        .then((cities) => {
+          this.chartData.countriesMap = cities.reduce(
+            (map: Map<Country['id'], Country>, city: City) => {
+              map.set(city.country_id, {
+                id: city.country_id,
+                name: city.country_name,
+                level: 'country',
+              })
+              return map
+            },
+            new Map<Country['id'], Country>()
+          )
         })
-        return map
-      },
-      new Map<Country['id'], Country>()
     )
+
+    promises.push(
+      this.fetchSources().then(
+        (items) => (this.chartData.sources = _orderBy(items, 'id'))
+      )
+    )
+
+    const [err] = await to(Promise.all(promises))
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      throw err
+    }
 
     if (this.urlQuery.cities.length) {
       // filter only existing cities
       const idsSet = new Set<City['id']>(this.urlQuery.cities)
       const existingCities = idsSet.size
-        ? cities.filter((city) => idsSet.has(city.id))
+        ? this.chartData.cities.filter((city) => idsSet.has(city.id))
         : []
 
       await this.setUrlQuery({
         ...this.urlQuery,
         cities: existingCities.map((i) => i.id),
       })
-    } else if (cities[0]) {
+    } else if (this.chartData.cities[0]) {
       await this.setUrlQuery({
         ...this.urlQuery,
-        cities: [cities[0].id],
+        cities: [this.chartData.cities[0].id],
       })
     }
 
@@ -389,6 +415,18 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     return _orderBy(cities || [], 'name')
   }
 
+  public async fetchSources(): Promise<Source[]> {
+    let [err, items = []] = await to(SourceAPI.findAll())
+    if (err) {
+      this.$dialog.notify.error(
+        err?.message || '' + this.$t('msg.something_went_wrong')
+      )
+      console.error(err)
+      return []
+    }
+    return items || []
+  }
+
   public async fetchChartData(): Promise<ChartData> {
     if ((this.urlQuery?.cities.length || 0) > this.LIMIT_FETCH_ITEMS_FROM_API) {
       this.$dialog.notify.warning(this.$t('msg.too_large_query').toString())
@@ -403,10 +441,12 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     const newChartData: ChartData = {
       cities: this.chartData.cities,
       countriesMap: this.chartData.countriesMap,
+      sources: this.chartData.sources,
       violations: [],
       pollutants: [],
       regulations: [],
       targets: [],
+      usedSources: [],
     }
 
     if (!this.urlQuery?.cities.length) return newChartData
@@ -461,6 +501,21 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
       usedPollutantsSet.has(item.id)
     )
 
+    const usedSourcesSet = new Set<Source['id']>()
+
+    // populate with sources
+    for (const violation of newChartData.violations) {
+      if (violation.source) {
+        violation._source = this.chartData.sources.find(
+          (source) => violation.source === source.id
+        )
+        if (violation._source && !usedSourcesSet.has(violation._source.id)) {
+          usedSourcesSet.add(violation._source.id)
+          newChartData.usedSources.push(violation._source)
+        }
+      }
+    }
+
     return newChartData
   }
 
@@ -494,12 +549,15 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
     )
     if (!visibleTargets.length) visibleTargets = allTargets.map((i) => i.id)
 
+    const allSources = chartData.usedSources
+
     this.chartData = chartData
     await this.setUrlQuery({
       ...this.urlQuery,
       regulations: visibleRegulations,
       pollutants: visiblePollutants,
       targets: visibleTargets,
+      sources: allSources.map((i) => i.id),
     })
 
     this.isChartLoading = false

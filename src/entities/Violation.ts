@@ -42,6 +42,7 @@ export default class Violation {
     longitude: number
     latitude: number
   }
+  public _source?: Source | null
 
   constructor(data: Violation) {
     Object.assign(this, data)

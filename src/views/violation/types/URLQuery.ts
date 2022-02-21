@@ -2,6 +2,7 @@ import City from '@/entities/City'
 import Regulation from '@/entities/Regulation'
 import Pollutant from '@/entities/Pollutant'
 import Target from '@/entities/Target'
+import Source from '@/entities/Source'
 
 export type yyyymmdd = string
 
@@ -10,6 +11,7 @@ export default interface URLQuery {
   pollutants: Pollutant['id'][]
   targets: Target['id'][]
   regulations: Regulation['id'][]
+  sources: Source['id'][]
   date_start?: string
   overshooting?: boolean
 }
@@ -26,6 +28,9 @@ export interface URLQueryRaw {
 
   // regulations
   rg?: string[]
+
+  // sources
+  sr?: string[]
 
   // date_start
   start?: string
