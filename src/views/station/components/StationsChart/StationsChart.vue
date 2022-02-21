@@ -28,7 +28,7 @@
             :headers="tableHeaders"
             :items="tableItems"
             :options.sync="tableOptions"
-            :items-per-page="5"
+            :items-per-page="10"
             :item-class="
               (item) => selectedMarkersIdsMap[item.id] && 'selected-row'
             "
@@ -194,10 +194,8 @@ const SOURCES_SCALE = chroma
     theme.colors.darkRed.base,
     theme.colors.orange.base,
     theme.colors.deepOrange.base,
-    theme.colors.darkBlue.base,
     theme.colors.pink.base,
     theme.colors.purple.lighten1,
-    theme.colors.brown.base,
   ])
   .gamma(0.5)
 
@@ -242,7 +240,7 @@ export default class StationsChart extends Vue {
   public iconSelected = theme.leafletMapCircleMarkerProps.primarySelected
   public tableOptions = {
     page: 1,
-    itemsPerPage: 5,
+    itemsPerPage: 10,
     sortBy: ['id'],
     sortDesc: [false],
   }

@@ -1,5 +1,6 @@
 <template>
   <v-navigation-drawer
+    class="app-drawer"
     :value="open"
     :permanent="open"
     app
@@ -8,9 +9,15 @@
     width="200"
   >
     <v-container class="d-flex flex-column fill-height pa-0" fluid>
-      <v-list class="fill-width" dense>
-        <v-list-item-group :value="selectedItemIndex" color="primary">
+      <v-list class="fill-width fill-height" dense>
+        <v-list-item-group
+          class="fill-height"
+          :value="selectedItemIndex"
+          color="primary"
+        >
           <template v-for="(item, i) in menuItems">
+            <v-spacer v-if="item.spacerBefore" :key="`spacer-` + i" />
+
             <v-subheader
               v-if="item.section"
               :key="`section-` + i"
@@ -36,11 +43,11 @@
           </template>
         </v-list-item-group>
       </v-list>
-
-      <v-sheet class="mt-auto fill-width d-flex justify-center pl-0">
-        <span class="text-overline grey--text text--base">v{{ version }}</span>
-      </v-sheet>
     </v-container>
+
+    <v-sheet class="app-drawer__footer fill-width d-flex justify-center pl-0">
+      <span class="text-overline grey--text text--base">v{{ version }}</span>
+    </v-sheet>
   </v-navigation-drawer>
 </template>
 
@@ -62,6 +69,7 @@ interface MenuItem {
   to?: Location
   disabled?: boolean
   section?: string
+  spacerBefore?: boolean
 }
 
 @Component
@@ -100,6 +108,7 @@ export default class AppDrawer extends Vue {
         to: {name: 'map'},
       },
       {
+        spacerBefore: true,
         section: this.$t('advanced').toString(),
         label: 'TROPOMI NO2',
         icon: mdiEarth,
@@ -109,3 +118,28 @@ export default class AppDrawer extends Vue {
   }
 }
 </script>
+
+<style lang="scss">
+.app-drawer {
+  // TODO: complete
+  // .v-navigation-drawer__content {
+  //   .v-list {
+  //     .v-item-group {
+  //       display: flex;
+  //       flex-direction: column;
+
+  //       .v-list-item {
+  //         color: red;
+  //       }
+  //     }
+  //   }
+  // }
+
+  &__footer {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+  }
+}
+</style>

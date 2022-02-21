@@ -65,7 +65,7 @@ export default {
   colors,
   leafletMapCircleMarkerProps: {
     primary: {
-      radius: 4,
+      radius: 6,
       weight: 1,
       opacity: 1,
       fillOpacity: 0.5,
@@ -76,7 +76,7 @@ export default {
       radius: 8,
       weight: 3,
       opacity: 1,
-      fillOpacity: 0.4,
+      fillOpacity: 0.5,
       fillColor: chroma(colors.darkBlue.base)
         .brighten(2)
         .saturate(3)
