@@ -99,6 +99,15 @@ const routes: Array<RouteConfig> = [
     },
   },
   {
+    path: '/trajectories',
+    name: 'trajectories',
+    component: () =>
+      import(/* webpackChunkName: "trajectories" */ '@/views/trajectory/Trajectories.vue'),
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
     path: '/tropomi/no2',
     name: 'tropomiNo2',
     component: () =>

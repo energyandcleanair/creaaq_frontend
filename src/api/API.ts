@@ -17,7 +17,8 @@ export const forageStore = localForage.createInstance({
 })
 
 const instance = setup({
-  baseURL: new URL(config.get('API_ORIGIN') || '')
+  baseURL: config.get('NODE_ENV') === 'development' ? 'api'
+  : new URL(config.get('API_ORIGIN') || '')
     .toString()
     .replace(/\/$/, ''),
   withCredentials: true,
