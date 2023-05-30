@@ -468,7 +468,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
           const regulationIds: Regulation['id'][] = Array.from(
             regulations.map((item) => item.id)
           )
-          return this.fetchTargets({regulation_id: regulationIds})
+          return this.fetchTargets({regulation_id: regulationIds, location_id: this.urlQuery.cities })
         })
         .then((targets = []) => {
           newChartData.targets = targets
@@ -579,6 +579,7 @@ export default class ViewViolations extends Mixins(keepAliveQueryMixin) {
   }
 
   public async fetchTargets(query: {
+    location_id?: string[],
     regulation_id?: string[]
   }): Promise<Target[]> {
     const [err, items] = await to(TargetAPI.findAll(query))
