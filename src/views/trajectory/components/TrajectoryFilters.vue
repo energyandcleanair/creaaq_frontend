@@ -1,6 +1,6 @@
 <template>
     <v-container class="" fluid style="z-index: 15">
-        <v-row>
+        <v-row class="d-flex ">
           <v-col cols="12" md="5" lg="6" xl="4">
             <SelectBoxCities
               label="Cities"
@@ -12,7 +12,7 @@
             />
           </v-col>
 
-          <v-col cols="12" md="5" lg="6" xl="4">
+          <v-col cols="12" md="5" lg="6" xl="4" class="d-flex align-end">
             <date-picker-trajectory @onDateChange="onDateSelect" />
           </v-col>
         </v-row>
