@@ -57,6 +57,7 @@ import {Component, Vue, Prop} from 'vue-property-decorator'
 import {
   mdiChartLine,
   mdiMapMarkerRadius,
+  mdiChartTimelineVariant,
   mdiCalendarMonth,
   mdiFactory,
   mdiEarth,
@@ -107,6 +108,11 @@ export default class AppDrawer extends Vue {
         label: this.$t('map').toString(),
         icon: mdiMapMarkerRadius,
         to: {name: 'map'},
+      },
+      {
+        label: this.$t('trajectories').toString(),
+        icon: mdiChartTimelineVariant,
+        to: {name: 'trajectories'},
       },
       {
         spacerBefore: true,

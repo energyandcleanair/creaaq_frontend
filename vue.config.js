@@ -45,6 +45,15 @@ module.exports = {
     port: process.env.VUE_APP_PORT,
     clientLogLevel: 'info',
     disableHostCheck: true,
+
+    proxy: {
+      "/api/*": {
+          target: env.API_ORIGIN,
+          pathRewrite: {
+            "^/api": ""
+        }
+      }
+    }
   },
 
   /**
