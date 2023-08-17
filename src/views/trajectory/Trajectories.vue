@@ -7,8 +7,8 @@
             </v-col>
           </v-row>
           <v-row class="px-2">
-            <v-col style="height: 500px;width: 100%;">
-              <trajectory-map class="fill-height" :trajectories="trajectoryMarkers" />
+            <v-col style="height: 500px;width: 100%; z-index: 10;">
+              <trajectory-map  style="height: 500px" :trajectories="trajectoryMarkers" />
             </v-col>
           </v-row>
         </div>

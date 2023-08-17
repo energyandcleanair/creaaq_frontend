@@ -8,6 +8,7 @@
 </template>
   
 <script lang="ts">
+import 'leaflet/dist/leaflet.css'
 import Leaflet, { LatLngExpression, LatLngBounds } from 'leaflet'
 import { Component, Prop, Ref, Vue, Watch } from 'vue-property-decorator'
 import { LMap, LTileLayer, LPolyline } from 'vue2-leaflet'
