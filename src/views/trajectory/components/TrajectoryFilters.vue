@@ -13,7 +13,7 @@
           </v-col>
 
           <v-col cols="12" md="5" lg="6" xl="4" class="d-flex align-end">
-            <date-picker-trajectory @onDateChange="onDateSelect" />
+            <date-picker-trajectory @onDateChange="onDateSelect" :availableDates="availableDates" />
           </v-col>
         </v-row>
 </v-container>
@@ -21,6 +21,7 @@
 </template>
 <script lang="ts">
 import CityAPI from '@/api/CityAPI'
+import TrajectoryDateAPI from '@/api/TrajectoryDateAPI'
 import PageDrawer from '@/components/PageDrawer/PageDrawer.vue'
 import DatePickerTrajectory from './DatePickerTrajectory.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
@@ -42,6 +43,8 @@ export default class TrajectoryFilterDrawer extends Vue {
     cities: City[] = []
     selectedCities: City[] = [];
     selectedDate?: string
+    availableDates: string[] = []
+
 
     @Prop({type: Boolean, default: false})
   readonly open!: boolean
@@ -51,13 +54,30 @@ export default class TrajectoryFilterDrawer extends Vue {
 
 
   async getCities() {
-    const [err, res] = await to(CityAPI.findAll());
+    const [err, res] = await to(CityAPI.findAll({ with_trajectories: true   }));
     // handle err
     if (err) {
       console.error(err);
       return err;
     }
     this.cities = res!;
+  }
+
+  async getDates() {
+
+    let qs = this.selectedCities.join("&location_id=");
+    qs = qs.slice(1)
+    qs = "location_id=" + qs
+    console.log(qs)
+    const [err, res] = await to(TrajectoryDateAPI.findAll(qs));
+    
+    // handle err
+    if (err) {
+      console.error(err)
+      return err
+    }
+
+    this.availableDates = [...res!]
   }
 
   mounted() {
@@ -76,6 +96,7 @@ export default class TrajectoryFilterDrawer extends Vue {
     console.log("onchange cities")
     this.selectedCities = query.cities;
     console.log(this.selectedCities)
+    this.getDates();
     this.$emit("onFilterChange", {
       cities: query.cities,
       date: this.selectedDate

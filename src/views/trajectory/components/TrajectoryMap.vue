@@ -55,6 +55,7 @@ export default class TrajectoryMap extends Vue {
 
   public moveToPoint() {
     let latestTrajectory = this.trajectories[this.trajectories.length - 1];
+    if (latestTrajectory === undefined) return
     let coords = latestTrajectory.latLngs?.[0] as Leaflet.LatLngTuple;
     let lat = coords?.[0];
     let long = coords?.[1];

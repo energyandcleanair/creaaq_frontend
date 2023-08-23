@@ -37,6 +37,7 @@
         </template>
         <v-date-picker
           v-model="date"
+          :allowed-dates="allowedDates"
           no-title
           scrollable
         >
@@ -61,7 +62,7 @@
 </template>
 
 <script lang="ts">
-import {Component, Model, Vue} from 'vue-property-decorator'
+import {Component, Model, Prop, Vue} from 'vue-property-decorator'
 import {
   mdiArrowLeft,
   mdiArrowRight,
@@ -76,7 +77,10 @@ export default class DatePickerTrajectory extends Vue {
     public menu: boolean = false;
     public mdiArrowLeft = mdiArrowLeft
     public mdiArrowRight = mdiArrowRight
-    
+
+    @Prop({type: Array, default: []})
+    public availableDates: string[] = []
+
     $refs!: {
       menu: any
     }
@@ -84,6 +88,11 @@ export default class DatePickerTrajectory extends Vue {
     public onDateSave() {
       this.$refs?.menu?.save(this.date);
       this.$emit('onDateChange', this.date);
+    }
+
+    public allowedDates(val: string) {
+      const date = new Date(val);
+      return this.availableDates.includes(date.toISOString().substr(0, 10));
     }
 
     public incrementDate() {
