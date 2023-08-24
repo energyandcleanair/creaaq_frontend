@@ -64,13 +64,14 @@ export default class TrajectoryFilterDrawer extends Vue {
   }
 
   async getDates() {
-
+    if (this.selectedCities.length === 0) {
+      this.availableDates = []
+      return
+    }
     let qs = this.selectedCities.join("&location_id=");
-    qs = qs.slice(1)
     qs = "location_id=" + qs
-    console.log(qs)
-    const [err, res] = await to(TrajectoryDateAPI.findAll(qs));
-    
+
+    const [err, res] = await to(TrajectoryDateAPI.findAll(qs));    
     // handle err
     if (err) {
       console.error(err)
