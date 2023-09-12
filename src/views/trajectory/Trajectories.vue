@@ -1,16 +1,20 @@
 <template>
-      <div class="page-content fill-height pa-2">
-        <div>
-          <v-row>
+      <div class="fill-height">
+        <div class="trajectory-container">
+          <div class="trajectory-filter">
+            <v-row>
             <v-col>
               <trajectory-filter :open.sync="isRightPanelOpen" @onFilterChange="handleFilterChange"  />
             </v-col>
           </v-row>
-          <v-row class="px-2">
-            <v-col style="height: 500px;width: 100%; z-index: 10;">
-              <trajectory-map  style="height: 500px" :trajectories="trajectoryMarkers" />
+          </div>
+          <div class="trajectory-map">
+            <v-row class="px-2" style="height: 100%;">
+            <v-col style="height: 100%; width: 100%; z-index: 10;">
+              <trajectory-map  style="height: 100%" :trajectories="trajectoryMarkers" />
             </v-col>
           </v-row>
+          </div>
         </div>
       </div>
 </template>
@@ -175,3 +179,16 @@ export default class ViewTrajectories extends Mixins(keepAliveQueryMixin) {
   }
 }
 </script>
+
+<style scoped>
+  .trajectory-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .trajectory-map {
+    flex: 1;
+    position: relative;
+  }
+</style>
