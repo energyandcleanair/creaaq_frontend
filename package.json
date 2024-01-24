@@ -30,7 +30,7 @@
     "file-saver": "^2.0.5",
     "firebase": "^8.6.8",
     "json2csv": "^5.0.6",
-    "leaflet": "^1.7.1",
+    "leaflet": "^1.9.4",
     "localforage": "^1.9.0",
     "lodash.debounce": "^4.0.8",
     "lodash.difference": "^4.5.0",
