@@ -19,6 +19,7 @@ export interface ConfigParams {
     SATELLITE: MapLayerConfig
     TERRAIN: MapLayerConfig
   }
+  FIRS_KEY: string
 }
 
 export default class ConfigProvider {
@@ -35,6 +36,7 @@ export default class ConfigProvider {
       GTM_CONTAINER_ID: '$GTM_CONTAINER_ID',
       GTM_ENABLED: '$GTM_ENABLED',
       LIMIT_FETCH_ITEMS_FROM_API: '$LIMIT_FETCH_ITEMS_FROM_API',
+      FIRS_KEY: '$VUE_APP_FIRS_KEY',
       MAP_LAYERS: {
         SATELLITE: {
           url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',

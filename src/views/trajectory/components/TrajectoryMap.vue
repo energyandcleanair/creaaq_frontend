@@ -36,6 +36,7 @@ import 'leaflet/dist/leaflet.css'
 import Leaflet, { LatLngExpression, LatLngBounds, map } from 'leaflet'
 import { Component, Prop, Ref, Vue, Watch } from 'vue-property-decorator'
 import { LMap, LTileLayer, LPolyline, LWMSTileLayer, LControlLayers } from 'vue2-leaflet'
+import config from "@/config";
 import dayjs from "dayjs"
 
 export interface TrajectoryLineMarker {
@@ -93,8 +94,9 @@ export default class TrajectoryMap extends Vue {
 
 
     get wmsLayer()  {
+      console.log(config.get("FIRS_KEY"))
       return {
-        url: 'https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/b9d8f8ecc608546d20c035b87f1c7ad5/',
+        url: `https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/${config.get("FIRS_KEY")}/`,
         name: 'Active fires',
         visible: true,
         format: 'image/png',
