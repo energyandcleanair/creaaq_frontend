@@ -13,7 +13,7 @@ steps:
       - 'FIREBASE_PROJECT_ID=${_FIREBASE_PROJECT_ID}'
       - 'FIREBASE_APP_ID=${_FIREBASE_APP_ID}'
       - 'GTM_ENABLED=${_GTM_ENABLED}'
-      - 'GTM_CONTAINER_ID=${_GTM_CONTAINER_ID}',
+      - 'GTM_CONTAINER_ID=${_GTM_CONTAINER_ID}'
       - 'VUE_APP_FIRS_KEY=${_FIRS_KEY}'
   - name: node:14.10.0
     entrypoint: npm
