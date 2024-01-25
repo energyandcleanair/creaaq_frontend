@@ -1,7 +1,31 @@
 <template>
     <div class="fill-width fill-height">
         <l-map ref="map" :options="mapOptions">
-          <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" :attribution="attribution"></l-tile-layer>
+          <l-control-layers position="topright"></l-control-layers>
+
+          <l-tile-layer
+            v-for="tileProvider in tileProviders"
+              :key="tileProvider.name"
+              :name="tileProvider.name"
+              :visible="tileProvider.visible"
+              :url="tileProvider.url"
+              :attribution="tileProvider.attribution"
+              layer-type="base"
+            />
+
+            <l-wms-tile-layer
+              ref="wms"
+              :key="wmsLayer.name"
+              :base-url="wmsLayer.url"
+              :layers="wmsLayer.layers"
+              :visible="wmsLayer.visible"
+              :name="wmsLayer.name"
+              :attribution="wmsLayer.attribution"
+              :options="wmsLayer.options"
+              :transparent="true"
+              format="image/png"
+              layer-type="overlay">
+            </l-wms-tile-layer>
           <l-polyline v-for="(trajectory, index) in trajectories" :key="index" :lat-lngs="trajectory.latLngs" :color="trajectory.color"></l-polyline>
         </l-map>
     </div>
@@ -9,9 +33,10 @@
   
 <script lang="ts">
 import 'leaflet/dist/leaflet.css'
-import Leaflet, { LatLngExpression, LatLngBounds } from 'leaflet'
+import Leaflet, { LatLngExpression, LatLngBounds, map } from 'leaflet'
 import { Component, Prop, Ref, Vue, Watch } from 'vue-property-decorator'
-import { LMap, LTileLayer, LPolyline } from 'vue2-leaflet'
+import { LMap, LTileLayer, LPolyline, LWMSTileLayer, LControlLayers } from 'vue2-leaflet'
+import dayjs from "dayjs"
 
 export interface TrajectoryLineMarker {
     latLngs: LatLngExpression[],
@@ -22,7 +47,9 @@ export interface TrajectoryLineMarker {
 components: {
     LMap,
     LTileLayer,
-    LPolyline
+    LPolyline,
+    'l-wms-tile-layer': LWMSTileLayer,
+    LControlLayers
 }
 })
 export default class TrajectoryMap extends Vue {
@@ -32,11 +59,67 @@ export default class TrajectoryMap extends Vue {
     @Ref('map')
     readonly $map?: LMap
 
+    @Ref('wms')
+    readonly $wms?: LMap
+
     @Prop()
     readonly trajectories: TrajectoryLineMarker[] = []
 
+    @Prop()
+    readonly selectedDate!: string;
 
-    public get mapOptions(): Leaflet.MapOptions {
+    tileProviders = [
+        {
+          name: 'OpenStreetMap',
+          visible: true,
+          attribution:
+            '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        },
+        {
+          name: 'OpenTopoMap',
+          visible: false,
+          url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+          attribution:
+            'Map data: &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+        },
+        {
+          name: 'Stadia.AlidadeSmoothDark', 
+          url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+          visible: false,
+          attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        }
+      ]
+
+
+    get wmsLayer()  {
+      return {
+        url: 'https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/b9d8f8ecc608546d20c035b87f1c7ad5/',
+        name: 'Active fires',
+        visible: true,
+        format: 'image/png',
+        layers: 'fires_viirs_snpp',
+        options: {
+          TIME: this.formatSelectedDate(),
+        },
+        transparent: true,
+        attribution: 'NASA EOSDIS Global Imagery Browse Services (GIBS), part of NASA\'s Earth Observing System Data and Information System (EOSDIS).',
+      }
+    }
+
+    set wmsLayer(value) {
+      this.wmsLayer = value
+    }
+
+    formatSelectedDate() {
+      const dateFrom = dayjs(this.selectedDate).subtract(3, 'day').format('YYYY-MM-DD');
+      const dateRange = `${dateFrom}/${this.selectedDate}`
+      return dateRange
+    }
+
+    
+
+  public get mapOptions(): Leaflet.MapOptions {
     const firstMarker = this.trajectories[0]
     let lat = firstMarker?.latLngs?.[0] as Leaflet.LatLngTuple; 
     let long = firstMarker?.latLngs?.[1] as  Leaflet.LatLngTuple; 
@@ -48,10 +131,26 @@ export default class TrajectoryMap extends Vue {
     }
   }
 
+  @Watch("selectedDate")
+  onDateChange() {
+    // this.wmsLayer = {
+    //   ...this.wmsLayer,
+    //   options: {
+    //     TIME: this.selectedDate,
+    //   }
+    // }
+    // there is an issue with the wmslayer not updating when the options change so we have to do it manually
+    if (this.$wms && this.$wms.mapObject) {
+      let mapObject = this.$wms.mapObject as any
+      mapObject.wmsParams.TIME = this.formatSelectedDate()
+    }
+  }
+
   @Watch("trajectories")
   onTrajectoriesChange() {
     this.moveToPoint();
   }
+
 
   public moveToPoint() {
     let latestTrajectory = this.trajectories[this.trajectories.length - 1];

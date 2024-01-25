@@ -11,7 +11,7 @@
           <div class="trajectory-map">
             <v-row class="px-2" style="height: 100%;">
             <v-col style="height: 100%; width: 100%; z-index: 10;">
-              <trajectory-map  style="height: 100%" :trajectories="trajectoryMarkers" />
+              <trajectory-map  style="height: 100%" :trajectories="trajectoryMarkers" :selectedDate="dateFrom" />
             </v-col>
           </v-row>
           </div>
@@ -58,7 +58,6 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
   }
 })
 export default class ViewTrajectories extends Mixins(keepAliveQueryMixin) {
-
   cities: City[] = [];
   dateFrom?: string
   trajectoryMarkers: TrajectoryLineMarker[] = []
@@ -66,11 +65,12 @@ export default class ViewTrajectories extends Mixins(keepAliveQueryMixin) {
   public handleFilterChange(data: {cities: City[], date: string }) {
     this.cities = data.cities;
     this.dateFrom = data.date;
+    console.log(this.cities)
     if (this.cities.length === 0) this.trajectoryMarkers = [];
-    if (this.cities.length > 0 && this.dateFrom) {
+    if (this.cities.length > 0) {
+      console.log("get trajectories")
       this.getTrajectories();
-    } 
-    
+    }  
   }
 
   public get urlQuery(): URLQuery {
@@ -148,7 +148,7 @@ export default class ViewTrajectories extends Mixins(keepAliveQueryMixin) {
 
   public async getTrajectories() {
     // fetch trajectories with hardcoded date
-    const [err, res] = await to(TrajectoryAPI.findAll({ location_id: this.cities, date: this.dateFrom }));
+    const [err, res] = await to(TrajectoryAPI.findAll({ location_id: this.cities, ...this.dateFrom ? { date: this.dateFrom } : {} }));
 
     // handle error
     if (err) {

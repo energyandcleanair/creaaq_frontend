@@ -90,6 +90,10 @@ export default class DatePickerTrajectory extends Vue {
       this.$emit('onDateChange', this.date);
     }
 
+    public mounted() {
+      this.$emit('onDateChange', this.date);
+    }
+
     public allowedDates(val: string) {
       const date = new Date(val);
       return this.availableDates.includes(date.toISOString().substr(0, 10));
