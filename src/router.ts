@@ -102,7 +102,20 @@ const routes: Array<RouteConfig> = [
     path: '/trajectories',
     name: 'trajectories',
     component: () =>
-      import(/* webpackChunkName: "trajectories" */ '@/views/trajectory/Trajectories.vue'),
+      import(
+        /* webpackChunkName: "trajectories" */ '@/views/trajectory/Trajectories.vue'
+      ),
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/rasters',
+    name: 'rasters',
+    component: () =>
+      import(
+        /* webpackChunkName: "trajectories" */ '@/views/raster/Raster.vue'
+      ),
     meta: {
       requiresAuth: true,
     },

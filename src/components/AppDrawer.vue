@@ -115,6 +115,11 @@ export default class AppDrawer extends Vue {
         to: {name: 'trajectories'},
       },
       {
+        label: this.$t('raster').toString(),
+        icon: mdiChartTimelineVariant,
+        to: {name: 'rasters'},
+      },
+      {
         spacerBefore: true,
         section: this.$t('advanced').toString(),
         label: 'TROPOMI NO2',
