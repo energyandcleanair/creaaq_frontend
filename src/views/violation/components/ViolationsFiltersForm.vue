@@ -175,14 +175,14 @@ export default class ViolationsFiltersForm extends Vue {
   @Prop({
     type: String,
     required: true,
-    validator: (v) => Object.keys(ViolationsPrimaryFilter).includes(v),
+    validator: (v) => Object.keys(ViolationsPrimaryFilter).includes(v as string),
   })
   public readonly filterPrimary!: ViolationsPrimaryFilter
 
   @Prop({
     type: String,
     required: true,
-    validator: (v) => Object.keys(ViolationsSecondaryFilter).includes(v),
+    validator: (v) => Object.keys(ViolationsSecondaryFilter).includes(v as string),
   })
   public readonly filterSecondary!: ViolationsSecondaryFilter
 

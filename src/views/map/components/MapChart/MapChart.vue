@@ -56,7 +56,7 @@ import moment from 'moment'
 import _set from 'lodash.set'
 import _debounce from 'lodash.debounce'
 import _orderBy from 'lodash.orderby'
-import Leaflet, {LatLngBounds} from 'leaflet'
+import Leaflet, {LatLngBounds, Layer} from 'leaflet'
 import {Component, Vue, Prop, Ref, Watch} from 'vue-property-decorator'
 import {LMap, LTileLayer, LCircleMarker, LLayerGroup} from 'vue2-leaflet'
 import config, {ConfigParams} from '@/config'
@@ -86,7 +86,7 @@ interface MapFilter {
 
 // hot fix
 interface MapLayer extends Leaflet.Layer {
-  options?: Leaflet.LayerOptions & {_id: any; _type: 'marker'}
+  options: Leaflet.LayerOptions & {_id: any; _type: 'marker'}
   _popup?: any
 }
 
@@ -248,7 +248,7 @@ export default class MapChart extends Vue {
         const renderedMarkersIds: Record<string, number> = {}
 
         // remove unnecessary markers
-        this.$map.mapObject.eachLayer((layer: MapLayer) => {
+        this.$map.mapObject.eachLayer((layer: any) => {
           const opts = layer.options
           if (opts?.pane !== 'markerPane' || opts._type !== 'marker') return
           const markerId = opts._id
@@ -444,7 +444,7 @@ export default class MapChart extends Vue {
           _id: marker.id,
           _type: 'marker',
           ...theme.leafletMapCircleMarkerProps.primary,
-        } as MapLayer['options']
+        } as Leaflet.CircleMarkerOptions
       ).on('click', ($event: {target: Leaflet.CircleMarker}) => {
         _openMarkerPopup($event)
       })
@@ -459,7 +459,7 @@ export default class MapChart extends Vue {
     if (!this.$map?.mapObject) return
 
     const markers: Leaflet.Layer[] = []
-    this.$map.mapObject.eachLayer((layer: MapLayer) => {
+    this.$map.mapObject.eachLayer((layer: any) => {
       const opts = layer.options
       if (opts?.pane !== 'markerPane' || opts._type !== 'marker') return
       markers.push(layer)
@@ -504,7 +504,7 @@ export default class MapChart extends Vue {
   }
 
   public closeAllMapMarkerPopups() {
-    this.$map?.mapObject?.eachLayer((layer: MapLayer) => {
+    this.$map?.mapObject?.eachLayer((layer: any) => {
       if (layer.options?.pane === 'popupPane' && this.$map?.mapObject) {
         layer.removeFrom(this.$map.mapObject)
       }

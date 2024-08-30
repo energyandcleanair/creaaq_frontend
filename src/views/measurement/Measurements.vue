@@ -394,7 +394,7 @@ export default class ViewMeasurements extends Mixins(keepAliveQueryMixin) {
   }
 
   public get maxColHeight(): number | undefined {
-    const h: number = this.$parent?.$el?.clientHeight
+    const h = this.$parent?.$el?.clientHeight
     if (h === undefined) return h
     return h * 0.7
   }
