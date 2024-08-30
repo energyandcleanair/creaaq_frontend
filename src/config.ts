@@ -3,6 +3,8 @@ export interface MapLayerConfig {
   attribution?: string
 }
 
+console.log(process.env)
+
 export interface ConfigParams {
   NODE_ENV: string
   APP_NAME: string

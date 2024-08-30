@@ -1,6 +1,6 @@
 {
   "name": "creaaq_frontend",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "private": true,
   "scripts": {
     "dev": "vue-cli-service serve",
@@ -29,7 +29,9 @@
     "clipboard-copy": "^4.0.1",
     "dayjs": "^1.11.10",
     "file-saver": "^2.0.5",
-    "firebase": "^8.6.8",
+    "firebase": "^10.13.0",
+    "georaster": "^1.6.0",
+    "georaster-layer-for-leaflet": "^3.10.0",
     "json2csv": "^5.0.6",
     "leaflet": "^1.9.4",
     "localforage": "^1.9.0",

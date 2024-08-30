@@ -1,6 +1,7 @@
 import Vue from 'vue'
-import firebase from 'firebase/app'
-import 'firebase/auth'
+import firebase from 'firebase/compat/app'
+import 'firebase/compat/auth'
+import {getFirestore} from 'firebase/firestore'
 import config from '@/config'
 import AppConfig from './AppConfig'
 
@@ -10,11 +11,14 @@ const firebaseAppConfig: AppConfig = {
   projectId: config.get('FIREBASE_PROJECT_ID') as string,
   appId: config.get('FIREBASE_APP_ID') as string,
 }
-
-firebase.initializeApp(firebaseAppConfig)
+console.log(firebaseAppConfig)
+const firebaseApp = firebase.initializeApp(firebaseAppConfig)
 
 export default firebase
 export const auth = firebase.auth()
+
+export const firestore = getFirestore(firebaseApp, 'geodata')
+
 export const getApp = () =>
   !firebase.apps.length
     ? firebase.initializeApp(firebaseAppConfig)
