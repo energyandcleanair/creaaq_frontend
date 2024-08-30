@@ -1,6 +1,6 @@
 {
   "name": "creaaq_frontend",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "private": true,
   "scripts": {
     "dev": "vue-cli-service serve",
@@ -27,6 +27,7 @@
     "axios-cache-adapter": "^2.7.3",
     "chroma-js": "^2.1.2",
     "clipboard-copy": "^4.0.1",
+    "creaaq_frontend": "file:",
     "dayjs": "^1.11.10",
     "file-saver": "^2.0.5",
     "firebase": "^10.13.0",
