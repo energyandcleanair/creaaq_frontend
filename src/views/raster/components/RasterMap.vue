@@ -2,7 +2,7 @@
     <div class="fill-width fill-height">
         <l-map ref="map" :options="mapOptions">
           <l-control-layers position="topright"></l-control-layers>
-
+ 
           <l-tile-layer
             v-for="tileProvider in tileProviders"
               :key="tileProvider.name"
@@ -27,6 +27,7 @@
               layer-type="overlay">
             </l-wms-tile-layer>
           <l-polyline v-for="(trajectory, index) in trajectories" :key="index" :lat-lngs="trajectory.latLngs" :color="trajectory.color"></l-polyline>
+          <l-feature-group ref="raster-features"></l-feature-group>
         </l-map>
     </div>
 </template>
@@ -35,9 +36,11 @@
 import 'leaflet/dist/leaflet.css'
 import Leaflet, { LatLngExpression, LatLngBounds, map } from 'leaflet'
 import { Component, Prop, Ref, Vue, Watch } from 'vue-property-decorator'
-import { LMap, LTileLayer, LPolyline, LWMSTileLayer, LControlLayers } from 'vue2-leaflet'
+import { LMap, LTileLayer, LPolyline, LWMSTileLayer, LControlLayers, LFeatureGroup } from 'vue2-leaflet'
 import config from "@/config";
 import dayjs from "dayjs"
+import parseGeoraster from "georaster";
+import GeoRasterLayer from "georaster-layer-for-leaflet";
 
 export interface TrajectoryLineMarker {
     latLngs: LatLngExpression[],
@@ -49,6 +52,7 @@ components: {
     LMap,
     LTileLayer,
     LPolyline,
+    LFeatureGroup,
     'l-wms-tile-layer': LWMSTileLayer,
     LControlLayers
 }
@@ -63,8 +67,14 @@ export default class TrajectoryMap extends Vue {
     @Ref('wms')
     readonly $wms?: LMap
 
+    @Ref('raster-features')
+    readonly $rasterFeatures?: LFeatureGroup
+
     @Prop()
     readonly trajectories: TrajectoryLineMarker[] = []
+
+    @Prop()
+    readonly raster!: string
 
     @Prop()
     readonly selectedDate!: string;
@@ -94,7 +104,7 @@ export default class TrajectoryMap extends Vue {
 
 
     get wmsLayer()  {
-      console.log(config.get("FIRS_KEY"))
+      
       return {
         url: `https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/${config.get("FIRS_KEY")}/`,
         name: 'Active fires',
@@ -133,6 +143,35 @@ export default class TrajectoryMap extends Vue {
     }
   }
 
+  @Watch("raster")
+  async onRasterChange() {
+    if (!this.raster || this.raster === '') return
+    
+    let data = await fetch(this.raster).then(res => res.arrayBuffer());
+    let georaster = await parseGeoraster(data);
+
+    const layer = new GeoRasterLayer({
+      georaster,
+      opacity: 0.7,
+      pixelValuesToColorFn: values => {
+        if (values[0] === 0) {
+          return 'rgba(0,0,0,0)';
+        }
+        return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${values[3]})`;
+      }
+    });
+
+    // reset layer rasterFeatures
+    this.$rasterFeatures?.mapObject?.clearLayers();
+
+
+    layer.addTo(this.$rasterFeatures?.mapObject as any);
+    this.$rasterFeatures?.mapObject?.setZIndex(99);
+    
+    this.$map?.mapObject?.fitBounds(layer.getBounds());
+    this.$map?.mapObject?.panTo(layer.getBounds().getCenter());
+  }
+
   @Watch("selectedDate")
   onDateChange() {
     // this.wmsLayer = {
@@ -165,7 +204,7 @@ export default class TrajectoryMap extends Vue {
       lat || 0,
       long|| 0
     )
-    console.log(latLng)
+
     const bounds: LatLngBounds = latLng.toBounds(1000000) as LatLngBounds // meters
     this.$map?.mapObject?.panTo(latLng)
     this.$map?.mapObject?.fitBounds(bounds)

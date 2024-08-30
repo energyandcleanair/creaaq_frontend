@@ -61,6 +61,7 @@ import {
   mdiCalendarMonth,
   mdiFactory,
   mdiEarth,
+  mdiEarthBox
 } from '@mdi/js'
 import {Location} from 'vue-router'
 import pkg from '../../package.json'
@@ -115,8 +116,8 @@ export default class AppDrawer extends Vue {
         to: {name: 'trajectories'},
       },
       {
-        label: this.$t('raster').toString(),
-        icon: mdiChartTimelineVariant,
+        label: this.$t('Raster Map').toString(),
+        icon: mdiEarthBox,
         to: {name: 'rasters'},
       },
       {

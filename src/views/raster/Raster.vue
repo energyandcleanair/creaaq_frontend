@@ -4,14 +4,14 @@
           <div class="trajectory-filter">
             <v-row>
             <v-col>
-              <trajectory-filter :open.sync="isRightPanelOpen" @onFilterChange="handleFilterChange"  />
+              <raster-filter :open.sync="isRightPanelOpen" @onFilterChange="handleFilterChange"  />
             </v-col>
           </v-row>
           </div>
           <div class="trajectory-map">
             <v-row class="px-2" style="height: 100%;">
             <v-col style="height: 100%; width: 100%; z-index: 10;">
-              <trajectory-map  style="height: 100%" :trajectories="trajectoryMarkers" :selectedDate="dateFrom" />
+              <trajectory-map  style="height: 100%" :trajectories="trajectoryMarkers" :selectedDate="dateFrom" :raster="raster" />
             </v-col>
           </v-row>
           </div>
@@ -22,11 +22,11 @@
 <script lang="ts">
 import {Component, Mixins} from 'vue-property-decorator'
 import TrajectoryMap, { TrajectoryLineMarker } from './components/RasterMap.vue';
-import TrajectoryFilter from './components/TrajectoryFilters.vue';
+import RasterFilter from './components/RasterFilters.vue';
 import City from '@/entities/City';
 import to from 'await-to-js';
 import TrajectoryAPI from '@/api/TrajectoryAPI'
-import URLQuery, {URLQueryRaw} from './types/URLQuery'
+import URLQuery, {URLQueryRaw} from '../trajectory/types/URLQuery'
 import { toCompactArray } from '@/utils';
 import { VueClass } from 'vue-class-component/lib/declarations';
 import KeepAliveQueryMixin, {
@@ -54,18 +54,21 @@ const keepAliveQueryMixin: VueClass<IKeepAliveQueryMixin> =
   name: 'ViewTrajectory',
   components: {
     TrajectoryMap,
-    TrajectoryFilter,
+    RasterFilter,
   }
 })
 export default class ViewTrajectories extends Mixins(keepAliveQueryMixin) {
   cities: City[] = [];
+  raster: string = ''
   dateFrom?: string
   trajectoryMarkers: TrajectoryLineMarker[] = []
 
-  public handleFilterChange(data: {cities: City[], date: string }) {
+  public handleFilterChange(data: {cities: City[], date: string, raster: string  }) {
+
     this.cities = data.cities;
+    this.raster = data.raster
     this.dateFrom = data.date;
-    console.log(this.cities)
+
     if (this.cities.length === 0) this.trajectoryMarkers = [];
     if (this.cities.length > 0) {
       console.log("get trajectories")

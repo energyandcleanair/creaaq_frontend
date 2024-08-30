@@ -3,16 +3,11 @@
         <v-row class="d-flex ">
           <v-col cols="12" md="5" lg="6" xl="4">
             <SelectBoxRasters 
-              label="Rasters"
-              :value="queryRasters"
+              label="Select Raster"
               :items="rasters"
               :disabled="isLoading"
-              @input="onChangeQuery({rasters: $event})"
+              @input="onRasterSelect($event)"
             />
-          </v-col>
-
-          <v-col cols="12" md="5" lg="6" xl="4" class="d-flex align-end">
-            <date-picker-trajectory @onDateChange="onDateSelect" :availableDates="availableDates" />
           </v-col>
         </v-row>
 </v-container>
@@ -22,38 +17,40 @@
 import CityAPI from '@/api/CityAPI'
 import TrajectoryDateAPI from '@/api/TrajectoryDateAPI'
 import PageDrawer from '@/components/PageDrawer/PageDrawer.vue'
-import DatePickerTrajectory from './DatePickerTrajectory.vue'
 import SelectBoxCities from '@/components/SelectBoxCities.vue'
 import SelectBoxRasters from '@/components/SelectBoxRasters.vue'
 import City from '@/entities/City'
 import to from 'await-to-js'
 import {Component, Prop, Vue, Emit} from 'vue-property-decorator'
 import Raster from '@/entities/Raster'
+import { RasterAPI } from '@/api/RasterAPI'
 
 @Component({
   components: {
     PageDrawer,
     SelectBoxCities,
-    DatePickerTrajectory,
     SelectBoxRasters
   }
 })
-export default class TrajectoryFilterDrawer extends Vue {
+export default class RasterFilterDrawer extends Vue {
 
     isLoading: boolean = false
     queryCities: string[] = []
     cities: City[] = []
     rasters: Raster[] = []
     selectedCities: City[] = [];
+    selectedRaster: string = "";
     selectedDate?: string
     availableDates: string[] = []
 
+    readonly rasterApi = new RasterAPI()
+
 
     @Prop({type: Boolean, default: false})
-  readonly open!: boolean
+    readonly open!: boolean
 
     @Emit('update:open')
-  public toggle(value: boolean) {}
+    public toggle(value: boolean) {}
 
 
   async getCities() {
@@ -86,13 +83,29 @@ export default class TrajectoryFilterDrawer extends Vue {
 
   mounted() {
     this.getCities();
+    this.getRasters();
+  }
+
+  public async getRasters() {
+    this.rasterApi.get_rasters().then((rasters: Raster[]) => {
+      this.rasters = rasters
+    })
   }
 
   public onDateSelect(date: string) {
     this.selectedDate = date
     this.$emit("onFilterChange", {
       cities: this.selectedCities,
+      raster: this.selectedRaster,
       date
+    })
+  }
+
+  public onRasterSelect(rasters: Raster[]) {
+    this.$emit("onFilterChange", {
+      raster: rasters,
+      cities: this.selectedCities,
+      date: this.selectedDate
     })
   }
 
