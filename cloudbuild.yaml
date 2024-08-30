@@ -1,8 +1,8 @@
 steps:
-  - name: node:14.10.0
+  - name: install packages
     entrypoint: npm
     args: ['install']
-  - name: node:14.10.0
+  - name: crea prod env
     entrypoint: npm
     args: ['run', 'prod:create-env']
     # set the values in the trigger settings
@@ -15,7 +15,7 @@ steps:
       - 'GTM_ENABLED=${_GTM_ENABLED}'
       - 'GTM_CONTAINER_ID=${_GTM_CONTAINER_ID}'
       - 'VUE_APP_FIRS_KEY=${_FIRS_KEY}'
-  - name: node:14.10.0
+  - name: create build
     entrypoint: npm
     args: ['run', 'build']
   - name: 'gcr.io/cloud-builders/gcloud'
