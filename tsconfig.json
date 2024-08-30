@@ -26,13 +26,14 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "tests/**/*.tsx",
+    "types/**/*.d.ts"
   ],
   "exclude": ["node_modules"],
   "vueCompilerOptions": {
     "experimentalCompatMode": 2,
     "experimentalTemplateCompilerOptions": {
-      "compatConfig": { "MODE": 2 }
+      "compatConfig": {"MODE": 2}
     }
   }
 }
