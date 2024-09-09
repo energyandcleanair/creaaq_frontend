@@ -1,6 +1,6 @@
 <template>
     <div class="fill-width fill-height">
-        <l-map ref="map" :options="mapOptions">
+        <l-map ref="map" :options="mapOptions" @update:center="centerUpdated" @update:zoom="zoomUpdated" @ready="onMapReady">
           <l-control-layers position="topright"></l-control-layers>
  
           <l-tile-layer
@@ -11,31 +11,19 @@
               :url="tileProvider.url"
               :attribution="tileProvider.attribution"
               layer-type="base"
+              
             />
-
-            <l-wms-tile-layer
-              ref="wms"
-              :key="wmsLayer.name"
-              :base-url="wmsLayer.url"
-              :layers="wmsLayer.layers"
-              :visible="wmsLayer.visible"
-              :name="wmsLayer.name"
-              :attribution="wmsLayer.attribution"
-              :options="wmsLayer.options"
-              :transparent="true"
-              format="image/png"
-              layer-type="overlay">
-            </l-wms-tile-layer>
-          <l-polyline v-for="(trajectory, index) in trajectories" :key="index" :lat-lngs="trajectory.latLngs" :color="trajectory.color"></l-polyline>
           <l-feature-group ref="raster-features"></l-feature-group>
         </l-map>
     </div>
+
+   
 </template>
   
 <script lang="ts">
 import 'leaflet/dist/leaflet.css'
 import Leaflet, { LatLngExpression, LatLngBounds, map } from 'leaflet'
-import { Component, Prop, Ref, Vue, Watch } from 'vue-property-decorator'
+import { Component, Emit, Prop, Ref, Vue, Watch } from 'vue-property-decorator'
 import { LMap, LTileLayer, LPolyline, LWMSTileLayer, LControlLayers, LFeatureGroup } from 'vue2-leaflet'
 import config from "@/config";
 import dayjs from "dayjs"
@@ -58,28 +46,35 @@ components: {
 }
 })
 export default class TrajectoryMap extends Vue {
-    zoom: number = 2
+
     attribution: string = 'Map data &copy; OpenStreetMap contributors'
 
     @Ref('map')
     readonly $map?: LMap
 
-    @Ref('wms')
-    readonly $wms?: LMap
 
     @Ref('raster-features')
     readonly $rasterFeatures?: LFeatureGroup
 
-    @Prop()
-    readonly trajectories: TrajectoryLineMarker[] = []
 
     @Prop()
     readonly raster!: string
 
     @Prop()
-    readonly selectedDate!: string;
+    readonly center!: [lat: number, lng: number]
 
-    tileProviders = [
+    @Prop()
+    readonly zoom!: number
+
+    readonly defaultLayer = 'OpenStreetMap'
+
+    @Prop()
+    readonly selectedLayer: string = this.defaultLayer
+
+
+    private firstPan = false
+
+    private readonly layers =  [
         {
           name: 'OpenStreetMap',
           visible: true,
@@ -101,53 +96,53 @@ export default class TrajectoryMap extends Vue {
           attribution:
             'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         },
-        // {
-        //   name: 'Stadia.AlidadeSmoothDark', 
-        //   url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
-        //   visible: false,
-        //   attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        // }
-      ]
+    ]
 
-
-    get wmsLayer()  {
-      
-      return {
-        url: `https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/${config.get("FIRS_KEY")}/`,
-        name: 'Active fires',
-        visible: true,
-        format: 'image/png',
-        layers: 'fires_viirs_snpp',
-        options: {
-          TIME: this.formatSelectedDate(),
-        },
-        transparent: true,
-        attribution: 'NASA EOSDIS Global Imagery Browse Services (GIBS), part of NASA\'s Earth Observing System Data and Information System (EOSDIS).',
-      }
+    get tileProviders() {
+      const selectedLayer = this.layers.find(layer => layer.name === this.selectedLayer) || { name: this.defaultLayer };
+      return this.layers.map(layer => ({
+        ...layer,
+        visible: layer.name === selectedLayer.name
+      }));
     }
-
-    set wmsLayer(value) {
-      this.wmsLayer = value
-    }
-
-    formatSelectedDate() {
-      const dateFrom = dayjs(this.selectedDate).subtract(3, 'day').format('YYYY-MM-DD');
-      const dateRange = `${dateFrom}/${this.selectedDate}`
-      return dateRange
-    }
-
-    
 
   public get mapOptions(): Leaflet.MapOptions {
-    const firstMarker = this.trajectories[0]
-    let lat = firstMarker?.latLngs?.[0] as Leaflet.LatLngTuple; 
-    let long = firstMarker?.latLngs?.[1] as  Leaflet.LatLngTuple; 
     return {
-      zoom: 2,
       closePopupOnClick: false,
       doubleClickZoom: 'center',
-      center: new Leaflet.LatLng(lat?.[0] || 0, long?.[0] || 0),
+      zoom: this.zoom,
+      center: [0, 0], 
     }
+  }
+
+  onMapReady() {
+    if (!this.$map) return
+    const mapObject = this.$map.mapObject
+    mapObject.on('baselayerchange', this.onLayerVisible)
+  }
+
+
+  @Watch("center")
+    @Watch("zoom")
+    onMapChange() {
+        if (!this.$map) return
+        this.$map.mapObject?.setView(this.center, this.zoom)
+    }
+
+  @Emit('update:center')
+  public centerUpdated(center:{lat: number, lng: number}) {
+    return center
+  }
+
+  @Emit('update:zoom')
+  public zoomUpdated(zoom: number) {
+    return zoom
+  }
+
+  @Emit("update:layerSelected")
+  public onLayerVisible(event: Leaflet.LayerEvent & {name?: string}) {
+    console.log(event)
+    return event.name ?? this.defaultLayer
   }
 
   @Watch("raster")
@@ -171,51 +166,16 @@ export default class TrajectoryMap extends Vue {
     // reset layer rasterFeatures
     this.$rasterFeatures?.mapObject?.clearLayers();
 
-
     layer.addTo(this.$rasterFeatures?.mapObject as any);
     this.$rasterFeatures?.mapObject?.setZIndex(99);
-    
+
+    if (this.firstPan) return
     this.$map?.mapObject?.fitBounds(layer.getBounds());
     this.$map?.mapObject?.panTo(layer.getBounds().getCenter());
+
+    this.firstPan = true
   }
 
-  @Watch("selectedDate")
-  onDateChange() {
-    // this.wmsLayer = {
-    //   ...this.wmsLayer,
-    //   options: {
-    //     TIME: this.selectedDate,
-    //   }
-    // }
-    // there is an issue with the wmslayer not updating when the options change so we have to do it manually
-    if (this.$wms && this.$wms.mapObject) {
-      let mapObject = this.$wms.mapObject as any
-      mapObject.wmsParams.TIME = this.formatSelectedDate()
-    }
-  }
-
-  @Watch("trajectories")
-  onTrajectoriesChange() {
-    this.moveToPoint();
-  }
-
-
-  public moveToPoint() {
-    let latestTrajectory = this.trajectories[this.trajectories.length - 1];
-    if (latestTrajectory === undefined) return
-    let coords = latestTrajectory.latLngs?.[0] as Leaflet.LatLngTuple;
-    let lat = coords?.[0];
-    let long = coords?.[1];
-    if (!long && !lat) return
-    const latLng = new Leaflet.LatLng(
-      lat || 0,
-      long|| 0
-    )
-
-    const bounds: LatLngBounds = latLng.toBounds(1000000) as LatLngBounds // meters
-    this.$map?.mapObject?.panTo(latLng)
-    this.$map?.mapObject?.fitBounds(bounds)
-  }
 }
 </script>
 

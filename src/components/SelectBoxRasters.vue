@@ -6,6 +6,7 @@
   item-value="url"
   single-line
 v-bind="$props"
+v-model="value"
   v-on:change="$emit('input', $event)"
 
 ></v-select>

@@ -6,6 +6,7 @@
               label="Select Raster"
               :items="rasters"
               :disabled="isLoading"
+              :value="selectedRaster"
               @input="onRasterSelect($event)"
             />
           </v-col>
@@ -35,13 +36,12 @@ import { RasterAPI } from '@/api/RasterAPI'
 export default class RasterFilterDrawer extends Vue {
 
     isLoading: boolean = false
-    queryCities: string[] = []
-    cities: City[] = []
+
     rasters: Raster[] = []
-    selectedCities: City[] = [];
+
+    @Prop()
     selectedRaster: string = "";
-    selectedDate?: string
-    availableDates: string[] = []
+
 
     readonly rasterApi = new RasterAPI()
 
@@ -53,36 +53,7 @@ export default class RasterFilterDrawer extends Vue {
     public toggle(value: boolean) {}
 
 
-  async getCities() {
-    const [err, res] = await to(CityAPI.findAll({ with_trajectories: true   }));
-    // handle err
-    if (err) {
-      console.error(err);
-      return err;
-    }
-    this.cities = res!;
-  }
-
-  async getDates() {
-    if (this.selectedCities.length === 0) {
-      this.availableDates = []
-      return
-    }
-    let qs = this.selectedCities.join("&location_id=");
-    qs = "location_id=" + qs
-
-    const [err, res] = await to(TrajectoryDateAPI.findAll(qs));    
-    // handle err
-    if (err) {
-      console.error(err)
-      return err
-    }
-
-    this.availableDates = [...res!]
-  }
-
   mounted() {
-    this.getCities();
     this.getRasters();
   }
 
@@ -92,33 +63,14 @@ export default class RasterFilterDrawer extends Vue {
     })
   }
 
-  public onDateSelect(date: string) {
-    this.selectedDate = date
-    this.$emit("onFilterChange", {
-      cities: this.selectedCities,
-      raster: this.selectedRaster,
-      date
-    })
-  }
 
+  @Emit('onFilterChange')
   public onRasterSelect(rasters: Raster[]) {
-    this.$emit("onFilterChange", {
-      raster: rasters,
-      cities: this.selectedCities,
-      date: this.selectedDate
-    })
+    return {
+      raster: rasters
+    }
   }
 
-  public async onChangeQuery(query: any) {
-    console.log("onchange cities")
-    this.selectedCities = query.cities;
-    console.log(this.selectedCities)
-    this.getDates();
-    this.$emit("onFilterChange", {
-      cities: query.cities,
-      date: this.selectedDate
-    });
-  }
 
 }
 </script>
