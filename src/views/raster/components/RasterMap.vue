@@ -72,6 +72,9 @@ export default class TrajectoryMap extends Vue {
     readonly selectedLayer: string = this.defaultLayer
 
 
+    private currentZoom: number = 2
+    private currentCenter: [lat: number, lng: number] = [0, 0]
+
     private firstPan = false
 
     private readonly layers =  [
@@ -131,11 +134,13 @@ export default class TrajectoryMap extends Vue {
 
   @Emit('update:center')
   public centerUpdated(center:{lat: number, lng: number}) {
+    this.currentCenter = [center.lat, center.lng]
     return center
   }
 
   @Emit('update:zoom')
   public zoomUpdated(zoom: number) {
+    this.currentZoom = zoom
     return zoom
   }
 
@@ -156,9 +161,6 @@ export default class TrajectoryMap extends Vue {
       georaster,
       opacity: 0.7,
       pixelValuesToColorFn: values => {
-        if (values[0] === 0) {
-          return 'rgba(0,0,0,0)';
-        }
         return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${values[3]})`;
       }
     });
@@ -168,10 +170,15 @@ export default class TrajectoryMap extends Vue {
 
     layer.addTo(this.$rasterFeatures?.mapObject as any);
     this.$rasterFeatures?.mapObject?.setZIndex(99);
-
+    
     if (this.firstPan) return
-    this.$map?.mapObject?.fitBounds(layer.getBounds());
-    this.$map?.mapObject?.panTo(layer.getBounds().getCenter());
+
+    if (this.currentZoom === 2 && this.currentCenter[0] === 0 && this.currentCenter[1] === 0) {
+      this.$map?.mapObject?.fitBounds(layer.getBounds());
+      this.$map?.mapObject?.panTo(layer.getBounds().getCenter());
+    } else {
+      this.$map?.mapObject?.panTo(this.currentCenter);
+    }
 
     this.firstPan = true
   }
