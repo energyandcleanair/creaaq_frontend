@@ -1,8 +1,33 @@
 <template>
-    <div class="fill-width fill-height">
+    <div class="fill-width fill-height relative">
+          <div class="info-box" v-if="metadata != undefined">
+            {{ metadata["Info"] }}
+          </div>
         <l-map ref="map" :options="mapOptions" @update:center="centerUpdated" @update:zoom="zoomUpdated" @ready="onMapReady">
           <l-control-layers position="topright"></l-control-layers>
- 
+
+          <l-control position="bottomleft">
+            <div class="colorbar-box" :style="{fontSize: '14px' }">
+              <div v-if="metadata != undefined" >
+                <span>{{ metadata.Color_unit }}</span>
+              <br/>
+              </div>
+              <div class="colorbar" v-if="metadata != undefined" :style="{ display: 'flex', gap: '5px',  justifyContent: 'space-between' }">
+                <div :style="{ display: 'flex', flexDirection: 'column-reverse',  justifyContent: 'space-between', marginLeft: 'auto' }">
+                  <span>{{ Math.round(metadata.Color_minval) }}</span>
+                  <span>{{  Math.round((metadata.Color_minval + metadata.Color_maxval) / 2) }}</span>
+                 
+                  <span>{{ Math.round(metadata.Color_maxval) }}</span>
+                </div>
+                <div class="colorbar__item_wrapper">
+                  
+                  <div class="colorbar__item" v-for="color in metadata.Color_scale" v-bind:key="color" :style="{ backgroundColor: color, height: '20px', width: '20px' }"></div>
+                </div>
+              </div>
+            </div>
+
+          </l-control>
+
           <l-tile-layer
             v-for="tileProvider in tileProviders"
               :key="tileProvider.name"
@@ -14,6 +39,7 @@
               
             />
           <l-feature-group ref="raster-features"></l-feature-group>
+
         </l-map>
     </div>
 
@@ -24,11 +50,12 @@
 import 'leaflet/dist/leaflet.css'
 import Leaflet, { LatLngExpression, LatLngBounds, map } from 'leaflet'
 import { Component, Emit, Prop, Ref, Vue, Watch } from 'vue-property-decorator'
-import { LMap, LTileLayer, LPolyline, LWMSTileLayer, LControlLayers, LFeatureGroup } from 'vue2-leaflet'
+import { LMap, LTileLayer, LPolyline, LWMSTileLayer, LControlLayers, LFeatureGroup, LControl } from 'vue2-leaflet'
 import config from "@/config";
 import dayjs from "dayjs"
 import parseGeoraster from "georaster";
 import GeoRasterLayer from "georaster-layer-for-leaflet";
+import { MetaData } from '@/entities/MetaData';
 
 export interface TrajectoryLineMarker {
     latLngs: LatLngExpression[],
@@ -42,7 +69,8 @@ components: {
     LPolyline,
     LFeatureGroup,
     'l-wms-tile-layer': LWMSTileLayer,
-    LControlLayers
+    LControlLayers,
+    LControl
 }
 })
 export default class TrajectoryMap extends Vue {
@@ -56,6 +84,8 @@ export default class TrajectoryMap extends Vue {
     @Ref('raster-features')
     readonly $rasterFeatures?: LFeatureGroup
 
+    @Prop()
+    readonly metadata?: MetaData
 
     @Prop()
     readonly raster!: string
@@ -189,6 +219,35 @@ export default class TrajectoryMap extends Vue {
 <style lang="scss">
 $right_panel--width: 250px;
 
+.info-box {
+  background: #fff;
+  padding: 0.5em 0.5em;
+  border: 1px solid #aaa;
+  border-radius: 0.1em;
+  z-index: 1000;
+  right: 0;
+  max-width: 300px;
+  margin-right: 20px;
+  margin-top: 80px;
+  position: absolute;
+}
+
+.colorbar__item_wrapper {
+  display: flex;
+  
+  flex-direction: column-reverse;
+  height: 100%;
+}
+
+.colorbar-box {
+  background: #fff;
+  padding: 0.5em 0.5em;
+  border: 1px solid #aaa;
+  border-radius: 0.1em;
+  z-index: 1000;
+  min-height: 20px;
+  max-width: 300px;
+}
 .view-map {
   overflow: auto;
   position: unset;

@@ -13,6 +13,7 @@
             <v-col style="height: 100%; width: 100%; z-index: 10;">
               <raster-map  
               style="height: 100%" 
+              :metadata="metadata"
               :raster="raster" 
               :center="center"
               :zoom="zoom"
@@ -41,6 +42,9 @@ import KeepAliveQueryMixin, {
   IKeepAliveQueryMixin,
 } from '@/mixins/KeepAliveQuery'
 import { ModuleState } from '@/store';
+import { MetaData } from '@/entities/MetaData';
+import { RasterAPI } from '@/api/RasterAPI';
+import Raster from '@/entities/Raster';
 
 
 @Component({
@@ -55,10 +59,12 @@ export default class RasterView extends Vue {
   center: [ lat: number, lng: number ] = [0,  0]
   zoom: number = 2
   layer: string = ''
+  metadata?: MetaData
+  readonly rasterApi = new RasterAPI()
 
-  public handleFilterChange(data: {raster: string  }) {
+  public handleFilterChange(data: {raster: string, meta: MetaData }) {
     this.raster = data.raster
-
+    this.metadata = data.meta
     this.$router.replace({
       query: {
         raster: this.raster,
@@ -73,14 +79,22 @@ export default class RasterView extends Vue {
     }
   }
 
-
-
   public async mounted() {
     let query = this.$router.currentRoute.query
     this.raster = query.raster as string
     this.center = [parseFloat(query.lat as string) || 0, parseFloat(query.lng as string) || 0]
     this.zoom = parseInt(query.zoom as string) || 2
     this.layer = query.layer as string || ''
+
+    await this.getRasters()
+  }
+
+  public async getRasters() {
+    this.rasterApi.get_rasters().then((rasters: Raster[]) => {
+      let name = (this.raster.split("/").pop())?.split(".")[0]
+      this.metadata = rasters.find(r => r.name === name)?.metadata
+      this.$forceUpdate()
+    })
   }
 
   public handleLatLngChange(center: { lat: number; lng: number }) {
