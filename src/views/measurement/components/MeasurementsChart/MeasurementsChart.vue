@@ -328,10 +328,23 @@ export default class MeasurementsChart extends Vue {
     )
     if (!Object.keys(filterPollutants).length) filterPollutants = null
 
-    for (const pollutant of this.pollutants) {
+    const uniqueUnits = Array.from(new Set(this.measurements.map((m) => m.unit) ))
+
+    // gorup measurements by unit and use unit as keys
+    const measurementsByUnit = uniqueUnits.reduce((acc, unit) => {
+      if (!unit) return acc
+      acc[unit] = this.measurements.filter((m) => m.unit === unit)
+      return acc
+    }, {} as {[unit: string]: Measurement[]})
+ 
+
+    for (const unit in measurementsByUnit) {
+      const measurements = measurementsByUnit[unit]
+      if (!measurements.length) continue
+      for (const pollutant of this.pollutants) {
       if (!_valuePassesFilter(pollutant.id, filterPollutants)) continue
 
-      const rowId: string = pollutant.id
+      const rowId: string = pollutant.id 
       const cols: ChartCol[] = []
       let rowUnit: string = ''
 
@@ -346,13 +359,15 @@ export default class MeasurementsChart extends Vue {
         const last =
           i % this._cols === this._cols - 1 || i === this.cities.length - 1
         const chartTraces = this.genChartTraces(
+          measurements,
           city,
           pollutant,
           this.filterSourcesMap,
           this.filterStationsMap
         )
-
+        
         const tracesUnits: string[] = []
+        
         const data = chartTraces.traces.map((trace) => {
           if (trace.unit) tracesUnits.push(trace.unit)
           trace.x = trace.x.map((val) => new Date(val))
@@ -393,7 +408,7 @@ export default class MeasurementsChart extends Vue {
       }
 
       const row: ChartRow = {
-        id: rowId,
+        id: `${rowId}-${rowUnit}`,
         pollutantId: pollutant.id,
         title: pollutant.name,
         subtitle: rowUnit,
@@ -434,6 +449,9 @@ export default class MeasurementsChart extends Vue {
 
       rows.push(row)
     }
+    }
+    
+
 
     // set one grid range to all rows
     for (const row of rows) {
@@ -486,6 +504,7 @@ export default class MeasurementsChart extends Vue {
   }
 
   public genChartTraces(
+    measurements: Measurement[],
     city: City,
     pollutant: Pollutant,
     filterSourcesMap: {[sourceId: string]: boolean},
@@ -513,7 +532,7 @@ export default class MeasurementsChart extends Vue {
       [cityId]: {data: [], unit: ''},
     }
 
-    for (const measurement of this.measurements) {
+    for (const measurement of measurements) {
       let traceId: string | undefined
 
       switch (measurement.process_id) {
