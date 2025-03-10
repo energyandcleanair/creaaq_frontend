@@ -114,7 +114,7 @@
       top
     >
 
-    The data shown on this dashboard is not intended for public distribution or reliance without prior verification. Please contact energyandcleanair for approval before republishing or citing this information.
+    The data shown on this dashboard is not intended for public distribution or reliance without prior verification. Please contact data-team@energyandcleanair.org for approval before republishing or citing this information.
       <template v-slot:action="{ attrs }">
         <v-btn
           color="pink"
@@ -240,8 +240,10 @@ export default class App extends Mixins(KeepAliveQueryMixin) {
 
   public mounted() {
     this.checkConnectionToAPI()
-    const disclaimerClosed = localStorage.getItem('disclaimerClosed')
-    if (disclaimerClosed === 'true') {
+    const lastClosedDate = localStorage.getItem('disclaimerClosedDate')
+    const today = this.getToday()
+
+    if (lastClosedDate === today) {
       this.showDisclaimer = false
     } else {
       this.showDisclaimer = true
@@ -274,8 +276,19 @@ export default class App extends Mixins(KeepAliveQueryMixin) {
   }
 
   public closeDisclaimer() {
+    const today = this.getToday()
+    localStorage.setItem('disclaimerClosedDate', today)
     this.showDisclaimer = false
-    localStorage.setItem('disclaimerClosed', 'true')
+  }
+
+  private getToday(): string {
+    // Return YYYY-MM-DD format
+    const date = new Date()
+    // month is zero-based, so +1
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${year}-${month}-${day}`
   }
 }
 </script>
