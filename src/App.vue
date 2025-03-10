@@ -87,10 +87,11 @@
         </v-list>
       </v-menu>
     </v-app-bar>
-
+    
     <AppDrawer :open="!!$auth.currentUser" />
 
     <v-main>
+      
       <keep-alive
         :include="[
           'ViewMeasurements',
@@ -100,12 +101,31 @@
           'ViewTropomiNo2',
         ]"
       >
+      
         <RouterView :key="$route.path" />
       </keep-alive>
     </v-main>
 
     <CustomLoader />
+    <v-snackbar
+      v-model="showDisclaimer"
+      :timeout="-1"
+      color="primary"
+      top
+    >
 
+    The data shown on this dashboard is not intended for public distribution or reliance without prior verification. Please contact energyandcleanair for approval before republishing or citing this information.
+      <template v-slot:action="{ attrs }">
+        <v-btn
+          color="pink"
+          text
+          v-bind="attrs"
+          @click="closeDisclaimer"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
     <v-snackbar
       bottom
       left
@@ -157,6 +177,8 @@ export default class App extends Mixins(KeepAliveQueryMixin) {
   public mdiAccountCircle = mdiAccountCircle
   public mdiRefresh = mdiRefresh
   public isMenuOpen: boolean = false
+
+  public showDisclaimer: boolean = false
 
   public get userName(): string {
     return this.$auth.currentUser?.displayName || 'User'
@@ -218,6 +240,12 @@ export default class App extends Mixins(KeepAliveQueryMixin) {
 
   public mounted() {
     this.checkConnectionToAPI()
+    const disclaimerClosed = localStorage.getItem('disclaimerClosed')
+    if (disclaimerClosed === 'true') {
+      this.showDisclaimer = false
+    } else {
+      this.showDisclaimer = true
+    }
   }
 
   public checkConnectionToAPI() {
@@ -243,6 +271,11 @@ export default class App extends Mixins(KeepAliveQueryMixin) {
     this.isMenuOpen = false
     this.$trackGtmEvent('auth', 'logout')
     this.$auth.logout().then(() => this.$router.push({name: 'signIn'}))
+  }
+
+  public closeDisclaimer() {
+    this.showDisclaimer = false
+    localStorage.setItem('disclaimerClosed', 'true')
   }
 }
 </script>
